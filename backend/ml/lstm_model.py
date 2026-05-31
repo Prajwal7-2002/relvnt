@@ -32,16 +32,14 @@ class LSTMModel:
         try:
             model = tf.keras.Sequential(
                 [
-                    tf.keras.layers.Input(shape=input_shape),
                     tf.keras.layers.LSTM(
                         64,
                         return_sequences=True,
+                        input_shape=input_shape,
                         dropout=0.2,
-                        recurrent_dropout=0.1,
                     ),
-                    tf.keras.layers.LSTM(32, return_sequences=False, dropout=0.2),
+                    tf.keras.layers.LSTM(32, dropout=0.2),
                     tf.keras.layers.Dense(16, activation="relu"),
-                    tf.keras.layers.Dropout(0.3),
                     tf.keras.layers.Dense(n_classes, activation="softmax"),
                 ]
             )
@@ -70,12 +68,15 @@ class LSTMModel:
             checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
             callbacks = [
                 tf.keras.callbacks.EarlyStopping(
-                    monitor="val_loss", patience=10, restore_best_weights=True
+                    monitor="val_accuracy",
+                    patience=5,
+                    restore_best_weights=True,
                 ),
                 tf.keras.callbacks.ModelCheckpoint(
                     filepath=str(checkpoint_path),
                     save_best_only=True,
-                    monitor="val_loss",
+                    monitor="val_accuracy",
+                    mode="max",
                 ),
             ]
 
@@ -84,7 +85,7 @@ class LSTMModel:
                 y_train,
                 validation_data=(X_val, y_val),
                 epochs=epochs,
-                batch_size=32,
+                batch_size=64,
                 callbacks=callbacks,
             )
 

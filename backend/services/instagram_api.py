@@ -1,16 +1,27 @@
 import os
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pandas as pd
 import requests
 from dotenv import load_dotenv
 
 
-load_dotenv()
+env_path = Path(__file__).parent.parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 ACCESS_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN")
 BUSINESS_ID = os.getenv("INSTAGRAM_BUSINESS_ID")
 BASE_URL = "https://graph.facebook.com/v25.0"
+
+if not ACCESS_TOKEN or not BUSINESS_ID:
+    print("ERROR: Instagram credentials missing from .env")
+    print(f"Looking for .env at: {env_path}")
+    print(f"ACCESS_TOKEN found: {bool(ACCESS_TOKEN)}")
+    print(f"BUSINESS_ID found: {bool(BUSINESS_ID)}")
+else:
+    print("Credentials loaded successfully")
+    print(f"BUSINESS_ID: {BUSINESS_ID}")
 
 
 def get_reach_data(since: str, until: str):

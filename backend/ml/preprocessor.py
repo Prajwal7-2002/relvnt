@@ -7,6 +7,7 @@ class DataPreprocessor:
     def __init__(self):
         self.scaler = MinMaxScaler()
         self.window_size = 14
+        self.random_seed = 42
         self.is_fitted = False
 
     def create_sequences(self, data, labels):
@@ -30,13 +31,36 @@ class DataPreprocessor:
                 raise ValueError("Not enough rows to create training sequences")
 
             reach = df["reach"].astype(float).values.reshape(-1, 1)
-            labels = df["label"].astype(int).values
             scaled_reach = self.scaler.fit_transform(reach)
             self.is_fitted = True
 
-            X, y = self.create_sequences(scaled_reach, labels)
+            scaled_df = df.copy()
+            scaled_df["scaled_reach"] = scaled_reach.reshape(-1)
+
+            if "creator_id" in scaled_df.columns:
+                X_parts, y_parts = [], []
+                for _, creator_df in scaled_df.groupby("creator_id", sort=False):
+                    creator_df = creator_df.sort_values("day") if "day" in creator_df.columns else creator_df
+                    creator_data = creator_df["scaled_reach"].values.reshape(-1, 1)
+                    creator_labels = creator_df["label"].astype(int).values
+                    X_creator, y_creator = self.create_sequences(creator_data, creator_labels)
+                    if len(X_creator) > 0:
+                        X_parts.append(X_creator)
+                        y_parts.append(y_creator)
+                if not X_parts:
+                    raise ValueError("No creator produced enough rows for sequences")
+                X = np.concatenate(X_parts, axis=0)
+                y = np.concatenate(y_parts, axis=0)
+            else:
+                labels = scaled_df["label"].astype(int).values
+                X, y = self.create_sequences(scaled_reach, labels)
+
             if len(X) == 0:
                 raise ValueError("Sequence creation produced no samples")
+
+            np.random.seed(self.random_seed)
+            indices = np.random.permutation(len(X))
+            X, y = X[indices], y[indices]
 
             split_idx = int(len(X) * 0.8)
             X_train, X_test = X[:split_idx], X[split_idx:]
