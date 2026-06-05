@@ -4,8 +4,6 @@ __pycache__/
 *.pyo
 venv/
 .DS_Store
-backend/ml/saved_models/*.h5
-backend/ml/saved_models/*.pkl
 data/synthetic/*.csv
 frontend/.env.local
 frontend/node_modules/
