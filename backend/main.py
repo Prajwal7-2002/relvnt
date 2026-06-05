@@ -13,6 +13,7 @@ app = FastAPI(title="Relvnt", version="0.1.0")
 
 MODEL_PATH = Path("ml") / "saved_models" / "lstm_v1.h5"
 PREPROCESSOR_PATH = Path("ml") / "saved_models" / "preprocessor_v1.pkl"
+USERNAME = "prajwal_p_7"
 
 
 def print_health_report(result):
@@ -46,7 +47,8 @@ def train_layer_one_model(epochs=50):
         MODEL_PATH.parent.mkdir(parents=True, exist_ok=True)
         lstm.save_model(str(MODEL_PATH))
         preprocessor.save(str(PREPROCESSOR_PATH))
-        return df, preprocessor, lstm
+        print("Model trained and saved")
+        return preprocessor, lstm
     except Exception as exc:
         print(f"Layer 1 training failed: {exc}")
         raise
@@ -60,7 +62,8 @@ def load_or_train_model():
         if MODEL_PATH.exists() and PREPROCESSOR_PATH.exists():
             preprocessor.load(str(PREPROCESSOR_PATH))
             lstm.load_model(str(MODEL_PATH))
-            return None, preprocessor, lstm
+            print("Model loaded from cache")
+            return preprocessor, lstm
 
         print("Saved model or preprocessor not found. Training Layer 1 model.")
         return train_layer_one_model()
@@ -69,32 +72,42 @@ def load_or_train_model():
         raise
 
 
-def get_prediction_input(fallback_df=None):
+def _format_reach_data(df):
+    reach_data = []
+    for _, row in df.iterrows():
+        date_value = pd.to_datetime(row["date"]).date().isoformat()
+        reach_data.append({"date": date_value, "reach": int(row["reach"])})
+    return reach_data
+
+
+def get_prediction_input():
     try:
         real_df = get_90_days_reach()
         if real_df.empty:
-            print("No Instagram data available. Using synthetic sample for demo.")
-            if fallback_df is None or fallback_df.empty:
-                fallback_df = generate_creator_dataset(n_creators=1)
-            sample_df = fallback_df.tail(14).copy()
-            return pd.to_numeric(sample_df["reach"], errors="coerce").fillna(0).values
+            raise ValueError("No Instagram reach data available for prediction")
 
         if len(real_df) < 14:
             raise ValueError("Instagram data must include at least 14 days")
-        return real_df["reach"].values[-14:]
+        return real_df["reach"].values[-14:], real_df, "instagram"
     except Exception as exc:
         print(f"Failed to prepare prediction input: {exc}")
         raise
 
 
-def analyze_reach(preprocessor=None, lstm=None, fallback_df=None, print_report=True):
+def analyze_reach(preprocessor=None, lstm=None, print_report=True):
     try:
         if preprocessor is None or lstm is None:
-            fallback_df, preprocessor, lstm = load_or_train_model()
+            preprocessor, lstm = load_or_train_model()
 
-        reach_values = get_prediction_input(fallback_df=fallback_df)
+        reach_values, reach_df, data_source = get_prediction_input()
         X_real = preprocessor.transform(reach_values)
         result = lstm.predict_health_score(X_real)
+        result = {
+            "username": USERNAME,
+            **result,
+            "data_source": data_source,
+            "reach_data": _format_reach_data(reach_df),
+        }
 
         if print_report:
             print_health_report(result)
@@ -116,8 +129,8 @@ def analyze():
 
 def main():
     print("Relvnt - Starting Layer 1 MVP")
-    df, preprocessor, lstm = train_layer_one_model()
-    analyze_reach(preprocessor=preprocessor, lstm=lstm, fallback_df=df)
+    preprocessor, lstm = load_or_train_model()
+    analyze_reach(preprocessor=preprocessor, lstm=lstm)
 
 
 if __name__ == "__main__":

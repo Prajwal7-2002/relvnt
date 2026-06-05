@@ -1,0 +1,21 @@
+{
+  "name": "relvnt-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@tailwindcss/postcss": "latest",
+    "autoprefixer": "latest",
+    "next": "14.x",
+    "postcss": "latest",
+    "react": "18.x",
+    "react-dom": "18.x",
+    "recharts": "latest",
+    "tailwindcss": "latest"
+  },
+  "devDependencies": {}
+}

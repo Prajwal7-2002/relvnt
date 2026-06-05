@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 from dotenv import load_dotenv
+from requests import HTTPError
 
 
 env_path = Path(__file__).parent.parent / ".env"
@@ -56,6 +57,20 @@ def get_reach_data(since: str, until: str):
         df["date"] = pd.to_datetime(df["date"]).dt.normalize()
         df["reach"] = pd.to_numeric(df["reach"], errors="coerce").fillna(0).astype(int)
         return df.sort_values("date").reset_index(drop=True)
+    except HTTPError as exc:
+        status_code = exc.response.status_code if exc.response is not None else "unknown"
+        error_message = str(exc)
+        if exc.response is not None:
+            try:
+                error_payload = exc.response.json()
+                error_message = error_payload.get("error", {}).get("message", error_message)
+            except ValueError:
+                error_message = exc.response.text[:300]
+        print(
+            "Instagram API error "
+            f"for {since} to {until}: status={status_code}, message={error_message}"
+        )
+        return pd.DataFrame(columns=["date", "reach"])
     except Exception as exc:
         print(f"Instagram API error for {since} to {until}: {exc}")
         return pd.DataFrame(columns=["date", "reach"])

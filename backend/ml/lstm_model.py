@@ -1,10 +1,16 @@
 from pathlib import Path
 
+import matplotlib
 import numpy as np
 import tensorflow as tf
+from sklearn.metrics import classification_report
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 
 
 LABELS = ["normal", "pre_shock", "shock", "recovering"]
+SAVED_MODELS_DIR = Path("ml") / "saved_models"
 
 ACTIONS = {
     "normal": "Your reach is stable. Keep your current posting schedule.",
@@ -57,6 +63,49 @@ class LSTMModel:
             print(f"Failed to build LSTM model: {exc}")
             raise
 
+    def _save_training_plots(self, history):
+        try:
+            SAVED_MODELS_DIR.mkdir(parents=True, exist_ok=True)
+            epochs = range(1, len(history.history.get("accuracy", [])) + 1)
+
+            plt.figure(figsize=(10, 6))
+            plt.plot(epochs, history.history.get("accuracy", []), color="blue", label="Training accuracy")
+            plt.plot(
+                epochs,
+                history.history.get("val_accuracy", []),
+                color="orange",
+                label="Validation accuracy",
+            )
+            plt.xlabel("epochs")
+            plt.ylabel("accuracy")
+            plt.title("Training vs Validation Accuracy")
+            plt.legend()
+            plt.tight_layout()
+            accuracy_path = SAVED_MODELS_DIR / "accuracy_curve.png"
+            plt.savefig(accuracy_path)
+            plt.close()
+            print(f"Accuracy curve saved to {accuracy_path}")
+
+            plt.figure(figsize=(10, 6))
+            plt.plot(epochs, history.history.get("loss", []), color="blue", label="Training loss")
+            plt.plot(
+                epochs,
+                history.history.get("val_loss", []),
+                color="orange",
+                label="Validation loss",
+            )
+            plt.xlabel("epochs")
+            plt.ylabel("loss")
+            plt.title("Training vs Validation Loss")
+            plt.legend()
+            plt.tight_layout()
+            loss_path = SAVED_MODELS_DIR / "loss_curve.png"
+            plt.savefig(loss_path)
+            plt.close()
+            print(f"Loss curve saved to {loss_path}")
+        except Exception as exc:
+            print(f"Failed to save training plots: {exc}")
+
     def train(self, X_train, y_train, X_val, y_val, epochs=50):
         try:
             if self.model is None:
@@ -64,7 +113,7 @@ class LSTMModel:
             if len(X_train) == 0 or len(X_val) == 0:
                 raise ValueError("Training and validation data cannot be empty")
 
-            checkpoint_path = Path("ml") / "saved_models" / "lstm_v1.h5"
+            checkpoint_path = SAVED_MODELS_DIR / "lstm_v1.h5"
             checkpoint_path.parent.mkdir(parents=True, exist_ok=True)
             callbacks = [
                 tf.keras.callbacks.EarlyStopping(
@@ -95,6 +144,18 @@ class LSTMModel:
             print("Training complete")
             print(f"Final val_accuracy: {final_val_accuracy:.4f}")
             print(f"Final val_loss: {final_val_loss:.4f}")
+            self._save_training_plots(history)
+
+            predictions = self.model.predict(X_val, verbose=0)
+            pred_classes = np.argmax(predictions, axis=1)
+            print(
+                classification_report(
+                    y_val,
+                    pred_classes,
+                    target_names=LABELS,
+                    zero_division=0,
+                )
+            )
             return history
         except Exception as exc:
             print(f"Failed to train LSTM model: {exc}")
