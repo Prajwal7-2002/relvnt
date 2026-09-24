@@ -154,5 +154,5 @@ This MVP is a strong base for expanding into:
 - alerts for reach drops or unusual spikes
 - a better historical model training pipeline
 
-If you want, the next step could be turning this into a cleaner production-ready app with better onboarding, account management, and a more robust ML pipeline.
+
 
