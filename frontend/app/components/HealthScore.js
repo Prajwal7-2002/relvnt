@@ -3,16 +3,16 @@
 import { useEffect, useState } from "react";
 
 function scoreColor(score) {
-  if (score >= 70) return "#10B981";
-  if (score >= 40) return "#F59E0B";
-  return "#EF4444";
+  if (score >= 70) return "#10B981"; // Emerald
+  if (score >= 40) return "#F59E0B"; // Amber
+  return "#F43F5E"; // Coral Rose
 }
 
 export default function HealthScore({ data }) {
   const [mounted, setMounted] = useState(false);
   const score = Number(data.health_score || 0);
   const color = scoreColor(score);
-  const radius = 86;
+  const radius = 80;
   const circumference = 2 * Math.PI * radius;
   const offset = mounted ? circumference - (score / 100) * circumference : circumference;
 
@@ -32,22 +32,22 @@ export default function HealthScore({ data }) {
       </div>
 
       <div className="score-ring">
-        <svg viewBox="0 0 220 220">
+        <svg viewBox="0 0 200 200">
           <circle
-            cx="110"
-            cy="110"
+            cx="100"
+            cy="100"
             r={radius}
             fill="transparent"
-            stroke="#262626"
-            strokeWidth="16"
+            stroke="#1F1F24"
+            strokeWidth="14"
           />
           <circle
-            cx="110"
-            cy="110"
+            cx="100"
+            cy="100"
             r={radius}
             fill="transparent"
             stroke={color}
-            strokeWidth="16"
+            strokeWidth="14"
             strokeLinecap="round"
             strokeDasharray={circumference}
             strokeDashoffset={offset}
@@ -62,10 +62,17 @@ export default function HealthScore({ data }) {
 
       <div className="score-details">
         <p className="score-user">{displayUser}</p>
-        <p className="score-prediction-pill" style={{ color: color, borderColor: `${color}40` }}>
-          {String(data.prediction || "normal").replace("_", " ").toUpperCase()}
-        </p>
-        <p className="score-subtext">Algorithm Health & Velocity Index</p>
+        <div
+          className="score-prediction-pill"
+          style={{
+            color: color,
+            borderColor: `${color}35`,
+            background: `${color}10`,
+          }}
+        >
+          ● {String(data.prediction || "normal").replace("_", " ").toUpperCase()}
+        </div>
+        <p className="score-subtext">Algorithmic Distribution & Velocity Index</p>
       </div>
     </section>
   );
