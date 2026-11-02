@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react";
 
 function scoreColor(score) {
-  if (score >= 70) return "#1D9E75";
-  if (score >= 40) return "#EF9F27";
-  return "#E24B4A";
+  if (score >= 70) return "#10B981";
+  if (score >= 40) return "#F59E0B";
+  return "#EF4444";
 }
 
 export default function HealthScore({ data }) {
@@ -21,8 +21,16 @@ export default function HealthScore({ data }) {
     return () => cancelAnimationFrame(frame);
   }, []);
 
+  const displayUser = data.account_name || data.username || "Client Account";
+  const platformName = (data.platform || "Platform").toUpperCase();
+
   return (
     <section className="health-card">
+      <div className="health-card-top">
+        <span className="health-platform-tag">{platformName}</span>
+        <span className="health-metric-tag">{(data.metric_type || "Metric").toUpperCase()}</span>
+      </div>
+
       <div className="score-ring">
         <svg viewBox="0 0 220 220">
           <circle
@@ -30,7 +38,7 @@ export default function HealthScore({ data }) {
             cy="110"
             r={radius}
             fill="transparent"
-            stroke="#303030"
+            stroke="#262626"
             strokeWidth="16"
           />
           <circle
@@ -48,13 +56,17 @@ export default function HealthScore({ data }) {
         </svg>
         <div className="score-value">
           <span>{score}</span>
+          <small>/100</small>
         </div>
       </div>
 
-      <p className="score-user">@{data.username}</p>
-      <p className="score-prediction">
-        {String(data.prediction || "").replace("_", " ")}
-      </p>
+      <div className="score-details">
+        <p className="score-user">{displayUser}</p>
+        <p className="score-prediction-pill" style={{ color: color, borderColor: `${color}40` }}>
+          {String(data.prediction || "normal").replace("_", " ").toUpperCase()}
+        </p>
+        <p className="score-subtext">Algorithm Health & Velocity Index</p>
+      </div>
     </section>
   );
 }
