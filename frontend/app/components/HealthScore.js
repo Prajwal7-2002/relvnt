@@ -35,6 +35,7 @@ export default function HealthScore({ data }) {
   const displayUser = data.account_name || data.username || "Client Target";
   const platformName = String(data.platform || "Platform").toUpperCase();
   const metricType = String(data.metric_type || "Metric").toUpperCase();
+  const mlScore = Math.round((metrics.ml_anomaly_score || 0.1) * 100);
 
   return (
     <section className="health-card">
@@ -89,16 +90,18 @@ export default function HealthScore({ data }) {
           <span className="telemetry-val">{platformName} • {metricType}</span>
         </div>
         <div className="telemetry-row">
+          <span className="telemetry-key">ML ENSEMBLE</span>
+          <span className="telemetry-val" style={{ color: metrics.ml_flagged ? "#EF4444" : "#10B981" }}>
+            IsolationForest ({mlScore}% Anomaly Prob)
+          </span>
+        </div>
+        <div className="telemetry-row">
           <span className="telemetry-key">SEASONALITY FILTER</span>
           <span className="telemetry-val">DOW Normalized</span>
         </div>
         <div className="telemetry-row">
           <span className="telemetry-key">OUTLIER RESISTANCE</span>
           <span className="telemetry-val">Winsorized P90 Median</span>
-        </div>
-        <div className="telemetry-row">
-          <span className="telemetry-key">VOLATILITY VECTOR</span>
-          <span className="telemetry-val">{metrics.volatility_index || 0}% Volatility</span>
         </div>
         <div className="telemetry-row">
           <span className="telemetry-key">INFERENCE CONFIDENCE</span>
