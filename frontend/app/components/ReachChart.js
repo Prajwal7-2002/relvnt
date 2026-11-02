@@ -4,8 +4,6 @@ import { useMemo, useState } from "react";
 import {
   Area,
   AreaChart,
-  Line,
-  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -26,7 +24,7 @@ function formatDate(value) {
 function getMetricColor(alertLevel) {
   if (alertLevel === "green") return "#10B981"; // Emerald
   if (alertLevel === "yellow") return "#F59E0B"; // Amber
-  return "#EF4444"; // Crimson
+  return "#F43F5E"; // Coral
 }
 
 export default function ReachChart({ data }) {
@@ -53,32 +51,32 @@ export default function ReachChart({ data }) {
     <section className="chart-card">
       <div className="chart-header">
         <div className="chart-title-area">
-          <h2>{metricType} Performance Trajectory &amp; Baseline</h2>
+          <h2>Distribution Velocity Trajectory</h2>
           <p className="chart-subhead">
-            Tracking observed trajectory vs. seasonality-normalized median expectation
+            Tracking observed {metricType} against seasonality-normalized baseline expectations
           </p>
         </div>
 
         <div className="chart-controls">
           <div className="chart-legend">
             <div className="legend-item">
-              <span className="legend-dot" style={{ backgroundColor: color }} />
-              <span>Observed</span>
+              <span className="legend-indicator" style={{ backgroundColor: color }} />
+              <span>Observed Run-Rate</span>
             </div>
             <div className="legend-item">
               <span
-                className="legend-dot"
+                className="legend-indicator"
                 style={{
-                  backgroundColor: "#64748B",
-                  borderStyle: "dashed",
+                  backgroundColor: "#71717A",
+                  borderTop: "1px dashed #A1A1AA",
                 }}
               />
-              <span>Baseline</span>
+              <span>Baseline Model</span>
             </div>
             {data.anomalies?.length > 0 && (
               <div className="legend-item">
-                <span className="legend-dot" style={{ backgroundColor: "#EF4444" }} />
-                <span>Outlier ({data.anomalies.length})</span>
+                <span className="legend-indicator" style={{ backgroundColor: "#F43F5E" }} />
+                <span>Outlier Cluster ({data.anomalies.length})</span>
               </div>
             )}
           </div>
@@ -87,10 +85,10 @@ export default function ReachChart({ data }) {
 
       <div className="chart-frame">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 10, right: 12, left: -8, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 12, right: 14, left: -6, bottom: 0 }}>
             <defs>
-              <linearGradient id="metricFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor={color} stopOpacity={0.18} />
+              <linearGradient id="presentationFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.22} />
                 <stop offset="95%" stopColor={color} stopOpacity={0.0} />
               </linearGradient>
             </defs>
@@ -100,15 +98,15 @@ export default function ReachChart({ data }) {
               tickFormatter={formatDate}
               interval="preserveStartEnd"
               minTickGap={32}
-              tick={{ fill: "#64748B", fontSize: 11, fontFamily: "var(--font-mono)" }}
+              tick={{ fill: "#71717A", fontSize: 11.5, fontFamily: "var(--font-sans)" }}
               axisLine={{ stroke: "rgba(255, 255, 255, 0.08)" }}
               tickLine={{ stroke: "rgba(255, 255, 255, 0.08)" }}
             />
             <YAxis
-              tick={{ fill: "#64748B", fontSize: 11, fontFamily: "var(--font-mono)" }}
+              tick={{ fill: "#71717A", fontSize: 11.5, fontFamily: "var(--font-mono)" }}
               axisLine={{ stroke: "rgba(255, 255, 255, 0.08)" }}
               tickLine={{ stroke: "rgba(255, 255, 255, 0.08)" }}
-              width={54}
+              width={56}
               tickFormatter={(v) =>
                 isRoas
                   ? `${v}x`
@@ -119,7 +117,7 @@ export default function ReachChart({ data }) {
             />
 
             <Tooltip
-              cursor={{ stroke: "rgba(255, 255, 255, 0.15)", strokeDasharray: "3 3" }}
+              cursor={{ stroke: "rgba(255, 255, 255, 0.18)", strokeDasharray: "3 3" }}
               content={({ active, payload }) => {
                 if (!active || !payload || !payload.length) return null;
                 const pt = payload[0].payload;
@@ -137,33 +135,38 @@ export default function ReachChart({ data }) {
                 return (
                   <div
                     style={{
-                      background: "#0D0F13",
-                      border: "1px solid rgba(255, 255, 255, 0.14)",
-                      borderRadius: "6px",
-                      padding: "10px 14px",
-                      boxShadow: "0 12px 32px rgba(0,0,0,0.8)",
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "12px",
-                      minWidth: "180px",
+                      background: "#161920",
+                      border: "1px solid rgba(255, 255, 255, 0.16)",
+                      borderRadius: "8px",
+                      padding: "12px 16px",
+                      boxShadow: "0 16px 40px rgba(0, 0, 0, 0.75)",
+                      fontSize: "12.5px",
+                      minWidth: "200px",
                     }}
                   >
-                    <div style={{ color: "#94A3B8", marginBottom: "6px", fontSize: "11px" }}>
+                    <div style={{ color: "#A1A1AA", marginBottom: "8px", fontSize: "11.5px" }}>
                       {formatDate(pt.date)} ({pt.date})
                     </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                      <span style={{ color: "#64748B" }}>Observed:</span>
-                      <span style={{ color: "#F1F5F9", fontWeight: 600 }}>{actual}</span>
+                    <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
+                      <span style={{ color: "#71717A" }}>Observed:</span>
+                      <span style={{ color: "#F4F4F6", fontWeight: 600 }} className="tabular-nums">{actual}</span>
                     </div>
                     {baseline && (
-                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                        <span style={{ color: "#64748B" }}>Baseline:</span>
-                        <span style={{ color: "#94A3B8" }}>{baseline}</span>
+                      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "5px" }}>
+                        <span style={{ color: "#71717A" }}>Model Baseline:</span>
+                        <span style={{ color: "#A1A1AA" }} className="tabular-nums">{baseline}</span>
                       </div>
                     )}
                     {delta && (
                       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                        <span style={{ color: "#64748B" }}>Divergence:</span>
-                        <span style={{ color: Number(delta) < 0 ? "#EF4444" : "#10B981" }}>
+                        <span style={{ color: "#71717A" }}>Variance Delta:</span>
+                        <span
+                          className="tabular-nums"
+                          style={{
+                            color: Number(delta) < 0 ? "#F43F5E" : "#10B981",
+                            fontWeight: 600,
+                          }}
+                        >
                           {Number(delta) > 0 ? "+" : ""}{delta}%
                         </span>
                       </div>
@@ -171,15 +174,15 @@ export default function ReachChart({ data }) {
                     {isAnomaly && (
                       <div
                         style={{
-                          marginTop: "6px",
-                          paddingTop: "6px",
+                          marginTop: "8px",
+                          paddingTop: "8px",
                           borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-                          color: "#EF4444",
+                          color: "#F43F5E",
                           fontSize: "11px",
                           fontWeight: 600,
                         }}
                       >
-                        [ANOMALY_OUTLIER_DETECTED]
+                        ● Statistical Anomaly Outlier
                       </div>
                     )}
                   </div>
@@ -187,22 +190,22 @@ export default function ReachChart({ data }) {
               }}
             />
 
-            {/* Observed trajectory area */}
+            {/* Observed trajectory curve */}
             <Area
               type="monotone"
               dataKey="reach"
               stroke={color}
-              strokeWidth={2}
-              fill="url(#metricFill)"
+              strokeWidth={2.5}
+              fill="url(#presentationFill)"
               isAnimationActive={false}
             />
 
-            {/* Baseline comparison curve */}
+            {/* Seasonality-adjusted baseline */}
             {chartData[0]?.baseline && (
               <Area
                 type="monotone"
                 dataKey="baseline"
-                stroke="#64748B"
+                stroke="#71717A"
                 strokeWidth={1.5}
                 strokeDasharray="4 4"
                 fill="none"
