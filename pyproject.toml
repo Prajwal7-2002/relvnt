@@ -1,0 +1,20 @@
+[project]
+name = "relvnt"
+version = "0.2.0"
+description = "Relvnt AI Anomaly & Performance Sentinel for Social and Ad Growth"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn>=0.29.0",
+    "python-dotenv>=1.0.1",
+    "requests>=2.31.0",
+    "python-multipart>=0.0.9",
+    "scikit-learn>=1.4.0",
+    "numpy>=1.26.4",
+    "pandas>=2.2.0",
+    "scipy>=1.13.0",
+]
+
+[tool.uv]
+package = false

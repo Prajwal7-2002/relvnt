@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Optional
 
 import pandas as pd
 import requests
@@ -11,32 +12,28 @@ from requests import HTTPError
 env_path = Path(__file__).parent.parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-ACCESS_TOKEN = os.getenv("INSTAGRAM_ACCESS_TOKEN")
-BUSINESS_ID = os.getenv("INSTAGRAM_BUSINESS_ID")
 BASE_URL = "https://graph.facebook.com/v25.0"
 
-if not ACCESS_TOKEN or not BUSINESS_ID:
-    print("ERROR: Instagram credentials missing from .env")
-    print(f"Looking for .env at: {env_path}")
-    print(f"ACCESS_TOKEN found: {bool(ACCESS_TOKEN)}")
-    print(f"BUSINESS_ID found: {bool(BUSINESS_ID)}")
-else:
-    print("Credentials loaded successfully")
-    print(f"BUSINESS_ID: {BUSINESS_ID}")
+
+def get_credentials(token: Optional[str] = None, business_id: Optional[str] = None):
+    access_token = token or os.getenv("INSTAGRAM_ACCESS_TOKEN")
+    b_id = business_id or os.getenv("INSTAGRAM_BUSINESS_ID")
+    return access_token, b_id
 
 
-def get_reach_data(since: str, until: str):
+def get_reach_data(since: str, until: str, access_token: Optional[str] = None, business_id: Optional[str] = None):
     try:
-        if not ACCESS_TOKEN or not BUSINESS_ID:
-            raise ValueError("Instagram credentials are missing from .env")
+        token, b_id = get_credentials(access_token, business_id)
+        if not token or not b_id:
+            return pd.DataFrame(columns=["date", "reach"])
 
-        url = f"{BASE_URL}/{BUSINESS_ID}/insights"
+        url = f"{BASE_URL}/{b_id}/insights"
         params = {
             "metric": "reach",
             "period": "day",
             "since": since,
             "until": until,
-            "access_token": ACCESS_TOKEN,
+            "access_token": token,
         }
         response = requests.get(url, params=params, timeout=30)
         response.raise_for_status()
@@ -57,26 +54,12 @@ def get_reach_data(since: str, until: str):
         df["date"] = pd.to_datetime(df["date"]).dt.normalize()
         df["reach"] = pd.to_numeric(df["reach"], errors="coerce").fillna(0).astype(int)
         return df.sort_values("date").reset_index(drop=True)
-    except HTTPError as exc:
-        status_code = exc.response.status_code if exc.response is not None else "unknown"
-        error_message = str(exc)
-        if exc.response is not None:
-            try:
-                error_payload = exc.response.json()
-                error_message = error_payload.get("error", {}).get("message", error_message)
-            except ValueError:
-                error_message = exc.response.text[:300]
-        print(
-            "Instagram API error "
-            f"for {since} to {until}: status={status_code}, message={error_message}"
-        )
-        return pd.DataFrame(columns=["date", "reach"])
     except Exception as exc:
-        print(f"Instagram API error for {since} to {until}: {exc}")
+        print(f"Instagram API request error ({since} to {until}): {exc}")
         return pd.DataFrame(columns=["date", "reach"])
 
 
-def get_90_days_reach():
+def get_90_days_reach(access_token: Optional[str] = None, business_id: Optional[str] = None):
     try:
         today = datetime.now().date()
         ranges = [
@@ -86,11 +69,11 @@ def get_90_days_reach():
         ]
 
         frames = [
-            get_reach_data(start.isoformat(), end.isoformat()) for start, end in ranges
+            get_reach_data(start.isoformat(), end.isoformat(), access_token, business_id)
+            for start, end in ranges
         ]
         final_df = pd.concat(frames, ignore_index=True)
         if final_df.empty:
-            print("Fetched 0 days of reach data")
             return pd.DataFrame(columns=["date", "reach"])
 
         final_df = (
@@ -98,12 +81,7 @@ def get_90_days_reach():
             .sort_values("date")
             .reset_index(drop=True)
         )
-        print(f"Fetched {len(final_df)} days of reach data")
         return final_df
     except Exception as exc:
         print(f"Failed to fetch 90 days of Instagram reach data: {exc}")
         return pd.DataFrame(columns=["date", "reach"])
-
-
-if __name__ == "__main__":
-    print(get_90_days_reach().tail())
