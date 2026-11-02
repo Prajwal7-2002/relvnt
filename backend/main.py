@@ -2,6 +2,7 @@ import logging
 import re
 from typing import Any, Dict, List, Optional
 
+import requests
 from fastapi import FastAPI, File, HTTPException, Query, Request, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -122,6 +123,27 @@ class CopilotResponse(BaseModel):
     answer: str
     engine: str
     governance: Optional[str] = "Zero-Data-Leak Enclave"
+
+
+class GoogleSheetPayload(BaseModel):
+    sheet_url: str = Field(..., description="Google Sheets share URL or publish link")
+    metric_type: Optional[str] = "reach"
+    account_name: Optional[str] = "Google Sheet Sync"
+
+
+class InstagramConnectPayload(BaseModel):
+    access_token: Optional[str] = None
+    business_id: Optional[str] = None
+    account_name: Optional[str] = "Connected Instagram Account"
+
+
+class SlackAlertPayload(BaseModel):
+    webhook_url: str = Field(..., description="Incoming Slack Webhook URL")
+    account_name: str = "Client Account"
+    health_score: int = 50
+    alert_level: str = "yellow"
+    diagnosis: str = "Performance shift detected."
+    action_plan: str = "Review recent asset delivery."
 
 
 # --- API Routes ---
@@ -278,3 +300,162 @@ def copilot_query(payload: CopilotQuery):
         diagnosis=payload.diagnosis or "",
     )
     return res
+
+
+@app.post("/analyze/sheet", response_model=AnalysisResponse, tags=["Plug-and-Play Integrations"], status_code=status.HTTP_200_OK)
+def analyze_google_sheet(payload: GoogleSheetPayload):
+    """
+    1-Click Google Sheets Auto-Sync:
+    Normalizes any public or shared Google Sheets link to its live CSV export endpoint,
+    parses time-series data without manual export, and executes anomaly evaluation.
+    """
+    raw_url = payload.sheet_url.strip()
+    sheet_id_match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", raw_url)
+    if not sheet_id_match:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Google Sheet URL. Please provide a standard Google Sheets sharing link.",
+        )
+
+    sheet_id = sheet_id_match.group(1)
+    # Extract optional gid (sheet tab) if present
+    gid_match = re.search(r"[#&]gid=([0-9]+)", raw_url)
+    gid = gid_match.group(1) if gid_match else "0"
+    export_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+
+    try:
+        res = requests.get(export_url, timeout=15)
+        if res.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Unable to fetch Google Sheet. Please ensure the link is set to 'Anyone with the link can view'.",
+            )
+
+        clean_df, date_col, val_col = DefensiveCSVParser.parse(
+            file_bytes=res.content,
+            filename="google_sheet.csv",
+            preferred_metric=payload.metric_type or "reach",
+        )
+
+        acc = payload.account_name or "Google Sheet Roster"
+        analysis = engine.analyze_series(
+            dates=clean_df["date"].tolist(),
+            values=clean_df["value"].tolist(),
+            metric_type=payload.metric_type or "reach",
+            account_name=acc,
+            platform="google_sheets",
+        )
+        analysis["username"] = acc
+        analysis["data_source"] = "google_sheets_live"
+        analysis["detected_columns"] = {"date": date_col, "metric": val_col}
+        return analysis
+    except ValueError as val_err:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(val_err))
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Error processing Google Sheet sync: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to sync Google Sheet: {str(exc)}",
+        )
+
+
+@app.post("/analyze/instagram", response_model=AnalysisResponse, tags=["Plug-and-Play Integrations"], status_code=status.HTTP_200_OK)
+def analyze_instagram_live(payload: InstagramConnectPayload):
+    """
+    1-Click Instagram Insights Live Sync:
+    Pulls the last 90 days of daily reach directly from Meta Graph API using the provided token or server credentials.
+    """
+    try:
+        live_df = get_90_days_reach(access_token=payload.access_token, business_id=payload.business_id)
+        if live_df.empty or len(live_df) < 7:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No reach insights returned from Meta Graph API. Please verify the account is an Instagram Business or Creator account.",
+            )
+
+        acc = payload.account_name or "Connected Instagram Account"
+        analysis = engine.analyze_series(
+            dates=[d.strftime("%Y-%m-%d") for d in live_df["date"]],
+            values=[float(v) for v in live_df["reach"]],
+            metric_type="reach",
+            account_name=acc,
+            platform="instagram",
+        )
+        analysis["username"] = acc
+        analysis["data_source"] = "instagram_live_api"
+        return analysis
+    except HTTPException:
+        raise
+    except Exception as exc:
+        logger.error("Meta Graph API error: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Meta Graph API connection failed: {str(exc)}",
+        )
+
+
+@app.post("/alerts/slack", tags=["Plug-and-Play Integrations"], status_code=status.HTTP_200_OK)
+def send_slack_alert(payload: SlackAlertPayload):
+    """
+    Dispatches a formatted executive alert card to a client or internal Slack channel via incoming webhook.
+    """
+    status_emoji = "🚨" if payload.health_score < 40 else "⚠️" if payload.health_score < 70 else "✅"
+    color_hex = "#EF4444" if payload.health_score < 40 else "#F59E0B" if payload.health_score < 70 else "#10B981"
+
+    slack_msg = {
+        "attachments": [
+            {
+                "color": color_hex,
+                "blocks": [
+                    {
+                        "type": "header",
+                        "text": {
+                            "type": "plain_text",
+                            "text": f"{status_emoji} Relvnt Sentinel Alert: {payload.account_name}",
+                            "emoji": True,
+                        },
+                    },
+                    {
+                        "type": "section",
+                        "fields": [
+                            {"type": "mrkdwn", "text": f"*Health Index:*\n`{payload.health_score} / 100`"},
+                            {"type": "mrkdwn", "text": f"*Status Level:*\n*{payload.alert_level.upper()}*"},
+                        ],
+                    },
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": f"*Diagnostic Summary:*\n{payload.diagnosis}"},
+                    },
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": f"*Recommended Action:*\n{payload.action_plan}"},
+                    },
+                    {
+                        "type": "context",
+                        "elements": [
+                            {
+                                "type": "mrkdwn",
+                                "text": "Generated automatically by Relvnt Early-Warning Sentinel · Local zero-retention analysis",
+                            }
+                        ],
+                    },
+                ],
+            }
+        ]
+    }
+
+    try:
+        resp = requests.post(payload.webhook_url, json=slack_msg, timeout=10)
+        if resp.status_code != 200:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Slack webhook rejected payload with status {resp.status_code}: {resp.text}",
+            )
+        return {"status": "dispatched", "message": "Alert dispatched to Slack successfully."}
+    except requests.exceptions.RequestException as exc:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to communicate with Slack webhook: {str(exc)}",
+        )

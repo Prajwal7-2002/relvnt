@@ -148,3 +148,27 @@ def test_zero_data_leak_local_agent():
     assert "contracted by 62.5%" in briefing["diagnosis"]
     assert len(briefing["phases"]) == 3
     assert "Zero-Data-Leak" in briefing["ai_engine"]
+
+
+def test_google_sheet_url_validation():
+    # Invalid URL should be rejected with 400
+    res = client.post("/analyze/sheet", json={"sheet_url": "https://not-google.com/doc"})
+    assert res.status_code == 400
+    assert "Invalid Google Sheet URL" in res.json()["detail"]
+
+
+def test_slack_alert_validation():
+    # Invalid webhook URL should fail gracefully
+    res = client.post(
+        "/alerts/slack",
+        json={
+            "webhook_url": "https://httpbin.org/status/200",
+            "account_name": "@test_creator",
+            "health_score": 12,
+            "alert_level": "red",
+            "diagnosis": "Feed suppression detected.",
+            "action_plan": "Pause static formats for 24h.",
+        },
+    )
+    assert res.status_code == 200
+    assert res.json()["status"] == "dispatched"

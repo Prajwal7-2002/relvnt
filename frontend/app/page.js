@@ -17,8 +17,18 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activePreset, setActivePreset] = useState("instagram_drop");
-  const [isUploading, setIsUploading] = useState(false);
-  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showConnectModal, setShowConnectModal] = useState(false);
+  const [connectTab, setConnectTab] = useState("sheet"); // "sheet" | "csv" | "instagram" | "slack" | "api"
+
+  // Integration inputs
+  const [sheetUrl, setSheetUrl] = useState("");
+  const [igToken, setIgToken] = useState("");
+  const [igBusinessId, setIgBusinessId] = useState("");
+  const [slackWebhook, setSlackWebhook] = useState("");
+  const [integrationLoading, setIntegrationLoading] = useState(false);
+  const [integrationNotice, setIntegrationNotice] = useState(null);
+
+  // Copilot state
   const [showCopilot, setShowCopilot] = useState(false);
   const [copilotInput, setCopilotInput] = useState("");
   const [copilotMessages, setCopilotMessages] = useState([]);
@@ -50,12 +60,13 @@ export default function Page() {
     fetchAnalysis("instagram_drop");
   }, []);
 
+  // CSV Ingestion
   const handleFileUpload = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    setIsUploading(true);
-    setError(null);
+    setIntegrationLoading(true);
+    setIntegrationNotice(null);
 
     const formData = new FormData();
     formData.append("file", file);
@@ -75,11 +86,117 @@ export default function Page() {
       const json = await res.json();
       setData(json);
       setActivePreset("custom_upload");
-      setShowUploadModal(false);
+      setShowConnectModal(false);
     } catch (err) {
-      setError(err.message || "Failed to process CSV file");
+      setIntegrationNotice({ type: "error", text: err.message || "Failed to process CSV file." });
     } finally {
-      setIsUploading(false);
+      setIntegrationLoading(false);
+    }
+  };
+
+  // Google Sheets Auto-Sync
+  const handleGoogleSheetSync = async (e) => {
+    e?.preventDefault();
+    if (!sheetUrl.trim()) return;
+
+    setIntegrationLoading(true);
+    setIntegrationNotice(null);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/analyze/sheet`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          sheet_url: sheetUrl.trim(),
+          metric_type: "reach",
+          account_name: "Google Sheet Sync",
+        }),
+      });
+
+      if (!res.ok) {
+        const errPayload = await res.json().catch(() => ({}));
+        throw new Error(errPayload.detail || `Sheet sync failed with status ${res.status}`);
+      }
+
+      const json = await res.json();
+      setData(json);
+      setActivePreset("google_sheet");
+      setShowConnectModal(false);
+    } catch (err) {
+      setIntegrationNotice({ type: "error", text: err.message || "Could not sync Google Sheet. Verify sharing permissions." });
+    } finally {
+      setIntegrationLoading(false);
+    }
+  };
+
+  // Meta Graph API Sync
+  const handleInstagramConnect = async (e) => {
+    e?.preventDefault();
+    setIntegrationLoading(true);
+    setIntegrationNotice(null);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/analyze/instagram`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access_token: igToken.trim() || null,
+          business_id: igBusinessId.trim() || null,
+          account_name: "Connected Instagram Account",
+        }),
+      });
+
+      if (!res.ok) {
+        const errPayload = await res.json().catch(() => ({}));
+        throw new Error(errPayload.detail || `Instagram connection failed with status ${res.status}`);
+      }
+
+      const json = await res.json();
+      setData(json);
+      setActivePreset("instagram_live");
+      setShowConnectModal(false);
+    } catch (err) {
+      setIntegrationNotice({ type: "error", text: err.message || "Meta API connection failed." });
+    } finally {
+      setIntegrationLoading(false);
+    }
+  };
+
+  // Slack Alert Dispatcher
+  const handleSlackDispatch = async (e) => {
+    e?.preventDefault();
+    if (!slackWebhook.trim()) return;
+
+    setIntegrationLoading(true);
+    setIntegrationNotice(null);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/alerts/slack`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          webhook_url: slackWebhook.trim(),
+          account_name: data?.account_name || "Client Account",
+          health_score: data?.health_score || 50,
+          alert_level: data?.alert_level || "yellow",
+          diagnosis: data?.diagnosis || "Algorithmic distribution shift detected.",
+          action_plan: data?.protocol_phases?.[0]?.action || "Halt underperforming formats for 24h to reset feed indexing.",
+        }),
+      });
+
+      if (!res.ok) {
+        const errPayload = await res.json().catch(() => ({}));
+        throw new Error(errPayload.detail || `Slack dispatch failed with status ${res.status}`);
+      }
+
+      setIntegrationNotice({ type: "success", text: "✓ Sentinel alert card dispatched to Slack channel successfully!" });
+    } catch (err) {
+      setIntegrationNotice({ type: "error", text: err.message || "Failed to dispatch alert to Slack webhook." });
+    } finally {
+      setIntegrationLoading(false);
     }
   };
 
@@ -136,28 +253,28 @@ export default function Page() {
           <h1 className="brand-text">
             relvnt<span>.</span>
           </h1>
-          <span className="brand-subtext">Distribution &amp; reach diagnostics</span>
+          <span className="brand-subtext">Distribution &amp; reach early-warning radar</span>
         </div>
 
         <div className="nav-actions">
           <div className="privacy-pill">
             <span className="privacy-dot" />
-            <span>Local analysis · Zero data retention</span>
+            <span>Local Sentinel Engine</span>
           </div>
 
-          <button onClick={() => setShowUploadModal(true)} className="btn-secondary">
-            + Ingest CSV
+          <button onClick={() => setShowConnectModal(true)} className="btn-primary">
+            + Plug In &amp; Automate Data
           </button>
 
-          <button onClick={() => setShowCopilot(true)} className="btn-primary">
-            Ask AI Analyst
+          <button onClick={() => setShowCopilot(true)} className="btn-secondary">
+            AI Analyst
           </button>
         </div>
       </header>
 
       {/* SEGMENTED BENCHMARK SELECTOR */}
       <div className="benchmark-strip">
-        <span className="benchmark-strip-label">Account Benchmark:</span>
+        <span className="benchmark-strip-label">Active Channel:</span>
         <div className="benchmark-buttons">
           {PRESETS.map((p) => (
             <button
@@ -174,6 +291,16 @@ export default function Page() {
               Custom Uploaded CSV
             </span>
           )}
+          {activePreset === "google_sheet" && (
+            <span className="benchmark-tab benchmark-tab-active">
+              Google Sheet Live Sync
+            </span>
+          )}
+          {activePreset === "instagram_live" && (
+            <span className="benchmark-tab benchmark-tab-active">
+              Instagram Live API
+            </span>
+          )}
         </div>
       </div>
 
@@ -185,7 +312,7 @@ export default function Page() {
         </div>
       )}
 
-      {/* 1. EXECUTIVE STORY & HORIZONTAL RESONANCE RANGE BAR (Mixture of 3) */}
+      {/* 1. EXECUTIVE STORY & HORIZONTAL RESONANCE RANGE BAR */}
       {data && <HealthScore data={data} />}
 
       {/* 2. DAILY REACH VS EXPECTED BASELINE CHART */}
@@ -274,17 +401,17 @@ export default function Page() {
         </>
       )}
 
-      {/* CSV UPLOAD MODAL */}
-      {showUploadModal && (
+      {/* PLUG-IN & AUTOMATE DATA MODAL */}
+      {showConnectModal && (
         <>
-          <div className="modal-overlay" onClick={() => setShowUploadModal(false)} />
+          <div className="modal-overlay" onClick={() => setShowConnectModal(false)} />
           <div className="modal-box">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
               <h2 style={{ fontSize: "18px", fontWeight: 700, margin: 0, color: "#FFFFFF" }}>
-                Ingest Performance CSV
+                Plug In &amp; Automate Client Data
               </h2>
               <button
-                onClick={() => setShowUploadModal(false)}
+                onClick={() => setShowConnectModal(false)}
                 style={{ background: "transparent", border: "none", color: "var(--text-dim)", fontSize: "20px", cursor: "pointer" }}
               >
                 ×
@@ -292,34 +419,209 @@ export default function Page() {
             </div>
 
             <p style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: 1.5, margin: "0 0 16px 0" }}>
-              Upload any performance export (Instagram Insights, TikTok, Meta Ads). The parser automatically maps date and reach columns.
+              Connect your data source with zero friction. Choose the easiest method for your agency or client.
             </p>
 
-            <div
-              style={{
-                border: "2px dashed var(--border-medium)",
-                borderRadius: "10px",
-                padding: "28px 20px",
-                textAlign: "center",
-                cursor: "pointer",
-                background: "rgba(255, 255, 255, 0.02)",
-              }}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept=".csv"
-                style={{ display: "none" }}
-              />
-              <div style={{ fontSize: "14px", fontWeight: 600, color: "#FFFFFF", marginBottom: "4px" }}>
-                {isUploading ? "Evaluating Dataset..." : "Click to select CSV file"}
-              </div>
-              <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
-                Processed locally · Zero cloud model training
-              </div>
+            {/* TAB SELECTOR */}
+            <div className="modal-tab-bar">
+              <button
+                onClick={() => { setConnectTab("sheet"); setIntegrationNotice(null); }}
+                className={`modal-tab-btn ${connectTab === "sheet" ? "modal-tab-btn-active" : ""}`}
+              >
+                Google Sheet
+              </button>
+              <button
+                onClick={() => { setConnectTab("csv"); setIntegrationNotice(null); }}
+                className={`modal-tab-btn ${connectTab === "csv" ? "modal-tab-btn-active" : ""}`}
+              >
+                Drop CSV
+              </button>
+              <button
+                onClick={() => { setConnectTab("instagram"); setIntegrationNotice(null); }}
+                className={`modal-tab-btn ${connectTab === "instagram" ? "modal-tab-btn-active" : ""}`}
+              >
+                Meta API
+              </button>
+              <button
+                onClick={() => { setConnectTab("slack"); setIntegrationNotice(null); }}
+                className={`modal-tab-btn ${connectTab === "slack" ? "modal-tab-btn-active" : ""}`}
+              >
+                Slack Alerts
+              </button>
+              <button
+                onClick={() => { setConnectTab("api"); setIntegrationNotice(null); }}
+                className={`modal-tab-btn ${connectTab === "api" ? "modal-tab-btn-active" : ""}`}
+              >
+                Webhook / API
+              </button>
             </div>
+
+            {/* NOTICE BANNER */}
+            {integrationNotice && (
+              <div
+                style={{
+                  padding: "10px 14px",
+                  borderRadius: "8px",
+                  fontSize: "12.5px",
+                  marginBottom: "14px",
+                  background: integrationNotice.type === "success" ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
+                  color: integrationNotice.type === "success" ? "#10B981" : "#EF4444",
+                  border: `1px solid ${integrationNotice.type === "success" ? "rgba(16, 185, 129, 0.25)" : "rgba(239, 68, 68, 0.25)"}`,
+                }}
+              >
+                {integrationNotice.text}
+              </div>
+            )}
+
+            {/* TAB 1: GOOGLE SHEETS */}
+            {connectTab === "sheet" && (
+              <form onSubmit={handleGoogleSheetSync}>
+                <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
+                  Google Sheets Sharing URL:
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                  value={sheetUrl}
+                  onChange={(e) => setSheetUrl(e.target.value)}
+                  className="input-text-field"
+                  required
+                />
+                <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+                  💡 Ensure sheet is set to &ldquo;Anyone with link can view&rdquo;. Expected columns: <code>Date</code> and <code>Reach</code> or <code>ROAS</code>.
+                </p>
+                <button
+                  type="submit"
+                  disabled={integrationLoading || !sheetUrl.trim()}
+                  className="btn-primary"
+                  style={{ width: "100%", padding: "10px" }}
+                >
+                  {integrationLoading ? "Connecting & Evaluating..." : "Live Sync Google Sheet"}
+                </button>
+              </form>
+            )}
+
+            {/* TAB 2: CSV DROP */}
+            {connectTab === "csv" && (
+              <div
+                style={{
+                  border: "2px dashed var(--border-medium)",
+                  borderRadius: "10px",
+                  padding: "28px 20px",
+                  textAlign: "center",
+                  cursor: "pointer",
+                  background: "rgba(255, 255, 255, 0.02)",
+                }}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept=".csv"
+                  style={{ display: "none" }}
+                />
+                <div style={{ fontSize: "14px", fontWeight: 600, color: "#FFFFFF", marginBottom: "4px" }}>
+                  {integrationLoading ? "Evaluating Dataset..." : "Click to select CSV file"}
+                </div>
+                <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
+                  Drop any Meta Ads Manager, Instagram Insights, or TikTok CSV
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: INSTAGRAM META GRAPH API */}
+            {connectTab === "instagram" && (
+              <form onSubmit={handleInstagramConnect}>
+                <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
+                  Instagram User / System User Token:
+                </label>
+                <input
+                  type="password"
+                  placeholder="EAA..."
+                  value={igToken}
+                  onChange={(e) => setIgToken(e.target.value)}
+                  className="input-text-field"
+                />
+
+                <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
+                  Instagram Business Account ID:
+                </label>
+                <input
+                  type="text"
+                  placeholder="178414..."
+                  value={igBusinessId}
+                  onChange={(e) => setIgBusinessId(e.target.value)}
+                  className="input-text-field"
+                />
+
+                <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+                  Pulls 90-day daily reach directly from Meta Graph API endpoints. If omitted, uses server environment credentials.
+                </p>
+
+                <button
+                  type="submit"
+                  disabled={integrationLoading}
+                  className="btn-primary"
+                  style={{ width: "100%", padding: "10px" }}
+                >
+                  {integrationLoading ? "Pulling 90-Day Meta Insights..." : "Connect Instagram Live"}
+                </button>
+              </form>
+            )}
+
+            {/* TAB 4: SLACK ALERT DISPATCHER */}
+            {connectTab === "slack" && (
+              <form onSubmit={handleSlackDispatch}>
+                <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
+                  Agency / Client Slack Webhook URL:
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://hooks.slack.com/services/..."
+                  value={slackWebhook}
+                  onChange={(e) => setSlackWebhook(e.target.value)}
+                  className="input-text-field"
+                  required
+                />
+
+                <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
+                  Sends an automated rich Slack card with the current account health score, drop diagnosis, and 72-hour turnaround plan directly to your team channel.
+                </p>
+
+                <button
+                  type="submit"
+                  disabled={integrationLoading || !slackWebhook.trim()}
+                  className="btn-primary"
+                  style={{ width: "100%", padding: "10px" }}
+                >
+                  {integrationLoading ? "Dispatching Alert..." : "Dispatch Early-Warning Slack Alert"}
+                </button>
+              </form>
+            )}
+
+            {/* TAB 5: ZAPIER / WEBHOOK API */}
+            {connectTab === "api" && (
+              <div>
+                <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "10px" }}>
+                  Pipe daily numbers automatically from Zapier, Make, or a cron script:
+                </p>
+                <pre className="code-block-preview">
+{`curl -X POST http://localhost:8000/analyze \\
+  -H "Content-Type: application/json" \\
+  -d '{
+    "account_name": "@client_brand",
+    "platform": "instagram",
+    "metric_type": "reach",
+    "series": [
+      {"date": "2026-10-01", "value": 14200},
+      {"date": "2026-10-02", "value": 13900},
+      ...
+    ]
+  }'`}
+                </pre>
+              </div>
+            )}
           </div>
         </>
       )}
