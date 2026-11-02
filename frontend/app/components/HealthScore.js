@@ -2,149 +2,202 @@
 
 import { useEffect, useState } from "react";
 
-function getStatusAttributes(score) {
+function getResonanceTheme(score) {
   if (score >= 70) {
     return {
-      label: "Optimal Resonance",
+      statusLabel: "Optimal Resonance",
       color: "#10B981", // Emerald
-      bg: "rgba(16, 185, 129, 0.12)",
-      border: "rgba(16, 185, 129, 0.3)",
+      glowColor: "rgba(16, 185, 129, 0.35)",
+      bgPill: "rgba(16, 185, 129, 0.12)",
+      borderPill: "rgba(16, 185, 129, 0.28)",
+      gradientId: "resonanceOptimalGrad",
+      subtext: "Feed velocity aligns with organic explore recommendations.",
     };
   }
   if (score >= 40) {
     return {
-      label: "Audience Fatigue",
+      statusLabel: "Audience Fatigue",
       color: "#F59E0B", // Amber
-      bg: "rgba(245, 158, 11, 0.12)",
-      border: "rgba(245, 158, 11, 0.3)",
+      glowColor: "rgba(245, 158, 11, 0.35)",
+      bgPill: "rgba(245, 158, 11, 0.12)",
+      borderPill: "rgba(245, 158, 11, 0.28)",
+      gradientId: "resonanceWarningGrad",
+      subtext: "Engagement velocity decaying across primary audience cohorts.",
     };
   }
   return {
-    label: "Distribution Suppression",
-    color: "#F43F5E", // Coral
-    bg: "rgba(244, 63, 94, 0.12)",
-    border: "rgba(244, 63, 94, 0.3)",
+    statusLabel: "Distribution Suppression",
+    color: "#F43F5E", // Crimson
+    glowColor: "rgba(244, 63, 94, 0.4)",
+    bgPill: "rgba(244, 63, 94, 0.12)",
+    borderPill: "rgba(244, 63, 94, 0.3)",
+    gradientId: "resonanceCriticalGrad",
+    subtext: "Algorithmic feed de-prioritization detected (-40%+ decoupling).",
   };
 }
 
 export default function HealthScore({ data }) {
   const [mounted, setMounted] = useState(false);
-  const score = Math.max(0, Math.min(100, Number(data.health_score || 0)));
-  const status = getStatusAttributes(score);
-  const metrics = data.metrics_summary || {};
-  const confidence = Math.round(Number(data.confidence || 0.85) * 100);
+  const score = Math.max(0, Math.min(100, Number(data?.health_score || 0)));
+  const theme = getResonanceTheme(score);
+  const metrics = data?.metrics_summary || {};
+  const isRoas = data?.metric_type === "roas";
 
-  const displayUser = data.account_name || data.username || "Client Target";
-  const platformName = String(data.platform || "Platform").toUpperCase();
-  const metricType = String(data.metric_type || "Metric").toUpperCase();
-  const mlScore = Math.round((metrics.ml_anomaly_score || 0.1) * 100);
-
-  // 240-degree Circular Arc Geometry
-  const radius = 80;
-  const strokeWidth = 10;
-  // Total arc length for 240 degrees: (240 / 360) * 2 * PI * r
-  const totalLength = (240 / 360) * 2 * Math.PI * radius;
-  const progressLength = (score / 100) * totalLength;
-  const offset = mounted ? totalLength - progressLength : totalLength;
+  // Optical Arc Geometry
+  const radius = 82;
+  const circumference = 2 * Math.PI * radius;
+  const arcSweep = 240; // degrees
+  const arcLength = (arcSweep / 360) * circumference;
+  const strokeOffset = mounted ? arcLength - (score / 100) * arcLength : arcLength;
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setMounted(true));
     return () => cancelAnimationFrame(frame);
   }, []);
 
+  const displayUser = data?.account_name || data?.username || "Target Account";
+
+  // Calibrated tick marks for the outer ring (0 to 100)
+  const ticks = [0, 20, 40, 60, 80, 100];
+
   return (
-    <section className="health-card" style={{ "--card-accent": status.color }}>
+    <section className="orbital-dial-panel" style={{ "--card-accent": theme.color }}>
       <div>
-        <div className="panel-header-row">
-          <span className="panel-title">Relevance &amp; Velocity Radar</span>
-          <span className="account-badge">{displayUser}</span>
+        <div className="panel-header-line">
+          <span className="panel-title-text">Relvnt Resonance Dial</span>
+          <span className="account-target-badge">{displayUser}</span>
         </div>
 
-        {/* Presentation-Grade Circular Arc Dial */}
-        <div className="dial-container">
-          <div className="dial-svg-wrapper">
-            <svg width="220" height="220" viewBox="0 0 220 220">
-              <defs>
-                <filter id="dialGlow" x="-20%" y="-20%" width="140%" height="140%">
-                  <feDropShadow dx="0" dy="0" stdDeviation="6" floodColor={status.color} floodOpacity="0.4" />
-                </filter>
-              </defs>
+        {/* Optical SVG Assembly */}
+        <div className="dial-center-assembly">
+          <svg width="240" height="240" viewBox="0 0 240 240" className="dial-svg-optic">
+            <defs>
+              {/* Luminous Glow Filter */}
+              <filter id="luminousGlow" x="-30%" y="-30%" width="160%" height="160%">
+                <feDropShadow dx="0" dy="0" stdDeviation="8" floodColor={theme.color} floodOpacity="0.45" />
+              </filter>
 
-              {/* Background Arc Track */}
-              <circle
-                cx="110"
-                cy="110"
-                r={radius}
-                fill="none"
-                stroke="rgba(255, 255, 255, 0.08)"
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeDasharray={`${totalLength} ${2 * Math.PI * radius}`}
-                transform="rotate(150 110 110)"
-              />
+              {/* Dynamic Gradients */}
+              <linearGradient id="resonanceOptimalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#059669" />
+                <stop offset="100%" stopColor="#34D399" />
+              </linearGradient>
 
-              {/* Active Luminous Progress Arc */}
-              <circle
-                cx="110"
-                cy="110"
-                r={radius}
-                fill="none"
-                stroke={status.color}
-                strokeWidth={strokeWidth}
-                strokeLinecap="round"
-                strokeDasharray={`${totalLength} ${2 * Math.PI * radius}`}
-                strokeDashoffset={offset}
-                transform="rotate(150 110 110)"
-                filter="url(#dialGlow)"
-                style={{
-                  transition: "stroke-dashoffset 1s cubic-bezier(0.16, 1, 0.3, 1)",
-                }}
-              />
-            </svg>
+              <linearGradient id="resonanceWarningGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#D97706" />
+                <stop offset="100%" stopColor="#FBBF24" />
+              </linearGradient>
 
-            {/* Score in Center of Arc */}
-            <div className="dial-center-content">
-              <span className="dial-score-number tabular-nums" style={{ color: status.color }}>
-                {score}
-              </span>
-              <span className="dial-score-label">Relvnt Score</span>
-            </div>
+              <linearGradient id="resonanceCriticalGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="#E11D48" />
+                <stop offset="100%" stopColor="#FB7185" />
+              </linearGradient>
+            </defs>
+
+            {/* Subtle Outer Calibrated Ring */}
+            <circle
+              cx="120"
+              cy="120"
+              r="104"
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.04)"
+              strokeWidth="1"
+              strokeDasharray="2 6"
+            />
+
+            {/* Background Inactive Arc Track */}
+            <circle
+              cx="120"
+              cy="120"
+              r={radius}
+              fill="none"
+              stroke="rgba(255, 255, 255, 0.07)"
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeDasharray={`${arcLength} ${circumference}`}
+              transform="rotate(150 120 120)"
+            />
+
+            {/* Active Luminous Resonance Arc */}
+            <circle
+              cx="120"
+              cy="120"
+              r={radius}
+              fill="none"
+              stroke={`url(#${theme.gradientId})`}
+              strokeWidth="10"
+              strokeLinecap="round"
+              strokeDasharray={`${arcLength} ${circumference}`}
+              strokeDashoffset={strokeOffset}
+              transform="rotate(150 120 120)"
+              filter="url(#luminousGlow)"
+              style={{
+                transition: "stroke-dashoffset 900ms cubic-bezier(0.16, 1, 0.3, 1)",
+              }}
+            />
+          </svg>
+
+          {/* Central Numerals Display */}
+          <div className="dial-core-readout">
+            <span className="dial-score-number font-mono-nums">{score}</span>
+            <span className="dial-score-scale">Resonance Index</span>
           </div>
+        </div>
 
-          {/* Dynamic Status Pill */}
+        {/* Dynamic Status Pill */}
+        <div style={{ textAlign: "center" }}>
           <div
-            className="health-status-pill"
+            className="dial-status-pill"
             style={{
-              color: status.color,
-              backgroundColor: status.bg,
-              border: `1px solid ${status.border}`,
+              backgroundColor: theme.bgPill,
+              border: `1px solid ${theme.borderPill}`,
+              color: theme.color,
             }}
           >
-            <span className="status-dot-pulse" style={{ backgroundColor: status.color }} />
-            <span>{status.label}</span>
+            <span className="status-pulse-light" style={{ backgroundColor: theme.color }} />
+            <span>{theme.statusLabel}</span>
           </div>
         </div>
       </div>
 
-      {/* High-Craft Telemetry Matrix */}
-      <div className="telemetry-matrix">
-        <div className="telemetry-row">
-          <span className="telemetry-key">Channel &amp; Focus</span>
-          <span className="telemetry-val">{platformName} • {metricType}</span>
+      {/* Aerospace 4-Cell Telemetry Matrix */}
+      <div className="dial-sub-matrix">
+        <div className="matrix-cell">
+          <div className="matrix-cell-label">Observed Velocity</div>
+          <div className="matrix-cell-val font-mono-nums">
+            {isRoas
+              ? `${metrics.current_value || 0}x`
+              : Number(metrics.current_value || 0).toLocaleString()}
+          </div>
         </div>
-        <div className="telemetry-row">
-          <span className="telemetry-key">Machine Learning Model</span>
-          <span className="telemetry-val" style={{ color: metrics.ml_flagged ? "#F43F5E" : "#10B981" }}>
-            IsolationForest ({mlScore}% Outlier Risk)
-          </span>
+
+        <div className="matrix-cell">
+          <div className="matrix-cell-label">Baseline Median</div>
+          <div className="matrix-cell-val font-mono-nums">
+            {isRoas
+              ? `${metrics.baseline_avg || 0}x`
+              : Number(metrics.baseline_avg || 0).toLocaleString()}
+          </div>
         </div>
-        <div className="telemetry-row">
-          <span className="telemetry-key">Seasonality Calibration</span>
-          <span className="telemetry-val">DOW Weekend-Normalized</span>
+
+        <div className="matrix-cell">
+          <div className="matrix-cell-label">Z-Score Drift</div>
+          <div
+            className="matrix-cell-val font-mono-nums"
+            style={{ color: Number(metrics.z_score_deviation || 0) < -2 ? "#F43F5E" : "#10B981" }}
+          >
+            {metrics.z_score_deviation || 0}σ
+          </div>
         </div>
-        <div className="telemetry-row">
-          <span className="telemetry-key">Inference Confidence</span>
-          <span className="telemetry-val">{confidence}% (p &lt; 0.01)</span>
+
+        <div className="matrix-cell">
+          <div className="matrix-cell-label">Decoupling Risk</div>
+          <div
+            className="matrix-cell-val font-mono-nums"
+            style={{ color: metrics.ml_flagged ? "#F43F5E" : "#10B981" }}
+          >
+            {Math.round((metrics.ml_anomaly_score || 0.1) * 100)}%
+          </div>
         </div>
       </div>
     </section>

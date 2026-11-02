@@ -6,10 +6,10 @@ import HealthScore from "./components/HealthScore";
 import ReachChart from "./components/ReachChart";
 
 const PRESETS = [
-  { id: "instagram_drop", label: "Instagram Reach Suppression", account: "@tech_founder" },
-  { id: "meta_ads_fatigue", label: "Meta Ads Creative Fatigue", account: "US Retargeting" },
-  { id: "real_creator", label: "Authentic Creator Insights", account: "99 Days Post History" },
-  { id: "healthy_growth", label: "Equilibrium Baseline Growth", account: "@growth_studio" },
+  { id: "instagram_drop", label: "Instagram Feed Shock", account: "@tech_founder" },
+  { id: "meta_ads_fatigue", label: "Meta Ad Creative Fatigue", account: "US Retargeting" },
+  { id: "real_creator", label: "Authentic Creator Insights", account: "99D History" },
+  { id: "healthy_growth", label: "Equilibrium Baseline", account: "@growth_studio" },
 ];
 
 export default function Page() {
@@ -34,7 +34,7 @@ export default function Page() {
         cache: "no-store",
       });
       if (!res.ok) {
-        throw new Error(`Analysis engine responded with status ${res.status}`);
+        throw new Error(`Engine returned status ${res.status}`);
       }
       const json = await res.json();
       setData(json);
@@ -133,210 +133,203 @@ export default function Page() {
   const mlScore = Math.round((metrics.ml_anomaly_score || 0.1) * 100);
 
   return (
-    <main className="dashboard-shell">
+    <main className="dashboard-canvas">
       <div className="dashboard-container">
-        {/* PRESENTATION HEADER */}
-        <header className="dashboard-header">
-          <div className="brand-section">
-            <div className="brand-row">
-              <h1 className="brand-title">
-                relvnt<span className="brand-dot">.</span>
-              </h1>
-            </div>
-            <p className="brand-tagline">
-              Algorithmic Relevance &amp; Distribution Early-Warning Radar
-            </p>
+        {/* FLOATING TOPBAR */}
+        <header className="nav-bar">
+          <div className="brand-anchor">
+            <h1 className="brand-logo">
+              relvnt<span className="brand-dot">.</span>
+            </h1>
+            <span className="brand-subtitle-badge">Relevance Radar</span>
           </div>
 
-          <div className="header-actions">
-            <button
-              onClick={() => setShowCopilot(true)}
-              className="btn-ai-analyst"
-            >
-              <span className="pulse-dot-ai" />
-              <span>AI Growth Analyst</span>
-            </button>
-            <div className="enclave-badge">
-              <span className="enclave-pulse" />
+          <div className="nav-controls">
+            <div className="btn-enclave-pill">
+              <span className="enclave-dot-active" />
               <span>Zero-Data-Leak Enclave</span>
             </div>
+
             <button
               onClick={() => setShowUploadModal(true)}
-              className="btn-upload-trigger"
+              className="btn-haptic btn-ghost"
             >
-              <span>+</span> Ingest Performance CSV
+              <span>+ Ingest CSV</span>
+            </button>
+
+            <button
+              onClick={() => setShowCopilot(true)}
+              className="btn-haptic btn-primary"
+            >
+              <span>Relvnt Copilot</span>
             </button>
           </div>
         </header>
 
-        {/* SIGNAL / BENCHMARK SELECTOR */}
-        <div className="preset-bar">
-          <span className="preset-title">Active Benchmark:</span>
-          <div className="preset-tabs">
+        {/* BENCHMARK CHANNEL SWITCHER */}
+        <div className="channel-selector-deck">
+          <span className="channel-selector-label">Channel Benchmark:</span>
+          <div className="channel-pill-row">
             {PRESETS.map((p) => (
               <button
                 key={p.id}
                 onClick={() => fetchAnalysis(p.id)}
-                className={`preset-btn ${activePreset === p.id ? "preset-btn-active" : ""}`}
+                className={`channel-pill ${activePreset === p.id ? "channel-pill-active" : ""}`}
               >
                 <span>{p.label}</span>
-                <span style={{ opacity: 0.6, fontSize: "11px", marginLeft: "6px" }}>({p.account})</span>
+                <span className="channel-pill-tag font-mono-nums">{p.account}</span>
               </button>
             ))}
             {activePreset === "custom_upload" && (
-              <span className="preset-btn preset-btn-active">
-                Uploaded Custom Dataset
+              <span className="channel-pill channel-pill-active">
+                Custom Upload Dataset
               </span>
             )}
           </div>
         </div>
 
-        {/* ERROR STATE */}
+        {/* ERROR NOTICE */}
         {error && (
-          <section className="error-card">
-            <p className="error-label">Engine Connection Notice</p>
-            <h2>Analysis Engine Warning</h2>
-            <p>{error}</p>
-            <button onClick={() => fetchAnalysis(activePreset)} className="btn-retry">
-              Retry Connection
-            </button>
-          </section>
+          <div style={{ background: "rgba(244, 63, 94, 0.1)", border: "1px solid rgba(244, 63, 94, 0.3)", borderRadius: "12px", padding: "16px 20px", marginBottom: "24px" }}>
+            <span style={{ color: "#F43F5E", fontWeight: 600, fontSize: "14px" }}>Engine Connection Notice:</span>
+            <p style={{ margin: "4px 0 0 0", color: "var(--text-secondary)", fontSize: "13px" }}>{error}</p>
+          </div>
         )}
 
-        {/* EXECUTIVE KPI PRESENTATION STRIP */}
+        {/* AEROSPACE TELEMETRY STRIP */}
         {data && (
-          <section className="stat-strip">
-            <div className="stat-box">
-              <div className="stat-header">
-                <span className="stat-label">Current Velocity</span>
-                <span className="stat-subtext">vs Model Baseline</span>
+          <section className="telemetry-strip">
+            <div className="telemetry-cell">
+              <div className="telemetry-cell-top">
+                <span className="telemetry-label">Observed Velocity</span>
+                <span className="telemetry-badge">vs Model Baseline</span>
               </div>
-              <div className="stat-value tabular-nums">
+              <div className="telemetry-main-value font-mono-nums">
                 {isRoas ? `${metrics.current_value}x` : Number(metrics.current_value).toLocaleString()}
-                <span className="stat-baseline-tag">
+                <span style={{ fontSize: "13px", color: "var(--text-tertiary)", fontWeight: 500 }}>
                   / {isRoas ? `${metrics.baseline_avg}x` : Number(metrics.baseline_avg).toLocaleString()}
                 </span>
               </div>
+              <div className="telemetry-sub-metric font-mono-nums">
+                Rolling 14-day median baseline
+              </div>
             </div>
 
-            <div className="stat-box">
-              <div className="stat-header">
-                <span className="stat-label">Net Velocity Drift</span>
-                <span className="stat-subtext">7D Moving Median</span>
+            <div className="telemetry-cell">
+              <div className="telemetry-cell-top">
+                <span className="telemetry-label">Velocity Drift</span>
+                <span className="telemetry-badge">7-Day Horizon</span>
               </div>
               <div
-                className="stat-value tabular-nums"
+                className="telemetry-main-value font-mono-nums"
                 style={{ color: Number(metrics.change_pct) < 0 ? "#F43F5E" : "#10B981" }}
               >
                 {Number(metrics.change_pct) > 0 ? "+" : ""}
                 {metrics.change_pct}%
               </div>
+              <div className="telemetry-sub-metric font-mono-nums">
+                {metrics.z_score_deviation}σ from historical mean
+              </div>
             </div>
 
-            <div className="stat-box">
-              <div className="stat-header">
-                <span className="stat-label">Machine Learning Risk</span>
-                <span className="stat-subtext">IsolationForest (100 Trees)</span>
+            <div className="telemetry-cell">
+              <div className="telemetry-cell-top">
+                <span className="telemetry-label">Machine Learning Risk</span>
+                <span className="telemetry-badge">IsolationForest (100 Trees)</span>
               </div>
-              <div className="stat-value tabular-nums">
+              <div className="telemetry-main-value font-mono-nums">
                 <span style={{ color: metrics.ml_flagged ? "#F43F5E" : "#10B981" }}>
                   {mlScore}%
                 </span>
-                <span className="stat-baseline-tag">
-                  ({metrics.ml_flagged ? "Outlier Decoupled" : "Nominal"} • {metrics.anomaly_count || 0} events)
-                </span>
+              </div>
+              <div className="telemetry-sub-metric">
+                {metrics.ml_flagged ? "Feed Decoupling Confirmed" : "Nominal Distribution Stability"}
               </div>
             </div>
 
-            <div className="stat-box">
-              <div className="stat-header">
-                <span className="stat-label">Projected Impact</span>
-                <span className="stat-subtext">7-Day Horizon</span>
+            <div className="telemetry-cell">
+              <div className="telemetry-cell-top">
+                <span className="telemetry-label">Projected Impact</span>
+                <span className="telemetry-badge">7-Day Deficit</span>
               </div>
               <div
-                className="stat-value tabular-nums"
-                style={{ fontSize: "14.5px", color: "#F59E0B" }}
+                className="telemetry-main-value font-mono-nums"
+                style={{ fontSize: "16px", color: "#F59E0B" }}
               >
                 {metrics.projected_impact || "Nominal Equilibrium"}
+              </div>
+              <div className="telemetry-sub-metric">
+                Calculated against expected run-rate
               </div>
             </div>
           </section>
         )}
 
-        {/* LOADING SKELETON */}
-        {loading && !data && (
-          <div className="loading-shell">
-            <div className="terminal-scan-line" />
-            <p className="loading-label">Evaluating Seasonality &amp; Machine Learning Vectors...</p>
+        {/* CENTER STAGE: ORBITAL DIAL & RADAR */}
+        {data && (
+          <div className="center-stage-grid">
+            <HealthScore data={data} />
+            <ReachChart data={data} />
           </div>
         )}
 
-        {/* MAIN PRESENTATION GRID */}
-        {data && (
-          <>
-            <section className="dashboard-grid">
-              <HealthScore data={data} />
-              <ReachChart data={data} />
-            </section>
-
-            <ActionCard data={data} />
-          </>
-        )}
+        {/* ALGORITHMIC TURNAROUND DIRECTIVE */}
+        {data && <ActionCard data={data} />}
       </div>
 
-      {/* SLIDE-OVER AI GROWTH ANALYST DRAWER */}
+      {/* AI GROWTH COPILOT FLYOUT */}
       {showCopilot && (
         <>
-          <div className="copilot-drawer-overlay" onClick={() => setShowCopilot(false)} />
-          <aside className="copilot-drawer">
-            <div className="copilot-drawer-header">
-              <div className="copilot-drawer-title">
-                <span className="pulse-dot-ai" />
-                <h3>Relvnt AI Growth Analyst</h3>
+          <div className="copilot-backdrop" onClick={() => setShowCopilot(false)} />
+          <aside className="copilot-panel-flyout">
+            <div className="copilot-flyout-header">
+              <div className="copilot-header-brand">
+                <span className="copilot-status-dot" />
+                <h3 className="copilot-flyout-title">Relvnt Growth Analyst</h3>
               </div>
-              <button onClick={() => setShowCopilot(false)} className="btn-close">
-                ✕
+              <button onClick={() => setShowCopilot(false)} className="copilot-btn-close">
+                ×
               </button>
             </div>
 
-            <div className="copilot-drawer-body">
-              <div className="copilot-quick-chips">
-                <span className="copilot-chips-label">Suggested Inquiries:</span>
+            <div className="copilot-chat-thread">
+              <div className="copilot-prompt-pills-row">
+                <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                  Suggested Strategic Inquiries:
+                </span>
                 <button
-                  onClick={() => handleCopilotSend("Why did this distribution drop occur and what caused the algorithm to throttle reach?")}
-                  className="copilot-chip"
+                  onClick={() => handleCopilotSend("What specific algorithmic signal triggered this distribution drop?")}
+                  className="copilot-pill-btn"
                 >
-                  Why did this distribution drop occur?
+                  What specific signal caused this distribution decoupling?
                 </button>
                 <button
-                  onClick={() => handleCopilotSend("Draft a professional email for my client or brand sponsor explaining this temporary variance without alarming them.")}
-                  className="copilot-chip"
+                  onClick={() => handleCopilotSend("Draft an executive email for my client or brand sponsor explaining this temporary drop without alarm.")}
+                  className="copilot-pill-btn"
                 >
-                  Draft executive brief for sponsor / client
+                  Draft sponsor / client brief explaining variance
                 </button>
                 <button
-                  onClick={() => handleCopilotSend("What specific publishing format, hook length, and cadence should I post this week to reset the distribution algorithm?")}
-                  className="copilot-chip"
+                  onClick={() => handleCopilotSend("What specific video format, hook length, and publishing cadence will reset the explore recommendation feed?")}
+                  className="copilot-pill-btn"
                 >
-                  Recommend 72-hour turnaround content format
+                  Recommend 72-hour turnaround content strategy
                 </button>
               </div>
 
               {copilotMessages.length === 0 && (
-                <div style={{ padding: "20px 0", textAlign: "center", color: "var(--text-tertiary)", fontSize: "13px" }}>
-                  Ask questions about @{data?.account_name || "target"}&apos;s velocity, retention collapse, or recovery tactics.
+                <div style={{ textAlign: "center", padding: "30px 20px", color: "var(--text-tertiary)", fontSize: "13px" }}>
+                  Inquire about @{data?.account_name || "target"}&apos;s velocity drift, retention cohort fatigue, or 72-hour recovery tactics.
                 </div>
               )}
 
               {copilotMessages.map((msg, idx) => (
-                <div key={idx} className="copilot-msg-item">
+                <div key={idx} className="copilot-msg-card">
                   <span className="copilot-msg-meta">
                     {msg.role === "user" ? "Operator" : msg.engine || "Relvnt AI Analyst"}
                   </span>
                   <div
-                    className={`copilot-msg-content ${
-                      msg.role === "user" ? "copilot-msg-content-user" : "copilot-msg-content-ai"
-                    }`}
+                    className={msg.role === "user" ? "copilot-msg-bubble-user" : "copilot-msg-bubble-ai"}
                   >
                     {msg.text}
                   </div>
@@ -344,28 +337,25 @@ export default function Page() {
               ))}
 
               {copilotLoading && (
-                <div style={{ textAlign: "center", padding: "14px 0" }}>
-                  <div className="terminal-scan-line" />
-                  <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
-                    Synthesizing algorithmic intelligence...
-                  </span>
+                <div style={{ textAlign: "center", padding: "16px 0", color: "var(--text-tertiary)", fontSize: "12px" }}>
+                  Synthesizing algorithmic telemetry...
                 </div>
               )}
             </div>
 
-            <div className="copilot-drawer-footer">
+            <div className="copilot-input-dock">
               <input
                 type="text"
-                placeholder="Ask about this account's performance..."
+                placeholder="Ask about this account's distribution..."
                 value={copilotInput}
                 onChange={(e) => setCopilotInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleCopilotSend()}
-                className="copilot-input"
+                className="copilot-text-input"
               />
               <button
                 onClick={() => handleCopilotSend()}
                 disabled={copilotLoading || !copilotInput.trim()}
-                className="btn-copilot-send"
+                className="btn-haptic btn-primary"
               >
                 Send
               </button>
@@ -376,17 +366,23 @@ export default function Page() {
 
       {/* CSV INGESTION MODAL */}
       {showUploadModal && (
-        <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Ingest Performance Dataset</h3>
-              <button onClick={() => setShowUploadModal(false)} className="btn-close">
-                ✕
+        <>
+          <div className="copilot-backdrop" onClick={() => setShowUploadModal(false)} />
+          <div className="modal-dialog-card">
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
+              <h2 style={{ fontSize: "18px", fontWeight: 700, margin: 0, color: "#FFFFFF" }}>
+                Ingest Performance CSV
+              </h2>
+              <button
+                onClick={() => setShowUploadModal(false)}
+                style={{ background: "transparent", border: "none", color: "var(--text-tertiary)", fontSize: "20px", cursor: "pointer" }}
+              >
+                ×
               </button>
             </div>
-            <p className="modal-subhead">
-              Accepts CSV exports from Instagram Insights (Reach, Impressions), Meta Ads Manager (ROAS, Spend),
-              or YouTube Studio. Zero API credentials or tokens required.
+
+            <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.5, margin: "0 0 16px 0" }}>
+              Upload any creator export or ad campaign CSV. The Defensive Parser automatically recognizes date and reach columns (Instagram Insights, TikTok, Meta Ads).
             </p>
 
             <div
@@ -394,46 +390,22 @@ export default function Page() {
               onClick={() => fileInputRef.current?.click()}
             >
               <input
-                ref={fileInputRef}
                 type="file"
+                ref={fileInputRef}
+                onChange={handleFileUpload}
                 accept=".csv"
                 style={{ display: "none" }}
-                onChange={handleFileUpload}
               />
-              <div className="dropzone-icon-box">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="17 8 12 3 7 8" />
-                  <line x1="12" y1="3" x2="12" y2="15" />
-                </svg>
+              <div style={{ fontSize: "28px", marginBottom: "8px" }}>📊</div>
+              <div style={{ fontSize: "14px", fontWeight: 600, color: "#FFFFFF", marginBottom: "4px" }}>
+                {isUploading ? "Evaluating Dataset..." : "Click to select CSV or drop file here"}
               </div>
-              <p className="dropzone-title">Click to select or drop CSV file</p>
-              <small>Auto-detects Date and Numeric columns in milliseconds</small>
-            </div>
-
-            <div className="sample-downloads-bar">
-              <a href="/samples/real_instagram_sample.csv" download className="btn-sample-download">
-                Download Real IG Sample
-              </a>
-              <a href="/samples/real_meta_ads_sample.csv" download className="btn-sample-download">
-                Download Real Meta Ads Sample
-              </a>
-            </div>
-
-            <div className="enclave-modal-notice">
-              <strong>Zero-Data-Leak Privacy Guarantee:</strong> Ingested records are evaluated exclusively in local memory. No customer identifiers, financial numbers, or reach histories are stored to disk or used for external model training.
-            </div>
-
-            {isUploading && (
-              <div style={{ marginTop: "16px", textAlign: "center" }}>
-                <div className="terminal-scan-line" />
-                <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
-                  Normalizing time-series vectors...
-                </span>
+              <div style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
+                Execution strictly local inside Zero-Data-Leak Enclave
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        </>
       )}
     </main>
   );
