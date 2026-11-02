@@ -1,21 +1,23 @@
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
-from services.ai_agent import LocalDiagnosticEngine
+from sklearn.ensemble import IsolationForest
+from services.ai_agent import HybridAIAgent, LocalDiagnosticEngine
 
 
 class AnomalyEngine:
     """
     Production-Grade Self-Calibrating Anomaly & Performance Intelligence Engine.
     Features:
-    - Outlier-Resistant Baseline (Winsorized MAD estimation to prevent viral-post distortion)
+    - Outlier-Resistant Baseline (Winsorized estimation to prevent viral-post distortion)
     - Day-of-Week Seasonality Normalization (eliminates false weekend dip alarms)
+    - Scikit-Learn IsolationForest (100 Decision Trees fitted on 5D time-series feature space)
     - Multi-scale velocity and acceleration tracking (detects pre-shock early warnings)
     - Quantified Impact Modeling (projected revenue/reach at risk)
     """
 
     def __init__(self):
-        self.ai_agent = LocalDiagnosticEngine()
+        self.ai_agent = HybridAIAgent()
 
     def _normalize_seasonality(self, df: pd.DataFrame) -> np.ndarray:
         """
@@ -51,6 +53,53 @@ class AnomalyEngine:
             [max(0.4, min(2.5, dow_means[d] / overall_mean)) for d in day_of_week]
         )
         return values / seasonal_factors
+
+    def _fit_isolation_forest(
+        self, raw_series: np.ndarray, deseasonalized: np.ndarray, baseline_avg: float
+    ) -> Tuple[np.ndarray, float, bool]:
+        """
+        Fits an unsupervised Scikit-learn IsolationForest (100 Decision Trees)
+        on a 5-dimensional feature space engineered from the time-series:
+        1. Deseasonalized value
+        2. 3-day velocity slope (1st derivative)
+        3. 3-day acceleration rate (2nd derivative)
+        4. Rolling volatility index
+        5. Distance ratio to baseline
+        """
+        n = len(raw_series)
+        if n < 7:
+            return np.ones(n), 0.10, False
+
+        # 1. 3-day slope
+        slope_series = np.zeros(n)
+        for i in range(n):
+            prev_idx = max(0, i - 3)
+            slope_series[i] = (raw_series[i] - raw_series[prev_idx]) / max(1, i - prev_idx)
+
+        # 2. Acceleration (rate of change of slope)
+        accel_series = np.gradient(slope_series)
+
+        # 3. Rolling volatility
+        vol_series = pd.Series(deseasonalized).rolling(window=min(7, n), min_periods=1).std().fillna(0).values
+
+        # 4. Baseline ratio
+        ratio_series = (raw_series - baseline_avg) / (baseline_avg if baseline_avg > 0 else 1.0)
+
+        # Build 5D feature matrix
+        X = np.column_stack([deseasonalized, slope_series, accel_series, vol_series, ratio_series])
+
+        iso = IsolationForest(n_estimators=100, contamination=0.10, random_state=42)
+        iso.fit(X)
+        scores = iso.decision_function(X)
+        preds = iso.predict(X)
+
+        current_score = scores[-1]
+        is_ml_outlier = bool(preds[-1] == -1)
+
+        # Convert decision function score to a 0.05 to 0.98 probability index
+        anomaly_prob = float(np.clip(0.5 - (current_score * 1.5), 0.05, 0.98))
+
+        return preds, round(anomaly_prob, 2), is_ml_outlier
 
     def analyze_series(
         self,
@@ -101,13 +150,18 @@ class AnomalyEngine:
         # 3-Day Slope Velocity
         slope_3d = float((raw_series[-1] - raw_series[-min(3, n)]) / max(1, min(3, n)))
 
-        # 3. Intelligent Classification
-        if change_pct < -30.0 or z_score < -2.2:
+        # 3. Fit Machine Learning Model: Scikit-Learn IsolationForest
+        iso_preds, ml_anomaly_score, is_ml_outlier = self._fit_isolation_forest(
+            raw_series, deseasonalized, baseline_avg
+        )
+
+        # 4. Intelligent Classification
+        if change_pct < -30.0 or z_score < -2.2 or (is_ml_outlier and change_pct < -20.0):
             prediction_label = "shock"
             health_score = max(5, min(38, int(round(35 + (z_score * 4.5)))))
             alert_level = "red"
             confidence = min(0.96, max(0.72, 0.78 + abs(change_pct) / 250.0))
-        elif change_pct < -12.0 or z_score < -1.1 or (slope_3d < 0 and change_pct < -8.0):
+        elif change_pct < -12.0 or z_score < -1.1 or (slope_3d < 0 and change_pct < -8.0) or is_ml_outlier:
             prediction_label = "pre_shock"
             health_score = max(40, min(69, int(round(58 + (change_pct * 0.75)))))
             alert_level = "yellow"
@@ -129,7 +183,7 @@ class AnomalyEngine:
             alert_level = "green"
             confidence = 0.88
 
-        # 4. Anomaly Point Detection (deseasonalized outliers > 1.8 std)
+        # 5. Anomaly Point Detection (deseasonalized outliers > 1.8 std or ML outlier flag)
         rolling_mean_long = pd.Series(deseasonalized).rolling(window=long_window, min_periods=1).mean().values
         rolling_std_long = pd.Series(deseasonalized).rolling(window=long_window, min_periods=2).std().fillna(1e-5).values
         anomaly_points = []
@@ -138,7 +192,7 @@ class AnomalyEngine:
             pt_deseas = deseasonalized[i]
             exp_val = rolling_mean_long[i]
             std_val = rolling_std_long[i]
-            if std_val > 0 and (exp_val - pt_deseas) / std_val > 1.8:
+            if (std_val > 0 and (exp_val - pt_deseas) / std_val > 1.8) or (iso_preds[i] == -1 and (exp_val - pt_deseas) > 0):
                 anomaly_points.append(
                     {
                         "date": df["date"].iloc[i].strftime("%Y-%m-%d"),
@@ -147,10 +201,9 @@ class AnomalyEngine:
                     }
                 )
 
-        # 5. Quantified Impact Modeling
+        # 6. Quantified Impact Modeling
         if metric_type.lower() == "roas":
-            # Estimated ad capital at risk if efficiency stays collapsed over next 7 days
-            daily_loss = max(0.0, (baseline_avg - current_val) * 150.0)  # normalized estimation
+            daily_loss = max(0.0, (baseline_avg - current_val) * 150.0)
             projected_impact = f"Est. ${int(daily_loss * 7):,} ad spend efficiency at risk over 7 days"
         else:
             lost_impressions = max(0, int((baseline_avg - current_val) * 7))
@@ -165,9 +218,12 @@ class AnomalyEngine:
             "volatility_index": volatility_index,
             "anomaly_count": len(anomaly_points),
             "projected_impact": projected_impact,
+            "ml_model": "Scikit-Learn IsolationForest (100 Decision Trees)",
+            "ml_anomaly_score": ml_anomaly_score,
+            "ml_flagged": is_ml_outlier,
         }
 
-        # 6. Deep Natural AI Briefing
+        # 7. Cognitive AI Agent Briefing (Gemini 1.5 Flash or Local Fallback)
         briefing = self.ai_agent.generate_briefing(
             account_name=account_name or "Connected Account",
             platform=platform,
@@ -207,3 +263,25 @@ class AnomalyEngine:
             "reach_data": series_data,
             "data_source": "live_dataset",
         }
+
+    def query_copilot(
+        self,
+        question: str,
+        account_name: str,
+        platform: str,
+        metric_type: str,
+        health_score: int,
+        metrics: Dict,
+        anomalies: List[Dict],
+        diagnosis: str,
+    ) -> Dict:
+        return self.ai_agent.query_copilot(
+            question=question,
+            account_name=account_name,
+            platform=platform,
+            metric_type=metric_type,
+            health_score=health_score,
+            metrics=metrics,
+            anomalies=anomalies,
+            diagnosis=diagnosis,
+        )

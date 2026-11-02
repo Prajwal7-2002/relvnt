@@ -10,7 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..",
 from main import app
 from ml.anomaly_engine import AnomalyEngine
 from ml.presets import get_preset_datasets
-from services.ai_agent import LocalDiagnosticEngine
+from services.ai_agent import HybridAIAgent, LocalDiagnosticEngine
 from services.csv_parser import DefensiveCSVParser
 
 client = TestClient(app)
@@ -21,7 +21,7 @@ def test_health_endpoint():
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "nominal"
-    assert "Zero-Data-Leak" in data["data_governance"]
+    assert "Compound AI" in data["data_governance"]
 
 
 def test_security_headers():
@@ -40,7 +40,7 @@ def test_presets_endpoint():
     assert "healthy_growth" in presets
 
 
-def test_analyze_preset_instagram_drop():
+def test_analyze_preset_instagram_drop_with_isolation_forest():
     response = client.get("/analyze?preset=instagram_drop")
     assert response.status_code == 200
     data = response.json()
@@ -49,7 +49,11 @@ def test_analyze_preset_instagram_drop():
     assert data["severity"] in ["CRITICAL_DRIFT", "ELEVATED_RISK"]
     assert len(data["reach_data"]) >= 7
     assert len(data["protocol_phases"]) == 3
-    assert "Zero-Data-Leak" in data["ai_engine"]
+    # Verify Scikit-Learn IsolationForest integration
+    metrics = data["metrics_summary"]
+    assert "IsolationForest" in metrics["ml_model"]
+    assert "ml_anomaly_score" in metrics
+    assert 0.0 <= metrics["ml_anomaly_score"] <= 1.0
 
 
 def test_analyze_preset_meta_ads_fatigue():
@@ -102,6 +106,25 @@ def test_analyze_upload_endpoint():
     assert data["data_source"] == "csv_upload"
     assert data["metrics_summary"]["anomaly_count"] >= 1
     assert len(data["reach_data"]) == 10
+    assert "IsolationForest" in data["metrics_summary"]["ml_model"]
+
+
+def test_copilot_endpoint():
+    payload = {
+        "question": "Draft an email for my sponsor explaining this drop.",
+        "account_name": "@tech_founder",
+        "platform": "instagram",
+        "metric_type": "reach",
+        "health_score": 15,
+        "metrics": {"current_value": 4500, "baseline_avg": 12000, "change_pct": -62.5},
+        "diagnosis": "Feed de-prioritization detected.",
+    }
+    response = client.post("/copilot", json=payload)
+    assert response.status_code == 200
+    res = response.json()
+    assert "answer" in res
+    assert "Subject" in res["answer"] or "trajectory" in res["answer"].lower()
+    assert "engine" in res
 
 
 def test_zero_data_leak_local_agent():
@@ -117,6 +140,7 @@ def test_zero_data_leak_local_agent():
             "change_pct": -62.5,
             "z_score_deviation": -3.8,
             "volatility_index": 5.2,
+            "ml_anomaly_score": 0.94,
         },
         anomalies=[{"date": "2026-08-10", "value": 4500.0, "deviation": -62.5}],
     )

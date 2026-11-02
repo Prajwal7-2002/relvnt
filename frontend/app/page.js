@@ -19,6 +19,10 @@ export default function Page() {
   const [activePreset, setActivePreset] = useState("instagram_drop");
   const [isUploading, setIsUploading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showCopilot, setShowCopilot] = useState(false);
+  const [copilotInput, setCopilotInput] = useState("");
+  const [copilotMessages, setCopilotMessages] = useState([]);
+  const [copilotLoading, setCopilotLoading] = useState(false);
   const fileInputRef = useRef(null);
 
   const fetchAnalysis = async (presetKey = "instagram_drop") => {
@@ -79,8 +83,54 @@ export default function Page() {
     }
   };
 
+  const handleCopilotSend = async (customText = null) => {
+    const queryText = (customText || copilotInput).trim();
+    if (!queryText || copilotLoading) return;
+
+    const newMessages = [...copilotMessages, { role: "user", text: queryText }];
+    setCopilotMessages(newMessages);
+    setCopilotInput("");
+    setCopilotLoading(true);
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/copilot`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: queryText,
+          account_name: data?.account_name || "Account",
+          platform: data?.platform || "instagram",
+          metric_type: data?.metric_type || "reach",
+          health_score: data?.health_score || 50,
+          metrics: data?.metrics_summary || {},
+          anomalies: data?.anomalies || [],
+          diagnosis: data?.diagnosis || "",
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Copilot response status ${res.status}`);
+      }
+
+      const json = await res.json();
+      setCopilotMessages((prev) => [
+        ...prev,
+        { role: "ai", text: json.answer, engine: json.engine },
+      ]);
+    } catch (err) {
+      setCopilotMessages((prev) => [
+        ...prev,
+        { role: "ai", text: `Notice: ${err.message || "Failed to generate copilot response."}`, engine: "System" },
+      ]);
+    } finally {
+      setCopilotLoading(false);
+    }
+  };
+
   const metrics = data?.metrics_summary || {};
   const isRoas = data?.metric_type === "roas";
+  const mlScore = Math.round((metrics.ml_anomaly_score || 0.1) * 100);
 
   return (
     <main className="dashboard-shell">
@@ -94,11 +144,18 @@ export default function Page() {
               <span className="brand-edition-tag">// SENTINEL RADAR v1.2</span>
             </div>
             <p className="brand-tagline">
-              Algorithmic Suppression &amp; Creative Fatigue Early-Warning System
+              Compound AI Early-Warning Radar for Algorithmic Suppression &amp; Ad Fatigue
             </p>
           </div>
 
           <div className="header-actions">
+            <button
+              onClick={() => setShowCopilot(true)}
+              className="btn-copilot-trigger"
+            >
+              <span className="copilot-pulse" />
+              <span>[ASK RELVNT AI]</span>
+            </button>
             <div className="enclave-badge">
               <span className="enclave-pulse" />
               <span>LOCAL_ENCLAVE: ZERO_EGRESS</span>
@@ -177,13 +234,15 @@ export default function Page() {
 
             <div className="stat-box">
               <div className="stat-header">
-                <span className="stat-label">Statistical Divergence</span>
-                <span className="stat-subtext">Outlier Clusters</span>
+                <span className="stat-label">ML Anomaly Outlier</span>
+                <span className="stat-subtext">IsolationForest</span>
               </div>
               <div className="stat-value tabular-numbers">
-                {metrics.anomaly_count || 0}
+                <span style={{ color: metrics.ml_flagged ? "#EF4444" : "#10B981" }}>
+                  {mlScore}%
+                </span>
                 <span className="stat-baseline-tag">
-                  ({metrics.z_score_deviation || 0}σ • {metrics.volatility_index}% vol)
+                  ({metrics.ml_flagged ? "Outlier Decoupled" : "Nominal"} • {metrics.anomaly_count || 0} events)
                 </span>
               </div>
             </div>
@@ -195,7 +254,7 @@ export default function Page() {
               </div>
               <div
                 className="stat-value tabular-numbers"
-                style={{ fontSize: "14.5px", color: "#F59E0B" }}
+                style={{ fontSize: "14px", color: "#F59E0B" }}
               >
                 {metrics.projected_impact || "Nominal Equilibrium"}
               </div>
@@ -207,7 +266,7 @@ export default function Page() {
         {loading && !data && (
           <div className="loading-shell">
             <div className="terminal-scan-line" />
-            <p className="loading-label">[CALIBRATING_SEASONALITY_AND_DISTRIBUTION_VECTORS]</p>
+            <p className="loading-label">[CALIBRATING_ISOLATION_FOREST_AND_DISTRIBUTION_VECTORS]</p>
           </div>
         )}
 
@@ -223,6 +282,96 @@ export default function Page() {
           </>
         )}
       </div>
+
+      {/* INTERACTIVE ASK RELVNT AI COPILOT DRAWER */}
+      {showCopilot && (
+        <>
+          <div className="copilot-drawer-overlay" onClick={() => setShowCopilot(false)} />
+          <aside className="copilot-drawer">
+            <div className="copilot-drawer-header">
+              <div className="copilot-drawer-title">
+                <span className="copilot-pulse" />
+                <h3>Relvnt AI Incident Copilot</h3>
+              </div>
+              <button onClick={() => setShowCopilot(false)} className="btn-close">
+                ✕
+              </button>
+            </div>
+
+            <div className="copilot-drawer-body">
+              <div className="copilot-quick-chips">
+                <span className="copilot-chips-label">Quick Strategic Inquiries:</span>
+                <button
+                  onClick={() => handleCopilotSend("Why did my account get flagged and what caused this drop?")}
+                  className="copilot-chip"
+                >
+                  ⚡ Why did this distribution drop occur?
+                </button>
+                <button
+                  onClick={() => handleCopilotSend("Draft a professional email for my client or brand sponsor explaining this temporary variance.")}
+                  className="copilot-chip"
+                >
+                  ✉ Draft executive email for client / sponsor
+                </button>
+                <button
+                  onClick={() => handleCopilotSend("What specific publishing format and hook length should I post this week for an algorithmic reset?")}
+                  className="copilot-chip"
+                >
+                  🎯 Recommend 72-hour content recovery format
+                </button>
+              </div>
+
+              {copilotMessages.length === 0 && (
+                <div style={{ padding: "20px 0", textAlign: "center", color: "var(--text-tertiary)", fontSize: "12.5px" }}>
+                  Ask questions about @{data?.account_name || "target"}&apos;s anomaly vectors, creative fatigue, or recovery strategies.
+                </div>
+              )}
+
+              {copilotMessages.map((msg, idx) => (
+                <div key={idx} className="copilot-msg-item">
+                  <span className="copilot-msg-meta">
+                    {msg.role === "user" ? "[OPERATOR]" : `[${msg.engine || "RELVNT AI"}]`}
+                  </span>
+                  <div
+                    className={`copilot-msg-content ${
+                      msg.role === "user" ? "copilot-msg-content-user" : "copilot-msg-content-ai"
+                    }`}
+                  >
+                    {msg.text}
+                  </div>
+                </div>
+              ))}
+
+              {copilotLoading && (
+                <div style={{ textAlign: "center", padding: "12px 0" }}>
+                  <div className="terminal-scan-line" />
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--text-tertiary)" }}>
+                    [REASONING_OVER_ML_VECTORS]
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div className="copilot-drawer-footer">
+              <input
+                type="text"
+                placeholder="Ask about this account's performance..."
+                value={copilotInput}
+                onChange={(e) => setCopilotInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCopilotSend()}
+                className="copilot-input"
+              />
+              <button
+                onClick={() => handleCopilotSend()}
+                disabled={copilotLoading || !copilotInput.trim()}
+                className="btn-copilot-send"
+              >
+                Send
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
 
       {/* CSV INGESTION MODAL */}
       {showUploadModal && (

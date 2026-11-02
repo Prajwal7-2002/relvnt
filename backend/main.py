@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import FastAPI, File, HTTPException, Query, Request, Response, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +14,7 @@ from services.instagram_api import get_90_days_reach
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("relvnt.api")
 
-app = FastAPI(title="Relvnt Enterprise Performance Sentinel", version="1.0.0")
+app = FastAPI(title="Relvnt Enterprise Performance Sentinel", version="1.1.0")
 
 # SECURITY: Strict Security Headers Middleware
 @app.middleware("http")
@@ -27,7 +27,7 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
 
-# CORS configuration
+# CORS configuration: Allow localhost, vercel deployments, and all custom origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -52,13 +52,24 @@ class AnalyzePayload(BaseModel):
     series: List[DataPoint]
 
 
+class CopilotQuery(BaseModel):
+    question: str
+    account_name: Optional[str] = "Target Account"
+    platform: Optional[str] = "instagram"
+    metric_type: Optional[str] = "reach"
+    health_score: Optional[int] = 50
+    metrics: Optional[Dict] = {}
+    anomalies: Optional[List[Dict]] = []
+    diagnosis: Optional[str] = ""
+
+
 @app.get("/health")
 def health():
     return {
         "status": "nominal",
         "system": "Relvnt Enterprise Sentinel",
-        "version": "1.0.0",
-        "data_governance": "Zero-Data-Leak Local Processing",
+        "version": "1.1.0",
+        "data_governance": "Compound AI: Local IsolationForest + Optional Zero-Retention Gemini Reasoning",
     }
 
 
@@ -122,7 +133,6 @@ def analyze_custom(payload: AnalyzePayload):
             detail="At least 7 daily data points are required for statistical performance evaluation.",
         )
 
-    # Sanitize account name
     clean_account = re.sub(r"[^\w\s\-@.]", "", payload.account_name or "Custom Account").strip()
     dates = [p.date for p in payload.series]
     values = [p.value for p in payload.series]
@@ -154,7 +164,6 @@ async def analyze_csv(
                 detail=f"Uploaded file exceeds security limit ({MAX_UPLOAD_BYTES // (1024*1024)}MB).",
             )
 
-        # Sanitize filename
         safe_filename = re.sub(r"[^\w\s\-_.]", "", file.filename or "upload.csv")
 
         clean_df, date_col, val_col = DefensiveCSVParser.parse(
@@ -187,3 +196,22 @@ async def analyze_csv(
             status_code=500,
             detail="An error occurred during dataset evaluation. Please verify file format.",
         )
+
+
+@app.post("/copilot")
+def copilot_query(payload: CopilotQuery):
+    clean_question = re.sub(r"[^\w\s\-\?\.\,\'\"\/]", "", payload.question).strip()
+    if not clean_question:
+        raise HTTPException(status_code=400, detail="Question parameter is required.")
+
+    res = engine.query_copilot(
+        question=clean_question,
+        account_name=payload.account_name or "Target Account",
+        platform=payload.platform or "instagram",
+        metric_type=payload.metric_type or "reach",
+        health_score=payload.health_score or 50,
+        metrics=payload.metrics or {},
+        anomalies=payload.anomalies or [],
+        diagnosis=payload.diagnosis or "",
+    )
+    return res

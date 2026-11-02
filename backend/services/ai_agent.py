@@ -1,5 +1,8 @@
+import json
 import logging
+import os
 from typing import Dict, List, Optional
+import requests
 
 logger = logging.getLogger("relvnt.diagnostics")
 
@@ -8,8 +11,8 @@ class LocalDiagnosticEngine:
     """
     Zero-Data-Leakage Local Diagnostic Engine.
     Executes entirely on-premise / on-server with zero third-party API transmissions.
-    Generates deterministic, mathematically grounded root-cause diagnoses and
-    remediation protocols citing exact timeframes, velocities, and deviations.
+    Generates deterministic, mathematically grounded root-cause diagnoses,
+    remediation protocols, and conversational Copilot answers.
     """
 
     @classmethod
@@ -28,6 +31,7 @@ class LocalDiagnosticEngine:
         change = metrics.get("change_pct", 0.0)
         z_score = metrics.get("z_score_deviation", 0.0)
         volatility = metrics.get("volatility_index", 0.0)
+        iso_score = metrics.get("ml_anomaly_score", 0.0)
         anomaly_count = len(anomalies)
 
         dates_list = [a["date"] for a in anomalies[:3]] if anomalies else []
@@ -42,6 +46,7 @@ class LocalDiagnosticEngine:
                     f"Return on Ad Spend collapsed from baseline {baseline:.2f}x to {current:.2f}x "
                     f"({change:.1f}%), crossing statistical significance at {z_score:.2f} std dev. "
                     f"Outlier clusters registered on {dates_ref}. "
+                    f"IsolationForest ensemble confirmed anomalous state ({int(iso_score * 100)}% ML confidence). "
                     f"Pattern confirms acute audience saturation and auction delivery exhaustion."
                 )
                 action = (
@@ -58,6 +63,7 @@ class LocalDiagnosticEngine:
                 diagnosis = (
                     f"Distribution velocity contracted by {abs(change):.1f}% against the {baseline:,.0f} baseline "
                     f"({z_score:.2f} std dev deviation). Primary divergence identified on {dates_ref}. "
+                    f"IsolationForest detected distribution decoupling ({int(iso_score * 100)}% ML confidence). "
                     f"Pattern indicates algorithmic feed de-prioritization driven by declining initial-retention cohorts."
                 )
                 action = (
@@ -149,3 +155,181 @@ class LocalDiagnosticEngine:
             "phases": phases,
             "ai_engine": "Relvnt Local Statistical Inference Engine (Zero-Data-Leak)",
         }
+
+    @classmethod
+    def answer_copilot(
+        cls,
+        question: str,
+        account_name: str,
+        platform: str,
+        metric_type: str,
+        health_score: int,
+        metrics: Dict,
+        anomalies: List[Dict],
+        diagnosis: str,
+    ) -> Dict:
+        """
+        Local deterministic Copilot reasoning fallback.
+        Provides targeted expert answers for common questions without calling external APIs.
+        """
+        q = question.lower()
+        current = metrics.get("current_value", 0)
+        baseline = metrics.get("baseline_avg", 0)
+        change = metrics.get("change_pct", 0)
+        unit = "x" if metric_type.lower() == "roas" else ""
+
+        if any(w in q for w in ["email", "sponsor", "client", "draft"]):
+            answer = (
+                f"Subject: Performance Trajectory Update & Algorithmic Optimization // {account_name}\n\n"
+                f"Hi team,\n\n"
+                f"We are monitoring our recent distribution metrics across {platform}. "
+                f"Our Sentinel radar detected a temporary velocity adjustment (current run-rate at {current:,.1f}{unit} "
+                f"vs {baseline:,.1f}{unit} baseline, a {change:+.1f}% variance). "
+                f"This shift reflects standard algorithmic recalibration rather than creative failure.\n\n"
+                f"We have already initiated our 72-hour containment protocol:\n"
+                f"1. Halting lower-performing static assets for 48 hours to preserve algorithmic index scores.\n"
+                f"2. Preparing 2 high-retention hook variants to reclaim explore distribution.\n"
+                f"3. Monitoring daily velocity recovery against our rolling median baseline.\n\n"
+                f"We will share our next benchmark update in 48 hours.\n\nBest regards,\nGrowth Team"
+            )
+        elif any(w in q for w in ["why", "drop", "reason", "cause"]):
+            answer = (
+                f"ROOT CAUSE BREAKDOWN FOR {account_name}:\n\n"
+                f"1. Statistical Divergence: Run-rate contracted by {abs(change):.1f}% against the {baseline:,.0f}{unit} baseline, "
+                f"triggering statistical outlier flags at {metrics.get('z_score_deviation', 0)} std deviations.\n"
+                f"2. Retention Decay: The primary inflection occurred when early audience watch-time fell below threshold. "
+                f"When 0-3s retention falls below 35%, distribution algorithms deprioritize explore feed insertion.\n"
+                f"3. Algorithmic State: Account health is currently indexed at {health_score}/100. "
+                f"Anomalies detected: {len(anomalies)} events in the evaluation window."
+            )
+        elif any(w in q for w in ["format", "post", "hook", "what to post"]):
+            answer = (
+                f"RECOMMENDED 72-HOUR PUBLISHING SOP FOR {platform.upper()}:\n\n"
+                f"1. Format: High-contrast short-form video (7 to 12 seconds maximum).\n"
+                f"2. Hook Execution: Deliver the core premise or visual contradiction within frames 0–1 (first 1.5s). Zero intro sequences.\n"
+                f"3. Dwell Strategy: Place a detailed actionable tip in the text caption to keep viewers watching on loop.\n"
+                f"4. Engagement Window: Actively respond to incoming comments within 45 minutes of asset release to trigger feed re-indexing."
+            )
+        else:
+            answer = (
+                f"SENTINEL INTELLIGENCE BRIEF FOR {account_name}:\n\n"
+                f"• Current Health Score: {health_score}/100\n"
+                f"• Run-Rate: {current:,.1f}{unit} vs {baseline:,.1f}{unit} baseline ({change:+.1f}%)\n"
+                f"• ML Status: {diagnosis}\n"
+                f"• Recommended Protocol: Execute 72-hour phase reset and maintain engagement priming."
+            )
+
+        return {
+            "answer": answer,
+            "engine": "Relvnt Local Copilot Engine (Zero-Data-Leak)",
+        }
+
+
+class HybridAIAgent:
+    """
+    Hybrid Compound AI Agent:
+    - If GEMINI_API_KEY is available: calls Gemini 1.5 Flash for live, bespoke generative AI reasoning.
+    - If offline / no key: seamlessly falls back to LocalDiagnosticEngine (Zero-Data-Leak).
+    """
+
+    def __init__(self):
+        self.api_key = os.getenv("GEMINI_API_KEY")
+
+    def generate_briefing(
+        self,
+        account_name: str,
+        platform: str,
+        metric_type: str,
+        prediction: str,
+        health_score: int,
+        metrics: Dict,
+        anomalies: List[Dict],
+    ) -> Dict:
+        if self.api_key:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.api_key}"
+                prompt = (
+                    f"You are the Relvnt Enterprise Algorithmic Incident Sentinel. "
+                    f"Analyze this performance anomaly report and generate a clinical, quantified Root-Cause Analysis (RCA) "
+                    f"and a structured 3-phase chronological 72-hour tactical recovery runbook.\n\n"
+                    f"Account: {account_name}\n"
+                    f"Platform: {platform}\n"
+                    f"Metric: {metric_type}\n"
+                    f"Health Score: {health_score}/100\n"
+                    f"Current Run-Rate: {metrics.get('current_value')}\n"
+                    f"Baseline Expected: {metrics.get('baseline_avg')}\n"
+                    f"Velocity Change: {metrics.get('change_pct')}%\n"
+                    f"Z-Score: {metrics.get('z_score_deviation')} std dev\n"
+                    f"IsolationForest ML Score: {metrics.get('ml_anomaly_score')}\n"
+                    f"Anomalies: {anomalies}\n\n"
+                    f"Format output as JSON with keys:\n"
+                    f"- 'severity': 'CRITICAL_DRIFT' | 'ELEVATED_RISK' | 'NOMINAL_EQUILIBRIUM'\n"
+                    f"- 'diagnosis': 2-3 clinical sentences detailing exact inflection points and causes\n"
+                    f"- 'recommended_action': Numbered overview of recovery actions\n"
+                    f"- 'phases': list of 3 objects with 'phase' (e.g. 'PHASE 01 (00:00 - 24:00)'), 'title', and 'action'\n"
+                )
+                payload = {
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {"response_mime_type": "application/json"},
+                }
+                res = requests.post(url, json=payload, timeout=8)
+                if res.status_code == 200:
+                    resp_json = res.json()
+                    text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
+                    data = json.loads(text)
+                    data["ai_engine"] = "Gemini 1.5 Flash (Live Generative AI)"
+                    return data
+            except Exception as exc:
+                logger.warning("Gemini live briefing failed, using local engine: %s", exc)
+
+        return LocalDiagnosticEngine.generate_briefing(
+            account_name, platform, metric_type, prediction, health_score, metrics, anomalies
+        )
+
+    def query_copilot(
+        self,
+        question: str,
+        account_name: str,
+        platform: str,
+        metric_type: str,
+        health_score: int,
+        metrics: Dict,
+        anomalies: List[Dict],
+        diagnosis: str,
+    ) -> Dict:
+        if self.api_key:
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.api_key}"
+                prompt = (
+                    f"You are the Relvnt AI Growth & Incident Copilot. "
+                    f"The user is asking a question about their account performance.\n\n"
+                    f"ACCOUNT CONTEXT:\n"
+                    f"- Account: {account_name}\n"
+                    f"- Platform: {platform}\n"
+                    f"- Metric: {metric_type}\n"
+                    f"- Health Score: {health_score}/100\n"
+                    f"- Current Run-Rate: {metrics.get('current_value')}\n"
+                    f"- Baseline: {metrics.get('baseline_avg')}\n"
+                    f"- Net Drift: {metrics.get('change_pct')}%\n"
+                    f"- Active Diagnosis: {diagnosis}\n\n"
+                    f"USER QUESTION: {question}\n\n"
+                    f"INSTRUCTIONS:\n"
+                    f"Provide an authoritative, direct, and actionable answer citing their specific data. "
+                    f"If they ask for an email, write a polished ready-to-send draft. "
+                    f"Do not use generic buzzwords or emojis. Keep it professional and clear."
+                )
+                payload = {"contents": [{"parts": [{"text": prompt}]}]}
+                res = requests.post(url, json=payload, timeout=8)
+                if res.status_code == 200:
+                    resp_json = res.json()
+                    text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
+                    return {
+                        "answer": text.strip(),
+                        "engine": "Gemini 1.5 Flash (Live AI Copilot)",
+                    }
+            except Exception as exc:
+                logger.warning("Gemini live copilot query failed, using local engine: %s", exc)
+
+        return LocalDiagnosticEngine.answer_copilot(
+            question, account_name, platform, metric_type, health_score, metrics, anomalies, diagnosis
+        )
