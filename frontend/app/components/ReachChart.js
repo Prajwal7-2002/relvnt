@@ -15,25 +15,20 @@ function formatDate(value) {
   try {
     return new Intl.DateTimeFormat("en", {
       month: "short",
-      day: "2-digit",
+      day: "numeric",
     }).format(new Date(value));
   } catch {
     return value;
   }
 }
 
-function getTrajectoryColor(alertLevel) {
-  if (alertLevel === "green") return "#10B981";
-  if (alertLevel === "yellow") return "#F59E0B";
-  return "#F43F5E";
-}
-
 export default function ReachChart({ data }) {
   const [range, setRange] = useState("ALL");
   const rawData = data?.reach_data || [];
-  const color = getTrajectoryColor(data?.alert_level);
-  const metricType = (data?.metric_type || "reach").toUpperCase();
   const isRoas = data?.metric_type === "roas";
+  const alertLevel = data?.alert_level || "green";
+
+  const chartColor = alertLevel === "red" ? "#EF4444" : alertLevel === "yellow" ? "#F59E0B" : "#10B981";
 
   const chartData = useMemo(() => {
     if (!rawData || rawData.length === 0) return [];
@@ -48,85 +43,77 @@ export default function ReachChart({ data }) {
   }, [data?.anomalies]);
 
   return (
-    <section className="chart-radar-panel">
-      <div className="chart-header-row">
-        <div className="chart-title-block">
-          <h2>Distribution Velocity Trajectory</h2>
-          <p className="chart-subtitle-block">
-            Observed daily {metricType} plotted against rolling seasonality-normalized baseline
-          </p>
+    <section className="chart-card">
+      <div className="chart-header">
+        <div className="chart-title-group">
+          <h2>Daily Reach vs. Expected Baseline</h2>
+          <p>Tracking daily observed performance against seasonality-adjusted baseline.</p>
         </div>
 
-        <div className="chart-controls-cluster">
-          <div className="range-tab-group">
-            {["30D", "60D", "90D", "ALL"].map((tab) => (
-              <button
-                key={tab}
-                onClick={() => setRange(tab)}
-                className={`range-tab-btn ${range === tab ? "range-tab-btn-active" : ""}`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
+        <div className="range-pills">
+          {["30D", "60D", "90D", "ALL"].map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setRange(tab)}
+              className={`range-pill-btn ${range === tab ? "range-pill-btn-active" : ""}`}
+            >
+              {tab}
+            </button>
+          ))}
         </div>
       </div>
 
-      <div className="chart-legend-row">
-        <div className="legend-chip">
-          <span className="legend-line-actual" style={{ backgroundColor: color }} />
-          <span>Observed Run-Rate</span>
+      <div className="chart-legend">
+        <div className="chart-legend-item">
+          <span className="legend-swatch-solid" style={{ backgroundColor: chartColor }} />
+          <span>Actual Reach</span>
         </div>
-        <div className="legend-chip">
-          <span className="legend-line-baseline" />
-          <span>Model Expected Baseline</span>
+        <div className="chart-legend-item">
+          <span className="legend-swatch-dash" />
+          <span>Expected Baseline</span>
         </div>
         {data?.anomalies?.length > 0 && (
-          <div className="legend-chip">
+          <div className="chart-legend-item">
             <span
               style={{
                 width: "8px",
                 height: "8px",
                 borderRadius: "50%",
-                backgroundColor: "#F43F5E",
+                backgroundColor: "#EF4444",
                 display: "inline-block",
               }}
             />
-            <span style={{ color: "#F43F5E" }}>
-              Decoupling Events ({data.anomalies.length})
+            <span style={{ color: "#EF4444" }}>
+              Anomaly Flags ({data.anomalies.length} days)
             </span>
           </div>
         )}
       </div>
 
-      <div className="chart-viewport-box">
+      <div className="chart-box">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <defs>
-              <linearGradient id="velocityGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={color} stopOpacity={0.28} />
-                <stop offset="90%" stopColor={color} stopOpacity={0.0} />
-              </linearGradient>
-              <linearGradient id="baselineGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#6B7280" stopOpacity={0.12} />
-                <stop offset="100%" stopColor="#6B7280" stopOpacity={0.0} />
+              <linearGradient id="actualFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={chartColor} stopOpacity={0.18} />
+                <stop offset="100%" stopColor={chartColor} stopOpacity={0.0} />
               </linearGradient>
             </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.04)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" vertical={false} />
 
             <XAxis
               dataKey="date"
               tickFormatter={formatDate}
               interval="preserveStartEnd"
-              minTickGap={36}
+              minTickGap={32}
               stroke="transparent"
-              tick={{ fill: "#6B7280", fontSize: 11, fontFamily: "var(--font-mono)" }}
+              tick={{ fill: "#64748B", fontSize: 12, fontFamily: "var(--font-mono)" }}
             />
 
             <YAxis
               stroke="transparent"
-              tick={{ fill: "#6B7280", fontSize: 11, fontFamily: "var(--font-mono)" }}
+              tick={{ fill: "#64748B", fontSize: 12, fontFamily: "var(--font-mono)" }}
               tickFormatter={(v) => (isRoas ? `${v}x` : Number(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
               domain={["auto", "auto"]}
             />
@@ -139,29 +126,29 @@ export default function ReachChart({ data }) {
                 const variance = pt.baseline > 0 ? (((pt.reach - pt.baseline) / pt.baseline) * 100).toFixed(1) : "0.0";
 
                 return (
-                  <div className="radar-custom-tooltip font-mono-nums">
-                    <div className="tooltip-date-header">{formatDate(pt.date)}</div>
-                    <div className="tooltip-row">
-                      <span style={{ color: color }}>Observed:</span>
-                      <span className="tooltip-val-bold">
+                  <div className="clean-tooltip mono-num">
+                    <div className="tooltip-date">{formatDate(pt.date)}</div>
+                    <div className="tooltip-line">
+                      <span style={{ color: chartColor }}>Actual:</span>
+                      <span style={{ color: "#FFFFFF", fontWeight: 600 }}>
                         {isRoas ? `${pt.reach}x` : Number(pt.reach).toLocaleString()}
                       </span>
                     </div>
-                    <div className="tooltip-row">
-                      <span style={{ color: "#9CA3AF" }}>Baseline:</span>
-                      <span style={{ color: "#D1D5DB" }}>
+                    <div className="tooltip-line">
+                      <span style={{ color: "#94A3B8" }}>Expected:</span>
+                      <span style={{ color: "#E2E8F0" }}>
                         {isRoas ? `${pt.baseline}x` : Number(pt.baseline).toLocaleString()}
                       </span>
                     </div>
-                    <div className="tooltip-row" style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-                      <span style={{ color: "#6B7280" }}>Model Drift:</span>
-                      <span style={{ color: Number(variance) < 0 ? "#F43F5E" : "#10B981", fontWeight: 600 }}>
+                    <div className="tooltip-line" style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
+                      <span style={{ color: "#64748B" }}>Variance:</span>
+                      <span style={{ color: Number(variance) < 0 ? "#EF4444" : "#10B981", fontWeight: 600 }}>
                         {Number(variance) > 0 ? "+" : ""}{variance}%
                       </span>
                     </div>
                     {isAnomaly && (
-                      <div style={{ marginTop: "6px", fontSize: "10.5px", color: "#F43F5E", fontWeight: 600 }}>
-                        ● Feed Decoupling Outlier
+                      <div style={{ marginTop: "6px", fontSize: "11px", color: "#EF4444", fontWeight: 600 }}>
+                        ● Statistical Anomaly
                       </div>
                     )}
                   </div>
@@ -172,22 +159,21 @@ export default function ReachChart({ data }) {
             <Area
               type="monotone"
               dataKey="baseline"
-              stroke="#6B7280"
+              stroke="#64748B"
               strokeWidth={1.5}
               strokeDasharray="4 4"
-              fill="url(#baselineGrad)"
-              isAnimationActive={true}
-              animationDuration={800}
+              fill="transparent"
+              isAnimationActive={false}
             />
 
             <Area
               type="monotone"
               dataKey="reach"
-              stroke={color}
-              strokeWidth={2.5}
-              fill="url(#velocityGrad)"
+              stroke={chartColor}
+              strokeWidth={2}
+              fill="url(#actualFill)"
               isAnimationActive={true}
-              animationDuration={900}
+              animationDuration={600}
             />
           </AreaChart>
         </ResponsiveContainer>
