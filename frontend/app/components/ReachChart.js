@@ -1,8 +1,8 @@
 "use client";
 
 import {
-  Line,
-  LineChart,
+  Area,
+  AreaChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -12,7 +12,7 @@ import {
 function alertColor(alertLevel) {
   if (alertLevel === "green") return "#10B981";
   if (alertLevel === "yellow") return "#F59E0B";
-  return "#EF4444";
+  return "#F43F5E";
 }
 
 function formatDate(value) {
@@ -34,10 +34,10 @@ export default function ReachChart({ data }) {
         <div>
           <h2>Performance Timeline — {metricName}</h2>
           <p className="chart-subhead">
-            Tracking 90-day momentum & mathematical distribution anomalies
+            90-Day Velocity Tracking with Outlier Anomaly Detection
           </p>
         </div>
-        <div className="chart-header-badges">
+        <div>
           <span className={`status-tag status-${data.alert_level}`}>
             ● {String(data.prediction || "normal").replace("_", " ").toUpperCase()}
           </span>
@@ -46,32 +46,44 @@ export default function ReachChart({ data }) {
 
       <div className="chart-frame">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={chartData} margin={{ top: 12, right: 18, left: 4, bottom: 4 }}>
+          <AreaChart data={chartData} margin={{ top: 10, right: 14, left: -10, bottom: 0 }}>
+            <defs>
+              <linearGradient id="metricGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor={color} stopOpacity={0.25} />
+                <stop offset="95%" stopColor={color} stopOpacity={0.0} />
+              </linearGradient>
+            </defs>
             <XAxis
               dataKey="date"
               tickFormatter={formatDate}
               interval="preserveStartEnd"
-              minTickGap={28}
-              tick={{ fill: "#A3A3A3", fontSize: 12 }}
-              axisLine={{ stroke: "#303030" }}
-              tickLine={{ stroke: "#303030" }}
+              minTickGap={26}
+              tick={{ fill: "#71717A", fontSize: 11.5 }}
+              axisLine={{ stroke: "#1F1F24" }}
+              tickLine={{ stroke: "#1F1F24" }}
             />
             <YAxis
-              tick={{ fill: "#A3A3A3", fontSize: 12 }}
-              axisLine={{ stroke: "#303030" }}
-              tickLine={{ stroke: "#303030" }}
-              width={58}
+              tick={{ fill: "#71717A", fontSize: 11.5 }}
+              axisLine={{ stroke: "#1F1F24" }}
+              tickLine={{ stroke: "#1F1F24" }}
+              width={52}
               tickFormatter={(v) =>
-                data.metric_type === "roas" ? `${v}x` : Number(v) > 999 ? `${(v / 1000).toFixed(0)}k` : v
+                data.metric_type === "roas"
+                  ? `${v}x`
+                  : Number(v) > 999
+                  ? `${(v / 1000).toFixed(0)}k`
+                  : v
               }
             />
             <Tooltip
-              cursor={{ stroke: "#404040" }}
+              cursor={{ stroke: "#3F3F46", strokeDasharray: "3 3" }}
               contentStyle={{
-                background: "#111111",
-                border: "1px solid #303030",
-                borderRadius: "10px",
-                color: "#FFFFFF"
+                background: "#121215",
+                border: "1px solid #27272A",
+                borderRadius: "8px",
+                color: "#FAFAFA",
+                fontSize: "12.5px",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.5)"
               }}
               labelFormatter={formatDate}
               formatter={(value, name, item) => {
@@ -86,11 +98,13 @@ export default function ReachChart({ data }) {
                 ];
               }}
             />
-            <Line
+            <Area
               type="monotone"
               dataKey="reach"
               stroke={color}
-              strokeWidth={3}
+              strokeWidth={2.5}
+              fillOpacity={1}
+              fill="url(#metricGrad)"
               dot={(props) => {
                 const isAnomaly = anomalyDates.has(props.payload.date);
                 if (isAnomaly) {
@@ -99,26 +113,18 @@ export default function ReachChart({ data }) {
                       key={props.payload.date}
                       cx={props.cx}
                       cy={props.cy}
-                      r={5}
-                      fill="#EF4444"
+                      r={4.5}
+                      fill="#F43F5E"
                       stroke="#FFFFFF"
-                      strokeWidth={2}
+                      strokeWidth={1.5}
                     />
                   );
                 }
-                return (
-                  <circle
-                    key={props.payload.date}
-                    cx={props.cx}
-                    cy={props.cy}
-                    r={2}
-                    fill={color}
-                  />
-                );
+                return null;
               }}
-              activeDot={{ r: 6, fill: color, stroke: "#0F0F0F", strokeWidth: 2 }}
+              activeDot={{ r: 5, fill: color, stroke: "#09090B", strokeWidth: 2 }}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </section>

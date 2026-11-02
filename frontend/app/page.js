@@ -78,16 +78,21 @@ export default function Page() {
     }
   };
 
+  const metrics = data?.metrics_summary || {};
+  const isRoas = data?.metric_type === "roas";
+
   return (
     <main className="dashboard-shell">
       <div className="dashboard-container">
         {/* TOP BAR / NAVIGATION */}
         <header className="dashboard-header">
-          <div className="brand-block">
-            <span className="brand-badge">B2B ANOMALY SENTINEL</span>
-            <h1>Relvnt Intelligence</h1>
+          <div>
+            <div className="brand-row">
+              <span className="brand-badge">ANOMALY SENTINEL</span>
+              <h1>Relvnt Intelligence</h1>
+            </div>
             <p className="brand-tagline">
-              Algorithmic Suppression & Ad Fatigue Early Warning System
+              Algorithmic Suppression & Ad Fatigue Early Warning Radar
             </p>
           </div>
 
@@ -96,10 +101,10 @@ export default function Page() {
               onClick={() => setShowUploadModal(true)}
               className="btn-upload-trigger"
             >
-              + Upload CSV (Option 4)
+              <span>+</span> Upload CSV (Option 4)
             </button>
             <span className="live-source-pill">
-              ● {data?.data_source ? String(data.data_source).toUpperCase() : "LIVE"}
+              {data?.data_source ? String(data.data_source).toUpperCase() : "LIVE"}
             </span>
           </div>
         </header>
@@ -137,11 +142,66 @@ export default function Page() {
           </section>
         )}
 
+        {/* CLEAR DEFINED STATS STRIP */}
+        {data && (
+          <section className="stat-strip">
+            <div className="stat-box">
+              <div className="stat-header">
+                <span className="stat-label">Current Velocity</span>
+                <span className="stat-subtext">vs Baseline</span>
+              </div>
+              <div className="stat-value">
+                {isRoas ? `${metrics.current_value}x` : Number(metrics.current_value).toLocaleString()}
+                <span style={{ fontSize: "14px", color: "#71717A", fontWeight: 400, marginLeft: "6px" }}>
+                  / {isRoas ? `${metrics.baseline_avg}x` : Number(metrics.baseline_avg).toLocaleString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="stat-box">
+              <div className="stat-header">
+                <span className="stat-label">Net Drift</span>
+                <span className="stat-subtext">7D Moving Avg</span>
+              </div>
+              <div
+                className="stat-value"
+                style={{ color: Number(metrics.change_pct) < 0 ? "#FB7185" : "#34D399" }}
+              >
+                {Number(metrics.change_pct) > 0 ? "+" : ""}
+                {metrics.change_pct}%
+              </div>
+            </div>
+
+            <div className="stat-box">
+              <div className="stat-header">
+                <span className="stat-label">Statistical Outliers</span>
+                <span className="stat-subtext">{metrics.z_score_deviation || 0}σ Deviation</span>
+              </div>
+              <div className="stat-value">
+                {metrics.anomaly_count || 0}
+                <span style={{ fontSize: "13px", color: "#71717A", fontWeight: 400, marginLeft: "6px" }}>
+                  anomalies ({metrics.volatility_index}% vol)
+                </span>
+              </div>
+            </div>
+
+            <div className="stat-box">
+              <div className="stat-header">
+                <span className="stat-label">7D Risk Impact</span>
+                <span className="stat-subtext">Estimated Loss</span>
+              </div>
+              <div className="stat-value" style={{ fontSize: "15px", color: "#FBBF24", fontWeight: 600 }}>
+                {metrics.projected_impact || "Minimal Variance"}
+              </div>
+            </div>
+          </section>
+        )}
+
         {/* LOADING STATE */}
         {loading && !data && (
           <div className="loading-shell">
             <div className="loading-spinner" />
-            <p>Evaluating mathematical variance and trend vectors...</p>
+            <p>Evaluating seasonality and trend vectors...</p>
           </div>
         )}
 
