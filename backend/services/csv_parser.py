@@ -160,3 +160,4 @@ class DefensiveCSVParser:
         result_df = result_df.groupby("date", as_index=False)["value"].mean()
 
         return result_df, date_col, val_col
+

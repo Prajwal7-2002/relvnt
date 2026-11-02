@@ -579,6 +579,33 @@ html, body {
   background: rgba(59, 130, 246, 0.04);
 }
 
+.sample-downloads-bar {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btn-sample-download {
+  flex: 1;
+  text-align: center;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 8px 10px;
+  background: #18181C;
+  border: 1px solid #27272A;
+  border-radius: 8px;
+  color: #A1A1AA;
+  text-decoration: none;
+  transition: all 140ms ease;
+  display: inline-block;
+}
+
+.btn-sample-download:hover {
+  background: #27272A;
+  color: #FAFAFA;
+  border-color: #3F3F46;
+}
+
 .dropzone-icon {
   font-size: 28px;
   display: block;

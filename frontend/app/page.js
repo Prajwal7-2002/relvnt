@@ -249,6 +249,15 @@ export default function Page() {
               <small>Auto-detects Date and Metric columns in milliseconds</small>
             </div>
 
+            <div className="sample-downloads-bar">
+              <a href="/samples/real_instagram_sample.csv" download className="btn-sample-download">
+                ⬇ Real Instagram CSV Sample
+              </a>
+              <a href="/samples/real_meta_ads_sample.csv" download className="btn-sample-download">
+                ⬇ Real Meta Ads CSV Sample
+              </a>
+            </div>
+
             {isUploading && (
               <div className="uploading-state">
                 <div className="loading-spinner-sm" />
