@@ -6,9 +6,10 @@ import HealthScore from "./components/HealthScore";
 import ReachChart from "./components/ReachChart";
 
 const PRESETS = [
-  { id: "instagram_drop", label: "Option 2: Instagram Reach Suppression", platform: "Instagram", metric: "Reach" },
-  { id: "meta_ads_fatigue", label: "Option 3: Meta Ads Creative Fatigue", platform: "Meta Ads", metric: "ROAS" },
-  { id: "healthy_growth", label: "Equilibrium: Healthy Account Velocity", platform: "Instagram", metric: "Reach" },
+  { id: "instagram_drop", label: "[01] IG_SUPPRESSION // Distribution Shock", platform: "Instagram", metric: "Reach" },
+  { id: "meta_ads_fatigue", label: "[02] META_ADS // Creative Fatigue (ROAS Decay)", platform: "Meta Ads", metric: "ROAS" },
+  { id: "real_creator", label: "[03] REAL_CREATOR // Authentic History (99D)", platform: "Instagram", metric: "Reach" },
+  { id: "healthy_growth", label: "[04] EQUILIBRIUM // Nominal Run-Rate", platform: "Instagram", metric: "Reach" },
 ];
 
 export default function Page() {
@@ -29,13 +30,13 @@ export default function Page() {
         cache: "no-store",
       });
       if (!res.ok) {
-        throw new Error(`Analyze request failed with status ${res.status}`);
+        throw new Error(`Analysis engine responded with status ${res.status}`);
       }
       const json = await res.json();
       setData(json);
       setActivePreset(presetKey);
     } catch (err) {
-      setError(err.message || "Failed to connect to backend anomaly engine");
+      setError(err.message || "Failed to connect to local anomaly engine");
     } finally {
       setLoading(false);
     }
@@ -84,34 +85,36 @@ export default function Page() {
   return (
     <main className="dashboard-shell">
       <div className="dashboard-container">
-        {/* TOP BAR / NAVIGATION */}
+        {/* MISSION-CONTROL HEADER */}
         <header className="dashboard-header">
           <div>
             <div className="brand-row">
-              <span className="brand-badge">ANOMALY SENTINEL</span>
-              <h1>Relvnt Intelligence</h1>
+              <span className="brand-emblem">[R]</span>
+              <h1 className="brand-title">RELVNT</h1>
+              <span className="brand-edition-tag">// SENTINEL RADAR v1.2</span>
             </div>
             <p className="brand-tagline">
-              Algorithmic Suppression & Ad Fatigue Early Warning Radar
+              Algorithmic Suppression &amp; Creative Fatigue Early-Warning System
             </p>
           </div>
 
           <div className="header-actions">
+            <div className="enclave-badge">
+              <span className="enclave-pulse" />
+              <span>LOCAL_ENCLAVE: ZERO_EGRESS</span>
+            </div>
             <button
               onClick={() => setShowUploadModal(true)}
               className="btn-upload-trigger"
             >
-              <span>+</span> Upload CSV (Option 4)
+              <span>+</span> Ingest CSV Dataset
             </button>
-            <span className="live-source-pill">
-              {data?.data_source ? String(data.data_source).toUpperCase() : "LIVE"}
-            </span>
           </div>
         </header>
 
-        {/* DEMO / SCENARIO SELECTOR */}
+        {/* SIGNAL / BENCHMARK SELECTOR */}
         <div className="preset-bar">
-          <span className="preset-title">Test Scenarios:</span>
+          <span className="preset-title">Signal Feed:</span>
           <div className="preset-tabs">
             {PRESETS.map((p) => (
               <button
@@ -124,7 +127,7 @@ export default function Page() {
             ))}
             {activePreset === "custom_upload" && (
               <span className="preset-btn preset-btn-active">
-                📁 Uploaded CSV Data
+                [CUSTOM] Ingested Performance Dataset
               </span>
             )}
           </div>
@@ -133,26 +136,26 @@ export default function Page() {
         {/* ERROR STATE */}
         {error && (
           <section className="error-card">
-            <p className="error-label">Connection Notice</p>
+            <p className="error-label">[ALERT // ENGINE_CONNECTION_NOTICE]</p>
             <h2>Analysis Engine Warning</h2>
             <p>{error}</p>
             <button onClick={() => fetchAnalysis(activePreset)} className="btn-retry">
-              Retry Connection
+              [RETRY_CONNECTION]
             </button>
           </section>
         )}
 
-        {/* CLEAR DEFINED STATS STRIP */}
+        {/* EXECUTIVE STAT STRIP (KPI MATRIX) */}
         {data && (
           <section className="stat-strip">
             <div className="stat-box">
               <div className="stat-header">
-                <span className="stat-label">Current Velocity</span>
+                <span className="stat-label">Current Run-Rate</span>
                 <span className="stat-subtext">vs Baseline</span>
               </div>
-              <div className="stat-value">
+              <div className="stat-value tabular-numbers">
                 {isRoas ? `${metrics.current_value}x` : Number(metrics.current_value).toLocaleString()}
-                <span style={{ fontSize: "14px", color: "#71717A", fontWeight: 400, marginLeft: "6px" }}>
+                <span className="stat-baseline-tag">
                   / {isRoas ? `${metrics.baseline_avg}x` : Number(metrics.baseline_avg).toLocaleString()}
                 </span>
               </div>
@@ -160,12 +163,12 @@ export default function Page() {
 
             <div className="stat-box">
               <div className="stat-header">
-                <span className="stat-label">Net Drift</span>
-                <span className="stat-subtext">7D Moving Avg</span>
+                <span className="stat-label">Net Drift Vector</span>
+                <span className="stat-subtext">7D Moving Median</span>
               </div>
               <div
-                className="stat-value"
-                style={{ color: Number(metrics.change_pct) < 0 ? "#FB7185" : "#34D399" }}
+                className="stat-value tabular-numbers"
+                style={{ color: Number(metrics.change_pct) < 0 ? "#EF4444" : "#10B981" }}
               >
                 {Number(metrics.change_pct) > 0 ? "+" : ""}
                 {metrics.change_pct}%
@@ -174,38 +177,41 @@ export default function Page() {
 
             <div className="stat-box">
               <div className="stat-header">
-                <span className="stat-label">Statistical Outliers</span>
-                <span className="stat-subtext">{metrics.z_score_deviation || 0}σ Deviation</span>
+                <span className="stat-label">Statistical Divergence</span>
+                <span className="stat-subtext">Outlier Clusters</span>
               </div>
-              <div className="stat-value">
+              <div className="stat-value tabular-numbers">
                 {metrics.anomaly_count || 0}
-                <span style={{ fontSize: "13px", color: "#71717A", fontWeight: 400, marginLeft: "6px" }}>
-                  anomalies ({metrics.volatility_index}% vol)
+                <span className="stat-baseline-tag">
+                  ({metrics.z_score_deviation || 0}σ • {metrics.volatility_index}% vol)
                 </span>
               </div>
             </div>
 
             <div className="stat-box">
               <div className="stat-header">
-                <span className="stat-label">7D Risk Impact</span>
-                <span className="stat-subtext">Estimated Loss</span>
+                <span className="stat-label">Projected Impact</span>
+                <span className="stat-subtext">7D Risk Horizon</span>
               </div>
-              <div className="stat-value" style={{ fontSize: "15px", color: "#FBBF24", fontWeight: 600 }}>
-                {metrics.projected_impact || "Minimal Variance"}
+              <div
+                className="stat-value tabular-numbers"
+                style={{ fontSize: "14.5px", color: "#F59E0B" }}
+              >
+                {metrics.projected_impact || "Nominal Equilibrium"}
               </div>
             </div>
           </section>
         )}
 
-        {/* LOADING STATE */}
+        {/* LOADING STATE SKELETON */}
         {loading && !data && (
           <div className="loading-shell">
-            <div className="loading-spinner" />
-            <p>Evaluating seasonality and trend vectors...</p>
+            <div className="terminal-scan-line" />
+            <p className="loading-label">[CALIBRATING_SEASONALITY_AND_DISTRIBUTION_VECTORS]</p>
           </div>
         )}
 
-        {/* MAIN METRIC GRID */}
+        {/* MAIN TELEMETRY GRID */}
         {data && (
           <>
             <section className="dashboard-grid">
@@ -218,19 +224,19 @@ export default function Page() {
         )}
       </div>
 
-      {/* CSV UPLOAD MODAL */}
+      {/* CSV INGESTION MODAL */}
       {showUploadModal && (
         <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Upload Performance CSV (Omnichannel)</h3>
+              <h3>Ingest Performance Dataset (Omnichannel)</h3>
               <button onClick={() => setShowUploadModal(false)} className="btn-close">
                 ✕
               </button>
             </div>
             <p className="modal-subhead">
-              Accepts Meta Ads exports (ROAS, Spend), Instagram Insights (Reach), or YouTube Studio CSVs.
-              Zero passwords, zero API tokens required.
+              Accepts exports from Instagram Insights (Reach, Impressions), Meta Ads Manager (ROAS, Spend),
+              or YouTube Studio. Zero API credentials required.
             </p>
 
             <div
@@ -244,24 +250,36 @@ export default function Page() {
                 style={{ display: "none" }}
                 onChange={handleFileUpload}
               />
-              <span className="dropzone-icon">📄</span>
-              <p className="dropzone-title">Click to select or drag CSV here</p>
-              <small>Auto-detects Date and Metric columns in milliseconds</small>
+              <div className="dropzone-icon-box">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="17 8 12 3 7 8" />
+                  <line x1="12" y1="3" x2="12" y2="15" />
+                </svg>
+              </div>
+              <p className="dropzone-title">Click to select or drag CSV file</p>
+              <small>Auto-detects Date and Numeric columns in milliseconds</small>
             </div>
 
             <div className="sample-downloads-bar">
               <a href="/samples/real_instagram_sample.csv" download className="btn-sample-download">
-                ⬇ Real Instagram CSV Sample
+                [DOWNLOAD REAL IG SAMPLE]
               </a>
               <a href="/samples/real_meta_ads_sample.csv" download className="btn-sample-download">
-                ⬇ Real Meta Ads CSV Sample
+                [DOWNLOAD REAL META ADS SAMPLE]
               </a>
             </div>
 
+            <div className="enclave-modal-notice">
+              [ZERO-DATA-LEAK GUARANTEE]: Ingested records are parsed exclusively in local RAM. No customer identifiers, financial metrics, or performance histories are cached to disk or egressed to external cloud LLMs.
+            </div>
+
             {isUploading && (
-              <div className="uploading-state">
-                <div className="loading-spinner-sm" />
-                <span>Processing anomaly vectors...</span>
+              <div style={{ marginTop: "16px", textAlign: "center" }}>
+                <div className="terminal-scan-line" />
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--text-secondary)" }}>
+                  [PARSING_AND_NORMALIZING_VECTORS]
+                </span>
               </div>
             )}
           </div>
