@@ -6,10 +6,10 @@ import HealthScore from "./components/HealthScore";
 import ReachChart from "./components/ReachChart";
 
 const PRESETS = [
-  { id: "instagram_drop", label: "[01] IG_SUPPRESSION // Distribution Shock", platform: "Instagram", metric: "Reach" },
-  { id: "meta_ads_fatigue", label: "[02] META_ADS // Creative Fatigue (ROAS Decay)", platform: "Meta Ads", metric: "ROAS" },
-  { id: "real_creator", label: "[03] REAL_CREATOR // Authentic History (99D)", platform: "Instagram", metric: "Reach" },
-  { id: "healthy_growth", label: "[04] EQUILIBRIUM // Nominal Run-Rate", platform: "Instagram", metric: "Reach" },
+  { id: "instagram_drop", label: "Instagram Reach Suppression", account: "@tech_founder" },
+  { id: "meta_ads_fatigue", label: "Meta Ads Creative Fatigue", account: "US Retargeting" },
+  { id: "real_creator", label: "Authentic Creator Insights", account: "99 Days Post History" },
+  { id: "healthy_growth", label: "Equilibrium Baseline Growth", account: "@growth_studio" },
 ];
 
 export default function Page() {
@@ -135,43 +135,43 @@ export default function Page() {
   return (
     <main className="dashboard-shell">
       <div className="dashboard-container">
-        {/* MISSION-CONTROL HEADER */}
+        {/* PRESENTATION HEADER */}
         <header className="dashboard-header">
-          <div>
+          <div className="brand-section">
             <div className="brand-row">
-              <span className="brand-emblem">[R]</span>
-              <h1 className="brand-title">RELVNT</h1>
-              <span className="brand-edition-tag">// SENTINEL RADAR v1.2</span>
+              <h1 className="brand-title">
+                relvnt<span className="brand-dot">.</span>
+              </h1>
             </div>
             <p className="brand-tagline">
-              Compound AI Early-Warning Radar for Algorithmic Suppression &amp; Ad Fatigue
+              Algorithmic Relevance &amp; Distribution Early-Warning Radar
             </p>
           </div>
 
           <div className="header-actions">
             <button
               onClick={() => setShowCopilot(true)}
-              className="btn-copilot-trigger"
+              className="btn-ai-analyst"
             >
-              <span className="copilot-pulse" />
-              <span>[ASK RELVNT AI]</span>
+              <span className="pulse-dot-ai" />
+              <span>AI Growth Analyst</span>
             </button>
             <div className="enclave-badge">
               <span className="enclave-pulse" />
-              <span>LOCAL_ENCLAVE: ZERO_EGRESS</span>
+              <span>Zero-Data-Leak Enclave</span>
             </div>
             <button
               onClick={() => setShowUploadModal(true)}
               className="btn-upload-trigger"
             >
-              <span>+</span> Ingest CSV Dataset
+              <span>+</span> Ingest Performance CSV
             </button>
           </div>
         </header>
 
         {/* SIGNAL / BENCHMARK SELECTOR */}
         <div className="preset-bar">
-          <span className="preset-title">Signal Feed:</span>
+          <span className="preset-title">Active Benchmark:</span>
           <div className="preset-tabs">
             {PRESETS.map((p) => (
               <button
@@ -179,12 +179,13 @@ export default function Page() {
                 onClick={() => fetchAnalysis(p.id)}
                 className={`preset-btn ${activePreset === p.id ? "preset-btn-active" : ""}`}
               >
-                {p.label}
+                <span>{p.label}</span>
+                <span style={{ opacity: 0.6, fontSize: "11px", marginLeft: "6px" }}>({p.account})</span>
               </button>
             ))}
             {activePreset === "custom_upload" && (
               <span className="preset-btn preset-btn-active">
-                [CUSTOM] Ingested Performance Dataset
+                Uploaded Custom Dataset
               </span>
             )}
           </div>
@@ -193,24 +194,24 @@ export default function Page() {
         {/* ERROR STATE */}
         {error && (
           <section className="error-card">
-            <p className="error-label">[ALERT // ENGINE_CONNECTION_NOTICE]</p>
+            <p className="error-label">Engine Connection Notice</p>
             <h2>Analysis Engine Warning</h2>
             <p>{error}</p>
             <button onClick={() => fetchAnalysis(activePreset)} className="btn-retry">
-              [RETRY_CONNECTION]
+              Retry Connection
             </button>
           </section>
         )}
 
-        {/* EXECUTIVE STAT STRIP (KPI MATRIX) */}
+        {/* EXECUTIVE KPI PRESENTATION STRIP */}
         {data && (
           <section className="stat-strip">
             <div className="stat-box">
               <div className="stat-header">
-                <span className="stat-label">Current Run-Rate</span>
-                <span className="stat-subtext">vs Baseline</span>
+                <span className="stat-label">Current Velocity</span>
+                <span className="stat-subtext">vs Model Baseline</span>
               </div>
-              <div className="stat-value tabular-numbers">
+              <div className="stat-value tabular-nums">
                 {isRoas ? `${metrics.current_value}x` : Number(metrics.current_value).toLocaleString()}
                 <span className="stat-baseline-tag">
                   / {isRoas ? `${metrics.baseline_avg}x` : Number(metrics.baseline_avg).toLocaleString()}
@@ -220,12 +221,12 @@ export default function Page() {
 
             <div className="stat-box">
               <div className="stat-header">
-                <span className="stat-label">Net Drift Vector</span>
+                <span className="stat-label">Net Velocity Drift</span>
                 <span className="stat-subtext">7D Moving Median</span>
               </div>
               <div
-                className="stat-value tabular-numbers"
-                style={{ color: Number(metrics.change_pct) < 0 ? "#EF4444" : "#10B981" }}
+                className="stat-value tabular-nums"
+                style={{ color: Number(metrics.change_pct) < 0 ? "#F43F5E" : "#10B981" }}
               >
                 {Number(metrics.change_pct) > 0 ? "+" : ""}
                 {metrics.change_pct}%
@@ -234,11 +235,11 @@ export default function Page() {
 
             <div className="stat-box">
               <div className="stat-header">
-                <span className="stat-label">ML Anomaly Outlier</span>
-                <span className="stat-subtext">IsolationForest</span>
+                <span className="stat-label">Machine Learning Risk</span>
+                <span className="stat-subtext">IsolationForest (100 Trees)</span>
               </div>
-              <div className="stat-value tabular-numbers">
-                <span style={{ color: metrics.ml_flagged ? "#EF4444" : "#10B981" }}>
+              <div className="stat-value tabular-nums">
+                <span style={{ color: metrics.ml_flagged ? "#F43F5E" : "#10B981" }}>
                   {mlScore}%
                 </span>
                 <span className="stat-baseline-tag">
@@ -250,11 +251,11 @@ export default function Page() {
             <div className="stat-box">
               <div className="stat-header">
                 <span className="stat-label">Projected Impact</span>
-                <span className="stat-subtext">7D Risk Horizon</span>
+                <span className="stat-subtext">7-Day Horizon</span>
               </div>
               <div
-                className="stat-value tabular-numbers"
-                style={{ fontSize: "14px", color: "#F59E0B" }}
+                className="stat-value tabular-nums"
+                style={{ fontSize: "14.5px", color: "#F59E0B" }}
               >
                 {metrics.projected_impact || "Nominal Equilibrium"}
               </div>
@@ -262,15 +263,15 @@ export default function Page() {
           </section>
         )}
 
-        {/* LOADING STATE SKELETON */}
+        {/* LOADING SKELETON */}
         {loading && !data && (
           <div className="loading-shell">
             <div className="terminal-scan-line" />
-            <p className="loading-label">[CALIBRATING_ISOLATION_FOREST_AND_DISTRIBUTION_VECTORS]</p>
+            <p className="loading-label">Evaluating Seasonality &amp; Machine Learning Vectors...</p>
           </div>
         )}
 
-        {/* MAIN TELEMETRY GRID */}
+        {/* MAIN PRESENTATION GRID */}
         {data && (
           <>
             <section className="dashboard-grid">
@@ -283,15 +284,15 @@ export default function Page() {
         )}
       </div>
 
-      {/* INTERACTIVE ASK RELVNT AI COPILOT DRAWER */}
+      {/* SLIDE-OVER AI GROWTH ANALYST DRAWER */}
       {showCopilot && (
         <>
           <div className="copilot-drawer-overlay" onClick={() => setShowCopilot(false)} />
           <aside className="copilot-drawer">
             <div className="copilot-drawer-header">
               <div className="copilot-drawer-title">
-                <span className="copilot-pulse" />
-                <h3>Relvnt AI Incident Copilot</h3>
+                <span className="pulse-dot-ai" />
+                <h3>Relvnt AI Growth Analyst</h3>
               </div>
               <button onClick={() => setShowCopilot(false)} className="btn-close">
                 ✕
@@ -300,37 +301,37 @@ export default function Page() {
 
             <div className="copilot-drawer-body">
               <div className="copilot-quick-chips">
-                <span className="copilot-chips-label">Quick Strategic Inquiries:</span>
+                <span className="copilot-chips-label">Suggested Inquiries:</span>
                 <button
-                  onClick={() => handleCopilotSend("Why did my account get flagged and what caused this drop?")}
+                  onClick={() => handleCopilotSend("Why did this distribution drop occur and what caused the algorithm to throttle reach?")}
                   className="copilot-chip"
                 >
-                  ⚡ Why did this distribution drop occur?
+                  Why did this distribution drop occur?
                 </button>
                 <button
-                  onClick={() => handleCopilotSend("Draft a professional email for my client or brand sponsor explaining this temporary variance.")}
+                  onClick={() => handleCopilotSend("Draft a professional email for my client or brand sponsor explaining this temporary variance without alarming them.")}
                   className="copilot-chip"
                 >
-                  ✉ Draft executive email for client / sponsor
+                  Draft executive brief for sponsor / client
                 </button>
                 <button
-                  onClick={() => handleCopilotSend("What specific publishing format and hook length should I post this week for an algorithmic reset?")}
+                  onClick={() => handleCopilotSend("What specific publishing format, hook length, and cadence should I post this week to reset the distribution algorithm?")}
                   className="copilot-chip"
                 >
-                  🎯 Recommend 72-hour content recovery format
+                  Recommend 72-hour turnaround content format
                 </button>
               </div>
 
               {copilotMessages.length === 0 && (
-                <div style={{ padding: "20px 0", textAlign: "center", color: "var(--text-tertiary)", fontSize: "12.5px" }}>
-                  Ask questions about @{data?.account_name || "target"}&apos;s anomaly vectors, creative fatigue, or recovery strategies.
+                <div style={{ padding: "20px 0", textAlign: "center", color: "var(--text-tertiary)", fontSize: "13px" }}>
+                  Ask questions about @{data?.account_name || "target"}&apos;s velocity, retention collapse, or recovery tactics.
                 </div>
               )}
 
               {copilotMessages.map((msg, idx) => (
                 <div key={idx} className="copilot-msg-item">
                   <span className="copilot-msg-meta">
-                    {msg.role === "user" ? "[OPERATOR]" : `[${msg.engine || "RELVNT AI"}]`}
+                    {msg.role === "user" ? "Operator" : msg.engine || "Relvnt AI Analyst"}
                   </span>
                   <div
                     className={`copilot-msg-content ${
@@ -343,10 +344,10 @@ export default function Page() {
               ))}
 
               {copilotLoading && (
-                <div style={{ textAlign: "center", padding: "12px 0" }}>
+                <div style={{ textAlign: "center", padding: "14px 0" }}>
                   <div className="terminal-scan-line" />
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "11px", color: "var(--text-tertiary)" }}>
-                    [REASONING_OVER_ML_VECTORS]
+                  <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
+                    Synthesizing algorithmic intelligence...
                   </span>
                 </div>
               )}
@@ -378,14 +379,14 @@ export default function Page() {
         <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h3>Ingest Performance Dataset (Omnichannel)</h3>
+              <h3>Ingest Performance Dataset</h3>
               <button onClick={() => setShowUploadModal(false)} className="btn-close">
                 ✕
               </button>
             </div>
             <p className="modal-subhead">
-              Accepts exports from Instagram Insights (Reach, Impressions), Meta Ads Manager (ROAS, Spend),
-              or YouTube Studio. Zero API credentials required.
+              Accepts CSV exports from Instagram Insights (Reach, Impressions), Meta Ads Manager (ROAS, Spend),
+              or YouTube Studio. Zero API credentials or tokens required.
             </p>
 
             <div
@@ -400,34 +401,34 @@ export default function Page() {
                 onChange={handleFileUpload}
               />
               <div className="dropzone-icon-box">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                   <polyline points="17 8 12 3 7 8" />
                   <line x1="12" y1="3" x2="12" y2="15" />
                 </svg>
               </div>
-              <p className="dropzone-title">Click to select or drag CSV file</p>
+              <p className="dropzone-title">Click to select or drop CSV file</p>
               <small>Auto-detects Date and Numeric columns in milliseconds</small>
             </div>
 
             <div className="sample-downloads-bar">
               <a href="/samples/real_instagram_sample.csv" download className="btn-sample-download">
-                [DOWNLOAD REAL IG SAMPLE]
+                Download Real IG Sample
               </a>
               <a href="/samples/real_meta_ads_sample.csv" download className="btn-sample-download">
-                [DOWNLOAD REAL META ADS SAMPLE]
+                Download Real Meta Ads Sample
               </a>
             </div>
 
             <div className="enclave-modal-notice">
-              [ZERO-DATA-LEAK GUARANTEE]: Ingested records are parsed exclusively in local RAM. No customer identifiers, financial metrics, or performance histories are cached to disk or egressed to external cloud LLMs.
+              <strong>Zero-Data-Leak Privacy Guarantee:</strong> Ingested records are evaluated exclusively in local memory. No customer identifiers, financial numbers, or reach histories are stored to disk or used for external model training.
             </div>
 
             {isUploading && (
               <div style={{ marginTop: "16px", textAlign: "center" }}>
                 <div className="terminal-scan-line" />
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "12px", color: "var(--text-secondary)" }}>
-                  [PARSING_AND_NORMALIZING_VECTORS]
+                <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>
+                  Normalizing time-series vectors...
                 </span>
               </div>
             )}
