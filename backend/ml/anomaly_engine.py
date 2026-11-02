@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional
 import numpy as np
 import pandas as pd
-from services.ai_agent import AIDiagnosticAgent
+from services.ai_agent import LocalDiagnosticEngine
 
 
 class AnomalyEngine:
@@ -15,7 +15,7 @@ class AnomalyEngine:
     """
 
     def __init__(self):
-        self.ai_agent = AIDiagnosticAgent()
+        self.ai_agent = LocalDiagnosticEngine()
 
     def _normalize_seasonality(self, df: pd.DataFrame) -> np.ndarray:
         """
@@ -23,7 +23,11 @@ class AnomalyEngine:
         to prevent weekend traffic drops from triggering false suppression warnings.
         """
         values = df["value"].values
-        day_of_week = df["date"].dt.dayofweek.values
+        day_of_week = (
+            df["date"].dt.day_of_week.values
+            if hasattr(df["date"].dt, "day_of_week")
+            else df["date"].dt.dayofweek.values
+        )
 
         # If series is short (< 14 days), skip seasonal adjustment
         if len(values) < 14:
@@ -174,10 +178,16 @@ class AnomalyEngine:
             anomalies=anomaly_points,
         )
 
-        series_data = [
-            {"date": row["date"].strftime("%Y-%m-%d"), "reach": float(round(row["value"], 2))}
-            for _, row in df.iterrows()
-        ]
+        anomaly_dates_set = {a["date"] for a in anomaly_points}
+        series_data = []
+        for i, row in df.iterrows():
+            d_str = row["date"].strftime("%Y-%m-%d")
+            series_data.append({
+                "date": d_str,
+                "reach": float(round(row["value"], 2)),
+                "baseline": float(round(rolling_mean_long[i], 2)),
+                "is_anomaly": d_str in anomaly_dates_set,
+            })
 
         return {
             "account_name": account_name or "Connected Account",
@@ -185,11 +195,13 @@ class AnomalyEngine:
             "metric_type": metric_type,
             "health_score": health_score,
             "alert_level": alert_level,
+            "severity": briefing.get("severity", "NOMINAL_EQUILIBRIUM"),
             "prediction": prediction_label,
             "confidence": round(confidence, 2),
             "recommended_action": briefing["recommended_action"],
             "diagnosis": briefing["diagnosis"],
-            "ai_engine": briefing.get("ai_engine", "Dynamic AI Synthesizer"),
+            "protocol_phases": briefing.get("phases", []),
+            "ai_engine": briefing.get("ai_engine", "Relvnt Local Statistical Inference Engine (Zero-Data-Leak)"),
             "metrics_summary": metrics_summary,
             "anomalies": anomaly_points,
             "reach_data": series_data,

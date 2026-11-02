@@ -9,6 +9,7 @@ class DefensiveCSVParser:
     Robust, production-grade CSV parser for Meta Ads Manager, Instagram Insights,
     and YouTube Studio exports. Resilient against BOM headers, footer summaries,
     dirty currencies ($1,234.50, 1.4x), and unconventional date formats.
+    Zero-Data-Leak: All operations executed in-memory.
     """
 
     DATE_ALIASES = [
@@ -74,6 +75,9 @@ class DefensiveCSVParser:
 
         if df is None or df.empty:
             raise ValueError("Unable to read CSV file. Please verify it is a valid delimited text file.")
+
+        if len(df) > 50000:
+            raise ValueError("CSV exceeds maximum supported limit of 50,000 rows.")
 
         # Strip whitespace from column names
         df.columns = [str(c).strip() for c in df.columns]
@@ -156,8 +160,7 @@ class DefensiveCSVParser:
             }
         )
 
-        # Deduplicate same dates by taking the latest or sum
+        # Deduplicate same dates by taking the latest or mean
         result_df = result_df.groupby("date", as_index=False)["value"].mean()
 
         return result_df, date_col, val_col
-
