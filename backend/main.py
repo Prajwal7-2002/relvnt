@@ -1,10 +1,10 @@
 import logging
 import re
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
-from fastapi import FastAPI, File, HTTPException, Query, Request, Response, UploadFile
+from fastapi import FastAPI, File, HTTPException, Query, Request, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from ml.anomaly_engine import AnomalyEngine
 from ml.presets import get_preset_datasets
@@ -14,9 +14,15 @@ from services.instagram_api import get_90_days_reach
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("relvnt.api")
 
-app = FastAPI(title="Relvnt Enterprise Performance Sentinel", version="1.1.0")
+app = FastAPI(
+    title="Relvnt Algorithmic Intelligence API",
+    description="Enterprise Early-Warning Radar for Algorithmic Distribution Decoupling & Ad Fatigue.",
+    version="1.2.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
+)
 
-# SECURITY: Strict Security Headers Middleware
+# Strict Security Headers Middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response: Response = await call_next(request)
@@ -27,7 +33,7 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     return response
 
-# CORS configuration: Allow localhost, vercel deployments, and all custom origins
+# CORS configuration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -37,8 +43,10 @@ app.add_middleware(
 )
 
 engine = AnomalyEngine()
-MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10MB strict limit
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10MB limit
 
+
+# --- Pydantic Data Contracts (backend-architect & fastapi-router-py standards) ---
 
 class DataPoint(BaseModel):
     date: str
@@ -46,34 +54,89 @@ class DataPoint(BaseModel):
 
 
 class AnalyzePayload(BaseModel):
-    account_name: Optional[str] = "Client Account"
-    platform: Optional[str] = "instagram"
-    metric_type: Optional[str] = "reach"
-    series: List[DataPoint]
+    account_name: Optional[str] = Field(default="Client Account", description="Account handle or campaign name")
+    platform: Optional[str] = Field(default="instagram", description="Target platform (instagram, meta_ads, etc)")
+    metric_type: Optional[str] = Field(default="reach", description="Target metric (reach, impressions, roas)")
+    series: List[DataPoint] = Field(..., description="Array of chronologically ordered daily observations")
 
 
 class CopilotQuery(BaseModel):
-    question: str
+    question: str = Field(..., min_length=2, description="Inquiry for the Relvnt Growth Analyst")
     account_name: Optional[str] = "Target Account"
     platform: Optional[str] = "instagram"
     metric_type: Optional[str] = "reach"
     health_score: Optional[int] = 50
-    metrics: Optional[Dict] = {}
-    anomalies: Optional[List[Dict]] = []
+    metrics: Optional[Dict[str, Any]] = {}
+    anomalies: Optional[List[Dict[str, Any]]] = []
     diagnosis: Optional[str] = ""
 
 
-@app.get("/health")
+class HealthResponse(BaseModel):
+    status: str
+    system: str
+    version: str
+    data_governance: str
+
+
+class ProtocolPhase(BaseModel):
+    phase: str
+    title: str
+    action: str
+
+
+class AnomalyPoint(BaseModel):
+    date: str
+    value: float
+    deviation: float
+
+
+class ReachPoint(BaseModel):
+    date: str
+    reach: float
+    baseline: float
+    is_anomaly: bool
+
+
+class AnalysisResponse(BaseModel):
+    account_name: str
+    platform: str
+    metric_type: str
+    health_score: int
+    alert_level: str
+    severity: str
+    prediction: str
+    confidence: float
+    recommended_action: str
+    diagnosis: str
+    protocol_phases: List[ProtocolPhase]
+    ai_engine: str
+    metrics_summary: Dict[str, Any]
+    anomalies: List[AnomalyPoint]
+    reach_data: List[ReachPoint]
+    data_source: str
+    username: str
+    detected_columns: Optional[Dict[str, str]] = None
+
+
+class CopilotResponse(BaseModel):
+    answer: str
+    engine: str
+    governance: Optional[str] = "Zero-Data-Leak Enclave"
+
+
+# --- API Routes ---
+
+@app.get("/health", response_model=HealthResponse, tags=["System Health"], status_code=status.HTTP_200_OK)
 def health():
     return {
         "status": "nominal",
-        "system": "Relvnt Enterprise Sentinel",
-        "version": "1.1.0",
+        "system": "Relvnt Algorithmic Intelligence Sentinel",
+        "version": "1.2.0",
         "data_governance": "Compound AI: Local IsolationForest + Optional Zero-Retention Gemini Reasoning",
     }
 
 
-@app.get("/presets")
+@app.get("/presets", tags=["Benchmarks"], status_code=status.HTTP_200_OK)
 def list_presets():
     presets = get_preset_datasets()
     return {
@@ -88,7 +151,7 @@ def list_presets():
     }
 
 
-@app.get("/analyze")
+@app.get("/analyze", response_model=AnalysisResponse, tags=["Analytics Engine"], status_code=status.HTTP_200_OK)
 def analyze(preset: Optional[str] = Query(default=None), source: Optional[str] = Query(default=None)):
     presets = get_preset_datasets()
 
@@ -125,11 +188,11 @@ def analyze(preset: Optional[str] = Query(default=None), source: Optional[str] =
     return res
 
 
-@app.post("/analyze")
+@app.post("/analyze", response_model=AnalysisResponse, tags=["Analytics Engine"], status_code=status.HTTP_200_OK)
 def analyze_custom(payload: AnalyzePayload):
     if len(payload.series) < 7:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="At least 7 daily data points are required for statistical performance evaluation.",
         )
 
@@ -149,7 +212,7 @@ def analyze_custom(payload: AnalyzePayload):
     return res
 
 
-@app.post("/analyze/upload")
+@app.post("/analyze/upload", response_model=AnalysisResponse, tags=["Analytics Engine"], status_code=status.HTTP_200_OK)
 async def analyze_csv(
     file: UploadFile = File(...),
     metric_type: Optional[str] = "reach",
@@ -160,7 +223,7 @@ async def analyze_csv(
         content = await file.read()
         if len(content) > MAX_UPLOAD_BYTES:
             raise HTTPException(
-                status_code=413,
+                status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
                 detail=f"Uploaded file exceeds security limit ({MAX_UPLOAD_BYTES // (1024*1024)}MB).",
             )
 
@@ -187,22 +250,22 @@ async def analyze_csv(
         res["detected_columns"] = {"date": date_col, "metric": val_col}
         return res
     except ValueError as val_err:
-        raise HTTPException(status_code=400, detail=str(val_err))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(val_err))
     except HTTPException:
         raise
     except Exception as exc:
         logger.error("Internal processing error during CSV evaluation: %s", exc, exc_info=True)
         raise HTTPException(
-            status_code=500,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred during dataset evaluation. Please verify file format.",
         )
 
 
-@app.post("/copilot")
+@app.post("/copilot", response_model=CopilotResponse, tags=["Copilot"], status_code=status.HTTP_200_OK)
 def copilot_query(payload: CopilotQuery):
     clean_question = re.sub(r"[^\w\s\-\?\.\,\'\"\/]", "", payload.question).strip()
     if not clean_question:
-        raise HTTPException(status_code=400, detail="Question parameter is required.")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Question parameter is required.")
 
     res = engine.query_copilot(
         question=clean_question,

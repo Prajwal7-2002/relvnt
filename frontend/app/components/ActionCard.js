@@ -2,145 +2,136 @@
 
 import { useState } from "react";
 
-function getSeverityColor(severity) {
-  if (severity === "NOMINAL_EQUILIBRIUM") return "#10B981";
-  if (severity === "ELEVATED_RISK" || severity === "RECOVERY_PHASE") return "#F59E0B";
-  return "#F43F5E";
+function getSeverityBadge(severity) {
+  if (severity === "NOMINAL_EQUILIBRIUM") {
+    return {
+      label: "Nominal Equilibrium",
+      color: "#10B981",
+      bg: "rgba(16, 185, 129, 0.1)",
+      border: "rgba(16, 185, 129, 0.25)",
+    };
+  }
+  if (severity === "ELEVATED_RISK" || severity === "RECOVERY_PHASE") {
+    return {
+      label: "Elevated Risk",
+      color: "#F59E0B",
+      bg: "rgba(245, 158, 11, 0.1)",
+      border: "rgba(245, 158, 11, 0.25)",
+    };
+  }
+  return {
+    label: "Critical Decoupling Drift",
+    color: "#F43F5E",
+    bg: "rgba(244, 63, 94, 0.1)",
+    border: "rgba(244, 63, 94, 0.25)",
+  };
 }
 
 export default function ActionCard({ data }) {
   const [copied, setCopied] = useState(false);
-  const severity = data.severity || (data.alert_level === "red" ? "CRITICAL_DRIFT" : "NOMINAL_EQUILIBRIUM");
-  const color = getSeverityColor(severity);
-  const metrics = data.metrics_summary || {};
-  const isRoas = data.metric_type === "roas";
-  const phases = data.protocol_phases || [];
+  const severity = data?.severity || (data?.alert_level === "red" ? "CRITICAL_DRIFT" : "NOMINAL_EQUILIBRIUM");
+  const badge = getSeverityBadge(severity);
+  const metrics = data?.metrics_summary || {};
+  const isRoas = data?.metric_type === "roas";
+  const phases = data?.protocol_phases || [];
 
-  const accountClean = (data.account_name || "Target Account").replace(/[^a-zA-Z0-9_-]/g, "_");
-  const incidentId = `INC-${new Date().getFullYear()}-${accountClean.slice(0, 12).toUpperCase()}`;
+  const targetAccount = data?.account_name || "Target Account";
+  const platform = String(data?.platform || "platform").toUpperCase();
 
-  const generateBriefMarkdown = () => {
-    return `[RELVNT EXECUTIVE STRATEGY BRIEF]
-Incident Ref: ${incidentId}
-Target Account: ${data.account_name || "Account"} (${String(data.platform || "").toUpperCase()})
-Channel Focus: ${String(data.metric_type || "reach").toUpperCase()}
-Relvnt Score: ${data.health_score}/100 (${severity.replace(/_/g, " ")})
-Intelligence Engine: ${data.ai_engine || "Relvnt Compound AI Engine"}
+  const generateExecutiveBrief = () => {
+    return `RELVNT STRATEGIC INTELLIGENCE DIRECTIVE
+Target: ${targetAccount} (${platform})
+Channel Focus: ${String(data?.metric_type || "reach").toUpperCase()}
+Resonance Index: ${data?.health_score || 0}/100 [${badge.label}]
+Inference Framework: ${data?.ai_engine || "Relvnt Compound AI Engine"}
 
-01. ALGORITHMIC ROOT-CAUSE ANALYSIS:
-${data.diagnosis || "Performance shift detected relative to baseline."}
+1. ALGORITHMIC ROOT-CAUSE DIAGNOSIS:
+${data?.diagnosis || "Variance observed relative to historical baseline expectations."}
 
-02. 72-HOUR TACTICAL TURNAROUND PROTOCOL:
+2. 72-HOUR RECOVERY PROTOCOL:
 ${phases.length > 0
-  ? phases.map((p) => `• ${p.phase} - ${p.title}:\n  ${p.action}`).join("\n\n")
-  : data.recommended_action || "Maintain current publishing parameters."}
+  ? phases.map((p) => `• ${p.phase} — ${p.title}\n  Action: ${p.action}`).join("\n\n")
+  : data?.recommended_action || "Maintain baseline publishing cadence."}
 
-03. TELEMETRY & VELOCITY RUN-RATE:
-• Current Run-Rate: ${metrics.current_value || 0}${isRoas ? "x" : ""}
-• Model Baseline: ${metrics.baseline_avg || 0}${isRoas ? "x" : ""}
+3. VELOCITY TELEMETRY:
+• Current Observed Run-Rate: ${metrics.current_value || 0}${isRoas ? "x" : ""}
+• Baseline Expected Median: ${metrics.baseline_avg || 0}${isRoas ? "x" : ""}
 • Net Velocity Drift: ${metrics.change_pct || 0}%
-• Statistical Deviation: ${metrics.z_score_deviation || 0}σ
-• IsolationForest ML Outlier Risk: ${Math.round((metrics.ml_anomaly_score || 0.1) * 100)}%
+• Statistical Z-Deviation: ${metrics.z_score_deviation || 0}σ
+• Machine Learning Outlier Risk: ${Math.round((metrics.ml_anomaly_score || 0.1) * 100)}%
 ${metrics.projected_impact ? `• 7-Day At-Risk Deficit: ${metrics.projected_impact}` : ""}
 
-[DATA GOVERNANCE: On-premise execution. Zero cloud training.]`;
+Data Governance: Local mathematical inference with zero third-party training retention.`;
   };
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(generateBriefMarkdown());
+    navigator.clipboard.writeText(generateExecutiveBrief());
     setCopied(true);
-    setTimeout(() => setCopied(false), 2500);
-  };
-
-  const handleDownload = () => {
-    const text = generateBriefMarkdown();
-    const blob = new Blob([text], { type: "text/plain;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `${incidentId}-executive-brief.txt`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    setTimeout(() => setCopied(false), 2400);
   };
 
   return (
-    <section className="action-card" style={{ borderLeft: `3px solid ${color}` }}>
-      <div className="action-card-header">
-        <div>
-          <div className="incident-meta-row">
-            <span className="incident-badge">{incidentId}</span>
+    <section className="directive-panel">
+      <div className="directive-header-row">
+        <div className="directive-header-text">
+          <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
             <span
               style={{
-                fontSize: "11.5px",
-                fontWeight: 600,
-                color: color,
-                backgroundColor: `${color}18`,
-                border: `1px solid ${color}35`,
-                padding: "3px 9px",
-                borderRadius: "4px",
+                fontSize: "11px",
+                fontWeight: 700,
+                letterSpacing: "0.06em",
+                textTransform: "uppercase",
+                color: badge.color,
+                backgroundColor: badge.bg,
+                border: `1px solid ${badge.border}`,
+                padding: "3px 10px",
+                borderRadius: "6px",
               }}
             >
-              {severity.replace(/_/g, " ")}
+              {badge.label}
             </span>
-            <span className="ai-engine-tag">{data.ai_engine?.includes("Gemini") ? "Gemini 1.5 Flash AI" : "Compound AI Engine"}</span>
+            <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
+              {data?.ai_engine?.includes("Gemini") ? "Gemini 1.5 Flash Reasoning" : "Compound AI Engine"}
+            </span>
           </div>
-          <h2>Strategic Diagnosis &amp; Tactical Turnaround Plan</h2>
+
+          <h2>Algorithmic Turnaround Directive &amp; 72-Hour Protocol</h2>
+          <p>{data?.diagnosis || "Analyzing distribution shift across algorithmic ranking surfaces."}</p>
         </div>
 
-        <div className="action-header-right">
-          <button onClick={handleCopy} className="btn-export-primary">
-            {copied ? "✓ Copied to Clipboard" : "Copy Client Brief"}
-          </button>
-          <button onClick={handleDownload} className="btn-export-secondary">
-            Export .txt
+        <div className="directive-actions">
+          <button onClick={handleCopy} className="btn-haptic btn-primary">
+            {copied ? "✓ Copied to Clipboard" : "Copy Executive Brief"}
           </button>
         </div>
       </div>
 
-      <div className="action-card-grid">
-        {/* RCA Box */}
-        <div className="rca-section">
-          <p className="rca-section-title">Algorithmic Root-Cause Inference</p>
-          <p className="rca-body-text">{data.diagnosis}</p>
-        </div>
-
-        {/* Tactical Phased Runbook */}
-        <div className="rca-section">
-          <p className="rca-section-title">72-Hour Tactical Turnaround Plan</p>
-          {phases.length > 0 ? (
-            <div className="phases-container">
-              {phases.map((item, idx) => (
-                <div key={idx} className="phase-card">
-                  <div className="phase-header-row">
-                    <span className="phase-step-pill">{item.phase}</span>
-                    <span className="phase-title">{item.title}</span>
-                  </div>
-                  <p className="phase-action-text">{item.action}</p>
+      {/* 3-Phase Algorithmic Recovery Stepper */}
+      <div className="turnaround-phases-deck">
+        {phases.length > 0 ? (
+          phases.map((p, idx) => (
+            <div key={idx} className="phase-card">
+              <div>
+                <div className="phase-top-badge-row">
+                  <span className="phase-number-tag">Phase 0{idx + 1}</span>
+                  <span className="phase-window-time font-mono-nums">
+                    {idx === 0 ? "00:00 — 24:00" : idx === 1 ? "24:00 — 48:00" : "48:00 — 72:00"}
+                  </span>
                 </div>
-              ))}
+                <h3 className="phase-headline">{p.title}</h3>
+                <p className="phase-body-action">{p.action}</p>
+              </div>
             </div>
-          ) : (
-            <div className="rca-body-text" style={{ whiteSpace: "pre-line" }}>
-              {data.recommended_action}
-            </div>
-          )}
-        </div>
+          ))
+        ) : (
+          <div className="phase-card" style={{ gridColumn: "span 3" }}>
+            <h3 className="phase-headline">Equilibrium Maintenance</h3>
+            <p className="phase-body-action">
+              {data?.recommended_action || "Account distribution metrics remain within healthy standard deviations."}
+            </p>
+          </div>
+        )}
       </div>
-
-      {metrics.projected_impact && (
-        <div className="projected-impact-bar">
-          <span style={{ fontWeight: 600 }}>At-Risk Velocity &amp; Capital Deficit:</span>
-          <span className="tabular-nums" style={{ fontWeight: 600 }}>{metrics.projected_impact}</span>
-        </div>
-      )}
-
-      {copied && (
-        <div className="toast-notice">
-          <span style={{ color: "#10B981" }}>✓</span> Executive brief copied to clipboard. Ready for Slack, WhatsApp, or email.
-        </div>
-      )}
     </section>
   );
 }
