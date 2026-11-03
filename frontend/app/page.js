@@ -9,7 +9,9 @@ import HealthScore from "./components/HealthScore";
 import ReachChart from "./components/ReachChart";
 import AuthGate from "./components/AuthGate";
 import SettingsView from "./components/SettingsView";
+import Sidebar from "./components/Sidebar";
 import { authService } from "../lib/supabaseClient";
+import { needsAttention } from "../lib/health";
 
 const PRESETS = [
   { id: "instagram_drop", label: "Instagram Drop", account: "@tech_founder" },
@@ -35,6 +37,7 @@ const DEFAULT_PORTFOLIO = [
     id: "meta_ads_fatigue",
     account: "US Retargeting",
     platform: "Meta Ads",
+    metric_type: "roas",
     health_score: 38,
     status: "Creative Fatigue",
     last_audited: "Yesterday",
@@ -77,7 +80,6 @@ export default function Page() {
   const [showBenchmarkDropdown, setShowBenchmarkDropdown] = useState(false);
   const [theme, setTheme] = useState("light");
   const [currentUser, setCurrentUser] = useState(null);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [sessionLoaded, setSessionLoaded] = useState(false);
 
   // Active View: "radar" (Roster) | "audit" (Deep-Dive) | "settings" (Workspace & Webhooks)
@@ -183,7 +185,8 @@ export default function Page() {
     const item = {
       id: id || analysisData.account_name,
       account: analysisData.account_name || "@target",
-      platform: (analysisData.platform || "Instagram").toUpperCase(),
+      platform: analysisData.platform || "instagram",
+      metric_type: analysisData.metric_type || "reach",
       health_score: analysisData.health_score || 50,
       status: analysisData.prediction || analysisData.severity || "Decoupled",
       last_audited: "Just now",
@@ -503,7 +506,7 @@ export default function Page() {
         color: "var(--text-muted)",
         fontSize: "var(--font-size-md)",
       }}>
-        Initializing Relvnt Intelligence Enclave...
+        Loading…
       </div>
     );
   }
@@ -524,7 +527,22 @@ export default function Page() {
   const monogram = (agencyName || "YA").trim().replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "YA";
 
   return (
-    <main className="app-container">
+    <div className="app-shell">
+      <Sidebar
+        activeView={activeView}
+        onNavigate={setActiveView}
+        attentionCount={portfolioList.filter((c) => needsAttention(c.health_score)).length}
+        agencyName={agencyName}
+        monogram={monogram}
+        userEmail={currentUser.email}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onSignOut={async () => {
+          await authService.signOut();
+          setCurrentUser(null);
+        }}
+      />
+      <main className="app-main">
       {/* FLOATING TOAST NOTIFICATION */}
       {toast.show && (
         <div className="toast-container">
@@ -537,140 +555,6 @@ export default function Page() {
         </div>
       )}
 
-      {/* 1. TOP CORPORATE SAAS NAVIGATION */}
-      <header className="top-nav">
-        <div className="brand-group">
-          <h1 className="brand-text">
-            relvnt<span>.</span>
-          </h1>
-          <span className="brand-subtext">Distribution Decoupling &amp; Ad Fatigue Sentinel</span>
-        </div>
-
-        {/* THREE SEGMENTED NAVIGATION PILLARS */}
-        <div className="view-mode-tabs">
-          <button
-            onClick={() => setActiveView("radar")}
-            className={`view-mode-btn ${activeView === "radar" ? "view-mode-btn-active" : ""}`}
-          >
-            Clients ({portfolioList.length})
-          </button>
-          <button
-            onClick={() => setActiveView("audit")}
-            className={`view-mode-btn ${activeView === "audit" ? "view-mode-btn-active" : ""}`}
-          >
-            Audit
-          </button>
-          <button
-            onClick={() => setActiveView("settings")}
-            className={`view-mode-btn ${activeView === "settings" ? "view-mode-btn-active" : ""}`}
-          >
-            Settings
-          </button>
-        </div>
-
-        {/* TOP ACTIONS */}
-        <div className="nav-actions">
-          <button
-            onClick={() => window.print()}
-            className="btn-secondary"
-            title="Export 1-Click Boardroom PDF Memo"
-          >
-            Export PDF
-          </button>
-
-          <button
-            onClick={() => setShowCopilot(true)}
-            className="btn-secondary"
-            title="Launch AI Growth Analyst Drawer"
-          >
-            AI Copilot
-          </button>
-
-          <button
-            onClick={toggleTheme}
-            className="theme-toggle-btn"
-            title={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
-            aria-label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
-          >
-            {theme === "light" ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-              </svg>
-            )}
-          </button>
-
-          {/* USER & AGENCY DROPDOWN */}
-          <div style={{ position: "relative" }}>
-            <button
-              onClick={() => setShowUserDropdown(!showUserDropdown)}
-              className="btn-secondary"
-              style={{ padding: "5px 10px" }}
-            >
-              <span style={{
-                width: "22px",
-                height: "22px",
-                borderRadius: "4px",
-                backgroundColor: "var(--btn-primary-bg)",
-                color: "var(--btn-primary-text)",
-                fontSize: "var(--font-size-2xs)",
-                fontWeight: 800,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-                {monogram}
-              </span>
-              <span style={{ fontSize: "var(--font-size-sm)", fontWeight: 600 }}>{auditorName}</span>
-              <span style={{ fontSize: "var(--font-size-2xs)", color: "var(--text-muted)" }}>{showUserDropdown ? "▴" : "▾"}</span>
-            </button>
-
-            {showUserDropdown && (
-              <>
-                <div className="dropdown-backdrop-transparent" onClick={() => setShowUserDropdown(false)} />
-                <div style={{
-                  position: "absolute",
-                  top: "calc(100% + 6px)",
-                  right: 0,
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-medium)",
-                  borderRadius: "8px",
-                  boxShadow: "var(--shadow-lg)",
-                  minWidth: "220px",
-                  zIndex: 90,
-                  overflow: "hidden",
-                }}>
-                  <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-surface-subtle)" }}>
-                    <div style={{ fontSize: "var(--font-size-sm)", fontWeight: 700, color: "var(--text-primary)" }}>{agencyName}</div>
-                    <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)", marginTop: "2px" }}>{currentUser.email}</div>
-                  </div>
-                  <button
-                    onClick={() => { setActiveView("settings"); setShowUserDropdown(false); }}
-                    className="dropdown-item"
-                  >
-                    Agency &amp; Webhooks Settings
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await authService.signOut();
-                      setCurrentUser(null);
-                      setShowUserDropdown(false);
-                    }}
-                    className="dropdown-item"
-                    style={{ color: "var(--status-drift)" }}
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
 
       {/* 2. PRINT-ONLY BOARDROOM MEMO HEADER */}
       <div className="print-memo-header">
@@ -721,15 +605,28 @@ export default function Page() {
             setActiveView("audit");
           }}
           onOpenConnectModal={() => setShowQuickIngest(true)}
-          onOpenAgencyModal={() => setActiveView("settings")}
           agencyName={agencyName}
-          auditorName={auditorName}
         />
       )}
 
       {/* 4. VIEW MODE: DIAGNOSTIC AUDIT */}
       {activeView === "audit" && (
         <>
+          <div className="page-header">
+            <div>
+              <h1 className="page-title">Analysis</h1>
+              <p className="page-subtitle">How {data?.account_name || "this account"} is performing against its usual baseline.</p>
+            </div>
+            <div className="page-actions">
+              <button onClick={() => setShowCopilot(true)} className="btn-secondary">
+                Ask AI
+              </button>
+              <button onClick={() => window.print()} className="btn-secondary">
+                Export PDF
+              </button>
+            </div>
+          </div>
+
           {/* TARGET ACCOUNT HEADER */}
           <div className="account-bar-card">
             <div className="account-bar-left">
@@ -1116,6 +1013,7 @@ export default function Page() {
           </aside>
         </>
       )}
-    </main>
+      </main>
+    </div>
   );
 }

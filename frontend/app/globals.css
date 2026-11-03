@@ -1,51 +1,50 @@
 /* ==========================================================================
-   RELVNT: INDUSTRY-STANDARD B2B SAAS DESIGN SYSTEM
-   W3C Semantic Design Tokens · High-Craft Corporate Executive Interface
+   RELVNT DESIGN TOKENS
+   Warm neutrals, one brand colour, status colours used only for status.
    ========================================================================== */
 
 :root,
 [data-theme="light"] {
-  /* Surfaces & Canvas */
-  --bg-canvas: #F8FAFC;
+  /* Surfaces */
+  --bg-canvas: #F6F6F4;
   --bg-surface: #FFFFFF;
-  --bg-surface-subtle: #F1F5F9;
-  --bg-surface-hover: #E2E8F0;
+  --bg-surface-subtle: #F2F1EE;
+  --bg-surface-hover: #EBEAE6;
 
-  /* Aliases for Child Components */
   --bg-app: var(--bg-canvas);
   --bg-page: var(--bg-canvas);
   --bg-card: var(--bg-surface);
   --bg-card-subtle: var(--bg-surface-subtle);
   --bg-card-hover: var(--bg-surface-hover);
+  --bg-sidebar: #FBFBFA;
 
-  /* Borders & Dividers */
-  --border-subtle: #E2E8F0;
-  --border-medium: #CBD5E1;
-  --border-focus: #0F172A;
+  /* Borders */
+  --border-subtle: #E7E5E0;
+  --border-medium: #D7D4CD;
+  --border-focus: var(--accent-primary);
   --border-light: var(--border-subtle);
 
-  /* Typography */
-  --text-primary: #0F172A;
-  --text-secondary: #334155;
-  --text-muted: #64748B;
-  --text-dim: #94A3B8;
+  /* Text */
+  --text-primary: #1C1B19;
+  --text-secondary: #4A4843;
+  --text-muted: #77746C;
+  --text-dim: #A19D94;
   --text-title: var(--text-primary);
   --text-body: var(--text-secondary);
 
-  /* Semantic Statuses */
-  --status-nominal: #10B981;
-  --status-nominal-bg: #ECFDF5;
-  --status-nominal-border: #A7F3D0;
+  /* Status */
+  --status-nominal: #15803D;
+  --status-nominal-bg: #EBF6EE;
+  --status-nominal-border: #C3E4CC;
 
-  --status-warning: #F59E0B;
-  --status-warning-bg: #FFFBEB;
-  --status-warning-border: #FDE68A;
+  --status-warning: #B45309;
+  --status-warning-bg: #FDF4E4;
+  --status-warning-border: #F1D8A8;
 
-  --status-drift: #EF4444;
-  --status-drift-bg: #FEF2F2;
-  --status-drift-border: #FECACA;
+  --status-drift: #C8322B;
+  --status-drift-bg: #FCEEEC;
+  --status-drift-border: #F2C6C1;
 
-  /* Aliases for Child Components */
   --status-good: var(--status-nominal);
   --status-good-bg: var(--status-nominal-bg);
   --status-good-border: var(--status-nominal-border);
@@ -57,32 +56,33 @@
   --status-alert-border: var(--status-drift-border);
   --status-critical: var(--status-drift);
 
-  /* Primary Accent & Buttons (single brand accent, matches the logo dot) */
-  --accent-primary: #0284C7;
-  --accent-primary-hover: #0369A1;
+  /* Brand & Buttons */
+  --accent-primary: #3B5BDB;
+  --accent-primary-hover: #2F4AC0;
+  --accent-primary-soft: #EEF1FC;
 
-  --btn-primary-bg: #0F172A;
+  --btn-primary-bg: var(--accent-primary);
   --btn-primary-text: #FFFFFF;
-  --btn-primary-hover: #1E293B;
+  --btn-primary-hover: var(--accent-primary-hover);
 
   --btn-secondary-bg: #FFFFFF;
-  --btn-secondary-text: #0F172A;
-  --btn-secondary-border: #CBD5E1;
-  --btn-secondary-hover: #F8FAFC;
+  --btn-secondary-text: var(--text-primary);
+  --btn-secondary-border: var(--border-medium);
+  --btn-secondary-hover: var(--bg-surface-subtle);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-
-  --shadow-dropdown: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
+  /* Elevation */
+  --shadow-sm: 0 1px 2px rgba(28, 27, 25, 0.05);
+  --shadow-md: 0 2px 8px rgba(28, 27, 25, 0.06);
+  --shadow-lg: 0 12px 32px -8px rgba(28, 27, 25, 0.16);
+  --shadow-dropdown: 0 12px 32px -8px rgba(28, 27, 25, 0.18), 0 2px 6px rgba(28, 27, 25, 0.06);
 
   /* Radii */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
 
-  /* Type Scale (use these instead of ad-hoc pixel sizes) */
+  /* Type */
+  --font-mono: var(--font-sans);
   --font-size-2xs: 10px;
   --font-size-xs: 11px;
   --font-size-sm: 12px;
@@ -94,57 +94,52 @@
   --font-size-display: 36px;
   --font-size-hero: 48px;
 
-  /* Health Range Bar */
-  --range-grad: linear-gradient(to right, #B91C1C 0%, #B91C1C 35%, #D97706 45%, #D97706 65%, #15803D 75%, #15803D 100%);
-  --range-pin-border: #0F172A;
+  /* Health range bar */
+  --range-grad: linear-gradient(to right, var(--status-drift) 0%, var(--status-drift) 35%, var(--status-warning) 45%, var(--status-warning) 65%, var(--status-nominal) 75%, var(--status-nominal) 100%);
+  --range-pin-border: var(--text-primary);
 
-  /* Animation */
+  /* Motion */
   --ease-snappy: cubic-bezier(0.16, 1, 0.3, 1);
   --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 [data-theme="dark"] {
-  /* Surfaces & Canvas */
-  --bg-canvas: #090D16;
-  --bg-surface: #0F172A;
-  --bg-surface-subtle: #1E293B;
-  --bg-surface-hover: #334155;
+  --bg-canvas: #121211;
+  --bg-surface: #1B1B19;
+  --bg-surface-subtle: #232320;
+  --bg-surface-hover: #2C2B28;
 
-  /* Aliases for Child Components */
   --bg-app: var(--bg-canvas);
   --bg-page: var(--bg-canvas);
   --bg-card: var(--bg-surface);
   --bg-card-subtle: var(--bg-surface-subtle);
   --bg-card-hover: var(--bg-surface-hover);
+  --bg-sidebar: #161615;
 
-  /* Borders & Dividers */
-  --border-subtle: #1E293B;
-  --border-medium: #334155;
-  --border-focus: #F8FAFC;
+  --border-subtle: #2D2C29;
+  --border-medium: #3B3A36;
+  --border-focus: var(--accent-primary);
   --border-light: var(--border-subtle);
 
-  /* Typography */
-  --text-primary: #F8FAFC;
-  --text-secondary: #CBD5E1;
-  --text-muted: #94A3B8;
-  --text-dim: #64748B;
+  --text-primary: #EDEBE6;
+  --text-secondary: #C6C3BB;
+  --text-muted: #918D84;
+  --text-dim: #6C6963;
   --text-title: var(--text-primary);
   --text-body: var(--text-secondary);
 
-  /* Semantic Statuses */
-  --status-nominal: #10B981;
-  --status-nominal-bg: rgba(16, 185, 129, 0.12);
-  --status-nominal-border: rgba(16, 185, 129, 0.3);
+  --status-nominal: #4ADE80;
+  --status-nominal-bg: rgba(74, 222, 128, 0.10);
+  --status-nominal-border: rgba(74, 222, 128, 0.28);
 
-  --status-warning: #F59E0B;
-  --status-warning-bg: rgba(245, 158, 11, 0.12);
-  --status-warning-border: rgba(245, 158, 11, 0.3);
+  --status-warning: #FBBF57;
+  --status-warning-bg: rgba(251, 191, 87, 0.10);
+  --status-warning-border: rgba(251, 191, 87, 0.28);
 
-  --status-drift: #EF4444;
-  --status-drift-bg: rgba(239, 68, 68, 0.12);
-  --status-drift-border: rgba(239, 68, 68, 0.3);
+  --status-drift: #F47A6F;
+  --status-drift-bg: rgba(244, 122, 111, 0.10);
+  --status-drift-border: rgba(244, 122, 111, 0.28);
 
-  /* Aliases for Child Components */
   --status-good: var(--status-nominal);
   --status-good-bg: var(--status-nominal-bg);
   --status-good-border: var(--status-nominal-border);
@@ -156,28 +151,25 @@
   --status-alert-border: var(--status-drift-border);
   --status-critical: var(--status-drift);
 
-  /* Primary Accent & Buttons */
-  --accent-primary: #38BDF8;
-  --accent-primary-hover: #0EA5E9;
+  --accent-primary: #7D93F2;
+  --accent-primary-hover: #95A7F5;
+  --accent-primary-soft: rgba(125, 147, 242, 0.12);
 
-  --btn-primary-bg: #F8FAFC;
-  --btn-primary-text: #090D16;
-  --btn-primary-hover: #E2E8F0;
+  --btn-primary-bg: #4C68E0;
+  --btn-primary-text: #FFFFFF;
+  --btn-primary-hover: #5B76E6;
 
-  --btn-secondary-bg: #1E293B;
-  --btn-secondary-text: #F8FAFC;
-  --btn-secondary-border: #334155;
-  --btn-secondary-hover: #334155;
+  --btn-secondary-bg: var(--bg-surface);
+  --btn-secondary-text: var(--text-primary);
+  --btn-secondary-border: var(--border-medium);
+  --btn-secondary-hover: var(--bg-surface-subtle);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
-  --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
+  --shadow-dropdown: 0 12px 32px -8px rgba(0, 0, 0, 0.7);
 
-  /* Health Range Bar */
-  --range-grad: linear-gradient(to right, #EF4444 0%, #EF4444 35%, #F59E0B 45%, #F59E0B 65%, #10B981 75%, #10B981 100%);
-  --range-pin-border: #FAFAFA;
+  --range-pin-border: var(--text-primary);
 }
 
 *,
@@ -206,17 +198,28 @@ button:disabled {
 html,
 body {
   background-color: var(--bg-canvas);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-family: var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  font-feature-settings: "cv11" 1, "ss01" 1;
+  font-variant-numeric: tabular-nums;
   margin: 0;
   padding: 0;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
 
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.011em;
+}
+
+/* Numbers align in columns without switching to a monospace font */
 .mono-num {
-  font-family: var(--font-mono, "SF Mono", Consolas, monospace);
-  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .font-semibold {
