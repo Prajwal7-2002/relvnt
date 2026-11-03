@@ -4,33 +4,33 @@ import { useState, useRef, useEffect } from "react";
 
 const TEMPLATES = [
   {
-    label: "Multi-Channel Ads (Adsfellow / Raturi)",
+    label: "Multi-Channel Performance Agency",
     sublabel: "Paid Ads & ROI Radar",
-    agency: "Adsfellow Digital Media",
-    auditor: "Sandeep Raturi",
-    role: "Founder & Digital Marketing Head",
-    tagline: "Performance Ads, SEO & Client ROI Turnaround",
-    contact: "sandeep@adsfellow.com",
+    agency: "Apex Growth Studio",
+    auditor: "Lead Growth Strategist",
+    role: "Head of Performance Marketing",
+    tagline: "Paid Social, Google Ads & Client ROI Radar",
+    contact: "audit@apexgrowth.com",
     confidentiality: "CONFIDENTIAL & PROPRIETARY // CLIENT EYES ONLY",
   },
   {
-    label: "Digital Marketing Agency (BrandVitamin)",
+    label: "Digital Marketing Agency",
     sublabel: "Meta & Google Ads",
-    agency: "BrandVitamin",
-    auditor: "Bhagwan Das",
-    role: "Founder & Creative Director",
+    agency: "Vanguard Digital Media",
+    auditor: "Managing Director",
+    role: "VP of Client Strategy & Media",
     tagline: "Performance Marketing, Meta & Google Ads Lab",
-    contact: "growth@brandvitamin.com",
+    contact: "growth@vanguardmedia.com",
     confidentiality: "CONFIDENTIAL & PROPRIETARY // CLIENT EYES ONLY",
   },
   {
     label: "Boutique Social Agency",
     sublabel: "Social & Reels",
-    agency: "Vanguard Social Media",
-    auditor: "Lead Growth Strategist",
+    agency: "Pulse Social Media",
+    auditor: "Lead Content Strategist",
     role: "Head of Content & Distribution",
     tagline: "Social Media Strategy & Reels Retention Lab",
-    contact: "audit@vanguardsocial.com",
+    contact: "audit@pulsesocial.com",
     confidentiality: "CONFIDENTIAL & PROPRIETARY // CLIENT EYES ONLY",
   },
   {
@@ -46,11 +46,11 @@ const TEMPLATES = [
   {
     label: "Founder Branding Firm",
     sublabel: "Executive Distribution",
-    agency: "Apex Executive Brand Studio",
+    agency: "Beacon Executive Studio",
     auditor: "Managing Director",
-    role: "Lead Executive Ghostwriter",
+    role: "Lead Executive Strategist",
     tagline: "Founder Personal Branding & Algorithm Navigation",
-    contact: "partners@apexbrand.com",
+    contact: "partners@beaconstudio.com",
     confidentiality: "BOARDROOM DISTRIBUTION AUDIT",
   },
 ];
@@ -238,7 +238,7 @@ export default function AgencyBrandingModal({
                 type="text"
                 value={agency}
                 onChange={(e) => setAgency(e.target.value)}
-                placeholder="e.g. Adsfellow Digital or BrandVitamin"
+                placeholder="e.g. Apex Growth Studio"
                 className="text-input"
               />
               <span className="input-micro-hint">Displayed prominently in letterhead and client audit documents.</span>
@@ -251,7 +251,7 @@ export default function AgencyBrandingModal({
                   type="text"
                   value={auditor}
                   onChange={(e) => setAuditor(e.target.value)}
-                  placeholder="e.g. Sandeep Raturi"
+                  placeholder="e.g. Alex Morgan"
                   className="text-input"
                 />
               </div>
@@ -262,7 +262,7 @@ export default function AgencyBrandingModal({
                   type="text"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  placeholder="e.g. Founder &amp; Digital Marketing Head"
+                  placeholder="e.g. VP of Performance Marketing"
                   className="text-input"
                 />
               </div>
@@ -311,7 +311,7 @@ export default function AgencyBrandingModal({
                 type="email"
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
-                placeholder="growth@adsfellow.com"
+                placeholder="audit@youragency.com"
                 className="text-input"
               />
             </div>
