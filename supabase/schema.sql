@@ -148,3 +148,4 @@ CREATE POLICY "Agencies access own webhooks" ON alert_webhooks
     FOR ALL USING (
         agency_id IN (SELECT id FROM agencies WHERE user_id = auth.uid())
     );
+

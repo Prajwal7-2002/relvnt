@@ -146,3 +146,4 @@ class SupabaseService:
 
 
 supabase_service = SupabaseService()
+
