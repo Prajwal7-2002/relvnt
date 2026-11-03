@@ -91,13 +91,28 @@ export default function AgencyBrandingModal({
             </div>
           </div>
 
-          <div style={{ display: "flex", justifyContent: "flex-end", gap: "10px", marginTop: "8px" }}>
-            <button type="button" onClick={onClose} className="btn-secondary">
-              Cancel
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", marginTop: "8px" }}>
+            <button
+              type="button"
+              onClick={() => {
+                setAgency("Your Agency");
+                setAuditor("Lead Strategist");
+                setRole("Growth & Retention Director");
+              }}
+              className="btn-secondary"
+              style={{ fontSize: "11.5px", padding: "6px 10px" }}
+              title="Reset agency branding to neutral defaults"
+            >
+              Reset to Defaults
             </button>
-            <button type="submit" className="btn-primary">
-              Save Agency Branding
-            </button>
+            <div style={{ display: "flex", gap: "10px" }}>
+              <button type="button" onClick={onClose} className="btn-secondary">
+                Cancel
+              </button>
+              <button type="submit" className="btn-primary">
+                Save Agency Branding
+              </button>
+            </div>
           </div>
         </form>
       </div>

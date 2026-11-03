@@ -191,9 +191,21 @@ export default function Page() {
 
     if (typeof window !== "undefined") {
       const sAgency = localStorage.getItem("relvnt-agency-name");
-      if (sAgency) setAgencyName(sAgency);
+      if (sAgency && sAgency !== "K.R Digital Media") {
+        setAgencyName(sAgency);
+      } else if (sAgency === "K.R Digital Media") {
+        localStorage.removeItem("relvnt-agency-name");
+        setAgencyName("Your Agency");
+      }
+
       const sAuditor = localStorage.getItem("relvnt-auditor-name");
-      if (sAuditor) setAuditorName(sAuditor);
+      if (sAuditor && sAuditor !== "Vashu Singhal") {
+        setAuditorName(sAuditor);
+      } else if (sAuditor === "Vashu Singhal") {
+        localStorage.removeItem("relvnt-auditor-name");
+        setAuditorName("Lead Strategist");
+      }
+
       const sRole = localStorage.getItem("relvnt-agency-role");
       if (sRole) setAgencyRole(sRole);
       const sPortfolio = localStorage.getItem("relvnt-portfolio");
