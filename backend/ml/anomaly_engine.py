@@ -223,7 +223,7 @@ class AnomalyEngine:
             "ml_flagged": is_ml_outlier,
         }
 
-        # 7. Cognitive AI Agent Briefing (Gemini 1.5 Flash or Local Fallback)
+        # 7. Cognitive AI Agent Briefing (Gemini or Local Fallback)
         briefing = self.ai_agent.generate_briefing(
             account_name=account_name or "Connected Account",
             platform=platform,

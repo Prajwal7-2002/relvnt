@@ -96,7 +96,7 @@ class HealthResponse(BaseModel):
 @app.get("/health", response_model=HealthResponse, tags=["System Health"], status_code=status.HTTP_200_OK)
 def health():
     has_gemini = bool((os.getenv("GEMINI_API_KEY") or "").strip())
-    model = (os.getenv("GEMINI_MODEL") or "gemini-1.5-flash").strip()
+    model = (os.getenv("GEMINI_MODEL") or "gemini-flash-lite-latest").strip()
     return {
         "status": "nominal",
         "system": "Relvnt Algorithmic Intelligence Sentinel",
