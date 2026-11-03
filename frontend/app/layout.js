@@ -1,17 +1,18 @@
 import "./globals.css";
-import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 
-const displayFont = Plus_Jakarta_Sans({
-  subsets: ["latin"],
+// Self-hosted variable fonts (Fontsource) so builds never depend on Google Fonts
+const displayFont = localFont({
+  src: "../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2",
   variable: "--font-sans",
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: "200 800",
   display: "swap",
 });
 
-const monoFont = JetBrains_Mono({
-  subsets: ["latin"],
+const monoFont = localFont({
+  src: "../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2",
   variable: "--font-mono",
-  weight: ["400", "500", "600"],
+  weight: "100 800",
   display: "swap",
 });
 

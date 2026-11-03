@@ -1,8 +1,13 @@
 .env
+.env.*
+!.env.example
 __pycache__/
 *.pyc
 *.pyo
 venv/
+.venv/
+.pytest_cache/
+.kilo/
 .DS_Store
 data/synthetic/*.csv
 frontend/node_modules/
