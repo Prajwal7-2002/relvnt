@@ -5,6 +5,7 @@ from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel, Field
 import requests
 
+from core.network_security import validate_public_url
 from ml.anomaly_engine import AnomalyEngine
 from ml.presets import get_preset_datasets
 from services.csv_parser import DefensiveCSVParser
@@ -292,6 +293,7 @@ def analyze_google_sheet(payload: GoogleSheetPayload):
     1-Click Google Sheets Auto-Sync:
     Normalizes any public or shared Google Sheets link to its live CSV export endpoint,
     parses time-series data without manual export, and executes anomaly evaluation.
+    Guarded by SSRF Network Validation.
     """
     raw_url = payload.sheet_url.strip()
     sheet_id_match = re.search(r"/spreadsheets/d/([a-zA-Z0-9-_]+)", raw_url)
@@ -305,6 +307,9 @@ def analyze_google_sheet(payload: GoogleSheetPayload):
     gid_match = re.search(r"[#&]gid=([0-9]+)", raw_url)
     gid = gid_match.group(1) if gid_match else "0"
     export_url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv&gid={gid}"
+
+    # SSRF Protection
+    export_url = validate_public_url(export_url)
 
     try:
         res = requests.get(export_url, timeout=15)

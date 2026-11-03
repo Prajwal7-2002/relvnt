@@ -1,3 +1,4 @@
+import io
 import os
 import sys
 import pytest
@@ -7,6 +8,7 @@ from fastapi.testclient import TestClient
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
 
 from main import app
+from services.csv_parser import DefensiveCSVParser
 
 client = TestClient(app)
 
@@ -16,7 +18,7 @@ def test_v1_api_health():
     assert res.status_code == 200
     data = res.json()
     assert data["status"] == "nominal"
-    assert data["version"] == "2.0.0"
+    assert data["version"] == "2.1.0"
 
 
 def test_v1_api_presets():
@@ -28,7 +30,6 @@ def test_v1_api_presets():
 
 
 def test_v1_agency_profile_and_auth_guard():
-    # Test POST /api/v1/agency/profile in sandbox mode
     payload = {
         "name": "Starlight Distribution Lab",
         "tagline": "Auditing algorithmic distribution drift",
@@ -38,7 +39,6 @@ def test_v1_agency_profile_and_auth_guard():
         "confidentiality": "CONFIDENTIAL · PREPARED FOR CLIENT",
         "monogram": "SL",
     }
-    # With Authorization header
     res = client.post(
         "/api/v1/agency/profile",
         json=payload,
@@ -85,3 +85,33 @@ def test_security_headers_present():
     assert res.headers.get("X-Content-Type-Options") == "nosniff"
     assert res.headers.get("X-Frame-Options") == "DENY"
     assert "Strict-Transport-Security" in res.headers
+    assert "Content-Security-Policy" in res.headers
+
+
+def test_rate_limit_headers():
+    res = client.get("/health")
+    assert "X-RateLimit-Limit" in res.headers
+    assert "X-RateLimit-Remaining" in res.headers
+    assert "X-RateLimit-Reset" in res.headers
+    limit = int(res.headers["X-RateLimit-Limit"])
+    assert limit in (45, 180)
+
+
+def test_ssrf_protection_blocks_cloud_metadata():
+    payload = {
+        "webhook_url": "http://169.254.169.254/latest/meta-data",
+        "agency_name": "Test Agency",
+    }
+    res = client.post("/alerts/test", json=payload)
+    assert res.status_code == 400
+    assert "forbidden" in res.json().get("detail", "").lower() or "restricted" in res.json().get("detail", "").lower()
+
+
+def test_csv_formula_injection_sanitization():
+    # Malicious CSV crafted with formula triggers (=CMD, @SUM, +calc)
+    malicious_csv = b"""=SUM(A1:B1),+1234\n2026-08-01,1500\n2026-08-02,1600\n2026-08-03,1700\n2026-08-04,1800\n2026-08-05,1900\n2026-08-06,2000\n2026-08-07,2100"""
+    df, date_col, val_col = DefensiveCSVParser.parse(malicious_csv, filename="exploit.csv")
+    # Verify that dangerous formula injection prefixes on headers were stripped
+    assert not date_col.startswith("=")
+    assert not val_col.startswith("+")
+    assert len(df) == 7

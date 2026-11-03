@@ -1,7 +1,5 @@
 import logging
 import os
-import time
-from collections import defaultdict
 from pathlib import Path
 from typing import Optional
 
@@ -15,6 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 load_dotenv(BASE_DIR.parent / ".env")
 
+from core.rate_limiter import rate_limit_middleware
 from routers.agency import router as agency_router
 from routers.analytics import router as analytics_router
 from routers.radar import router as radar_router
@@ -25,30 +24,13 @@ logger = logging.getLogger("relvnt.api")
 app = FastAPI(
     title="Relvnt Algorithmic Intelligence API",
     description="Enterprise Early-Warning Radar for Algorithmic Distribution Decoupling & Ad Fatigue.",
-    version="2.0.0",
+    version="2.1.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
 
-# In-Memory Rate Limiting Guard (Sliding Window per IP to protect ML compute)
-REQUEST_LOG = defaultdict(list)
-MAX_REQUESTS_PER_MINUTE = 180
-
-
-@app.middleware("http")
-async def rate_limit_guard(request: Request, call_next):
-    client_ip = request.client.host if request.client else "127.0.0.1"
-    now = time.time()
-    recent = [t for t in REQUEST_LOG[client_ip] if now - t < 60]
-    if len(recent) >= MAX_REQUESTS_PER_MINUTE:
-        return Response(
-            content='{"detail":"Rate limit exceeded. Too many requests. Please throttle."}',
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            media_type="application/json",
-        )
-    recent.append(now)
-    REQUEST_LOG[client_ip] = recent
-    return await call_next(request)
+# Enterprise Tiered Rate Limiter (RFC 6585 Headers + Compute-Aware Sliding Window)
+app.middleware("http")(rate_limit_middleware)
 
 
 # Strict Enterprise Security Headers Middleware
@@ -61,6 +43,7 @@ async def add_security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Content-Security-Policy"] = "default-src 'self'; frame-ancestors 'none'; object-src 'none'; base-uri 'self';"
     return response
 
 
@@ -75,17 +58,26 @@ async def safe_exception_handler(request: Request, exc: Exception):
     )
 
 
-# CORS configuration
+# Secure CORS Configuration (OWASP Standard)
 allowed_origins_env = os.getenv("CORS_ORIGINS", "").strip()
 if allowed_origins_env:
     allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+    allow_credentials = "*" not in allowed_origins
 else:
-    allowed_origins = ["*"]
+    allowed_origins = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+        "https://relvnt.vercel.app",
+        "https://relvnt.onrender.com",
+    ]
+    allow_credentials = True
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if "*" not in allowed_origins else ["*"],
-    allow_credentials=True,
+    allow_origins=allowed_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
@@ -108,7 +100,7 @@ def health():
     return {
         "status": "nominal",
         "system": "Relvnt Algorithmic Intelligence Sentinel",
-        "version": "2.0.0",
+        "version": "2.1.0",
         "data_governance": "Compound AI: Local IsolationForest + Optional Zero-Retention Gemini Reasoning",
         "ai_engine": f"Google Gemini Live AI ({model})" if has_gemini else "Local Deterministic Sentinel (Zero-Data-Leak)",
         "gemini_connected": has_gemini,
@@ -120,7 +112,7 @@ app.include_router(analytics_router, prefix="/api/v1")
 app.include_router(radar_router, prefix="/api/v1")
 app.include_router(agency_router, prefix="/api/v1")
 
-# Mount Root Aliases for Backward Compatibility (frontend & legacy clients)
+# Mount Root Aliases for Backward Compatibility
 app.include_router(analytics_router)
 app.include_router(radar_router)
 app.include_router(agency_router)
