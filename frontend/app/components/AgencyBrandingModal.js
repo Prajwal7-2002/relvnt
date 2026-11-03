@@ -10,9 +10,9 @@ export default function AgencyBrandingModal({
   currentAgencyRole,
   onSave,
 }) {
-  const [agency, setAgency] = useState(currentAgencyName || "K.R Digital Media");
-  const [auditor, setAuditor] = useState(currentAuditorName || "Vashu Singhal");
-  const [role, setRole] = useState(currentAgencyRole || "CEO & Growth Strategist");
+  const [agency, setAgency] = useState(currentAgencyName || "Your Agency");
+  const [auditor, setAuditor] = useState(currentAuditorName || "Lead Strategist");
+  const [role, setRole] = useState(currentAgencyRole || "Growth & Retention Director");
 
   if (!isOpen) return null;
 
@@ -104,3 +104,4 @@ export default function AgencyBrandingModal({
     </div>
   );
 }
+

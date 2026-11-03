@@ -130,3 +130,4 @@ export default function AnomalyTable({ data }) {
     </section>
   );
 }
+
