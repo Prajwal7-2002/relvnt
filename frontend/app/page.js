@@ -501,7 +501,7 @@ export default function Page() {
         justifyContent: "center",
         background: "var(--bg-canvas)",
         color: "var(--text-muted)",
-        fontSize: "13px",
+        fontSize: "var(--font-size-md)",
       }}>
         Initializing Relvnt Intelligence Enclave...
       </div>
@@ -552,19 +552,19 @@ export default function Page() {
             onClick={() => setActiveView("radar")}
             className={`view-mode-btn ${activeView === "radar" ? "view-mode-btn-active" : ""}`}
           >
-            Radar Roster ({portfolioList.length})
+            Clients ({portfolioList.length})
           </button>
           <button
             onClick={() => setActiveView("audit")}
             className={`view-mode-btn ${activeView === "audit" ? "view-mode-btn-active" : ""}`}
           >
-            Diagnostic Audit
+            Audit
           </button>
           <button
             onClick={() => setActiveView("settings")}
             className={`view-mode-btn ${activeView === "settings" ? "view-mode-btn-active" : ""}`}
           >
-            Settings &amp; Integrations
+            Settings
           </button>
         </div>
 
@@ -575,7 +575,7 @@ export default function Page() {
             className="btn-secondary"
             title="Export 1-Click Boardroom PDF Memo"
           >
-            Export Memo (PDF)
+            Export PDF
           </button>
 
           <button
@@ -589,9 +589,19 @@ export default function Page() {
           <button
             onClick={toggleTheme}
             className="theme-toggle-btn"
-            title="Switch theme"
+            title={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
+            aria-label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
           >
-            {theme === "light" ? "🌙" : "☀️"}
+            {theme === "light" ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+              </svg>
+            )}
           </button>
 
           {/* USER & AGENCY DROPDOWN */}
@@ -607,7 +617,7 @@ export default function Page() {
                 borderRadius: "4px",
                 backgroundColor: "var(--btn-primary-bg)",
                 color: "var(--btn-primary-text)",
-                fontSize: "10px",
+                fontSize: "var(--font-size-2xs)",
                 fontWeight: 800,
                 display: "inline-flex",
                 alignItems: "center",
@@ -615,8 +625,8 @@ export default function Page() {
               }}>
                 {monogram}
               </span>
-              <span style={{ fontSize: "12px", fontWeight: 600 }}>{auditorName}</span>
-              <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>{showUserDropdown ? "▴" : "▾"}</span>
+              <span style={{ fontSize: "var(--font-size-sm)", fontWeight: 600 }}>{auditorName}</span>
+              <span style={{ fontSize: "var(--font-size-2xs)", color: "var(--text-muted)" }}>{showUserDropdown ? "▴" : "▾"}</span>
             </button>
 
             {showUserDropdown && (
@@ -635,8 +645,8 @@ export default function Page() {
                   overflow: "hidden",
                 }}>
                   <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-surface-subtle)" }}>
-                    <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-primary)" }}>{agencyName}</div>
-                    <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>{currentUser.email}</div>
+                    <div style={{ fontSize: "var(--font-size-sm)", fontWeight: 700, color: "var(--text-primary)" }}>{agencyName}</div>
+                    <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)", marginTop: "2px" }}>{currentUser.email}</div>
                   </div>
                   <button
                     onClick={() => { setActiveView("settings"); setShowUserDropdown(false); }}
@@ -651,7 +661,7 @@ export default function Page() {
                       setShowUserDropdown(false);
                     }}
                     className="dropdown-item"
-                    style={{ color: "#EF4444" }}
+                    style={{ color: "var(--status-drift)" }}
                   >
                     Sign Out
                   </button>
@@ -742,8 +752,8 @@ export default function Page() {
                     : "Industry Benchmark"}
                 </span>
 
-                <span className="account-period-tag mono-num">
-                  90-Day Rolling Observation Window
+                <span className="account-period-tag">
+                  Last 90 days
                 </span>
 
                 <button
@@ -751,14 +761,15 @@ export default function Page() {
                   style={{
                     background: "transparent",
                     border: "none",
+                    padding: 0,
                     color: "var(--accent-primary)",
-                    fontSize: "12px",
+                    fontSize: "var(--font-size-sm)",
                     fontWeight: 600,
                     cursor: "pointer",
-                    textDecoration: "underline",
+                    whiteSpace: "nowrap",
                   }}
                 >
-                  {showExplainer ? "Hide Explainer" : "ℹ️ Anomaly Methodology"}
+                  {showExplainer ? "Hide methodology" : "How this is calculated"}
                 </button>
               </div>
             </div>
@@ -820,7 +831,7 @@ export default function Page() {
               borderRadius: "10px",
               padding: "18px 22px",
               marginBottom: "20px",
-              fontSize: "12.5px",
+              fontSize: "var(--font-size-sm)",
               color: "var(--text-secondary)",
               lineHeight: 1.55,
             }}>
@@ -832,7 +843,7 @@ export default function Page() {
           )}
 
           {error && (
-            <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", padding: "14px 18px", marginBottom: "20px", color: "#EF4444", fontSize: "13px" }}>
+            <div style={{ background: "var(--status-drift-bg)", border: "1px solid var(--status-drift-border)", borderRadius: "8px", padding: "14px 18px", marginBottom: "20px", color: "var(--status-drift)", fontSize: "var(--font-size-md)" }}>
               {error}
             </div>
           )}
@@ -941,23 +952,23 @@ export default function Page() {
         <div className="quick-modal-overlay" onClick={() => setShowQuickIngest(false)}>
           <div className="quick-modal-box" onClick={(e) => e.stopPropagation()}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-              <h3 style={{ fontSize: "17px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+              <h3 style={{ fontSize: "var(--font-size-lg)", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
                 Quick Ingest Client Data
               </h3>
               <button
                 onClick={() => setShowQuickIngest(false)}
-                style={{ background: "transparent", border: "none", fontSize: "20px", color: "var(--text-muted)", cursor: "pointer" }}
+                style={{ background: "transparent", border: "none", fontSize: "var(--font-size-xl)", color: "var(--text-muted)", cursor: "pointer" }}
               >
                 ×
               </button>
             </div>
 
-            <p style={{ fontSize: "12.5px", color: "var(--text-muted)", margin: "0 0 16px 0", lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)", margin: "0 0 16px 0", lineHeight: 1.5 }}>
               Evaluate custom time-series performance data in real time. Choose CSV upload or live Google Sheet URL.
             </p>
 
             <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "11.5px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px" }}>
+              <label style={{ display: "block", fontSize: "var(--font-size-xs)", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px" }}>
                 Client / Handle Identifier:
               </label>
               <input
@@ -977,16 +988,16 @@ export default function Page() {
                   onChange={handleFileUpload}
                   style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
                 />
-                <div style={{ fontSize: "24px", marginBottom: "4px" }}>📄</div>
-                <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>
+                <div style={{ fontSize: "var(--font-size-2xl)", marginBottom: "4px" }}>📄</div>
+                <div style={{ fontSize: "var(--font-size-md)", fontWeight: 600, color: "var(--text-primary)" }}>
                   Upload CSV File
                 </div>
-                <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>
                   Meta Ads, Instagram, or TikTok exports
                 </div>
               </div>
 
-              <div style={{ textAlign: "center", fontSize: "11.5px", color: "var(--text-dim)", fontWeight: 600 }}>— OR —</div>
+              <div style={{ textAlign: "center", fontSize: "var(--font-size-xs)", color: "var(--text-dim)", fontWeight: 600 }}>— OR —</div>
 
               <form onSubmit={handleGoogleSheetSync}>
                 <input
@@ -1025,7 +1036,7 @@ export default function Page() {
 
             <div className="drawer-body">
               <div className="drawer-suggestions">
-                <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-dim)", textTransform: "uppercase" }}>
+                <span style={{ fontSize: "var(--font-size-xs)", fontWeight: 600, color: "var(--text-dim)", textTransform: "uppercase" }}>
                   Suggested Inquiries:
                 </span>
                 <button
@@ -1049,7 +1060,7 @@ export default function Page() {
               </div>
 
               {copilotMessages.length === 0 && (
-                <div style={{ textAlign: "center", padding: "28px 20px", color: "var(--text-muted)", fontSize: "13px" }}>
+                <div style={{ textAlign: "center", padding: "28px 20px", color: "var(--text-muted)", fontSize: "var(--font-size-md)" }}>
                   Ask any question about @{data?.account_name || "target"}&apos;s reach drift, viewer drop-off, or recovery steps.
                 </div>
               )}
@@ -1060,7 +1071,7 @@ export default function Page() {
                   className={msg.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"}
                 >
                   {msg.role === "ai" && msg.engine && (
-                    <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-muted)", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <div style={{ fontSize: "var(--font-size-xs)", fontWeight: 600, color: "var(--text-muted)", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
                       <span
                         style={{
                           width: "6px",
@@ -1079,7 +1090,7 @@ export default function Page() {
               ))}
 
               {copilotLoading && (
-                <div style={{ textAlign: "center", padding: "14px 0", color: "var(--text-muted)", fontSize: "12px" }}>
+                <div style={{ textAlign: "center", padding: "14px 0", color: "var(--text-muted)", fontSize: "var(--font-size-sm)" }}>
                   Analyzing account data...
                 </div>
               )}

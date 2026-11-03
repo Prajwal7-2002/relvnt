@@ -60,23 +60,23 @@ async def safe_exception_handler(request: Request, exc: Exception):
 
 # Secure CORS Configuration (OWASP Standard)
 allowed_origins_env = os.getenv("CORS_ORIGINS", "").strip()
+allowed_origin_regex = None
 if allowed_origins_env:
     allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
     allow_credentials = "*" not in allowed_origins
 else:
     allowed_origins = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
         "https://relvnt.vercel.app",
         "https://relvnt.onrender.com",
     ]
+    # Local development: allow localhost on any port (Next.js falls back to 3001+ when 3000 is busy)
+    allowed_origin_regex = r"^http://(localhost|127\.0\.0\.1)(:\d+)?$"
     allow_credentials = True
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
+    allow_origin_regex=allowed_origin_regex,
     allow_credentials=allow_credentials,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],

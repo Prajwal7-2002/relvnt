@@ -89,7 +89,7 @@ ${metrics.projected_impact ? `- 7-Day Estimated Impact: ${metrics.projected_impa
           ))
         ) : (
           <div className="plan-step-box" style={{ gridColumn: "span 3" }}>
-            <span className="step-day-badge" style={{ color: "#10B981", background: "rgba(16, 185, 129, 0.1)" }}>
+            <span className="step-day-badge" style={{ color: "var(--status-nominal)", background: "var(--status-nominal-bg)" }}>
               Maintain Status
             </span>
             <h3 className="step-title">Normal Operations</h3>

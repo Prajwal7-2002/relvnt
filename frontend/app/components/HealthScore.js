@@ -127,7 +127,7 @@ export default function HealthScore({ data }) {
           <span className="quick-stat-label">Estimated Impact</span>
           <span
             className="quick-stat-value mono-num"
-            style={{ fontSize: "16px", color: changePct < 0 ? "var(--status-warn)" : "inherit" }}
+            style={{ fontSize: "var(--font-size-lg)", color: changePct < 0 ? "var(--status-warn)" : "inherit" }}
           >
             {metrics.projected_impact || "Nominal run-rate"}
           </span>

@@ -2,6 +2,14 @@
 
 import { useState } from "react";
 
+// "shock" / "pre_shock" / "Creative Fatigue" -> consistent Title Case labels
+function formatStatus(status) {
+  if (!status) return "Analyzing";
+  return status
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export default function ClientPortfolio({
   portfolioList,
   onSelectClient,
@@ -42,7 +50,7 @@ export default function ClientPortfolio({
 
         <div className="portfolio-header-actions" style={{ display: "flex", gap: "10px" }}>
           <button onClick={onOpenAgencyModal} className="btn-secondary" title="Configure agency co-branding">
-            ⚙️ Agency Branding
+            Agency Branding
           </button>
           <button onClick={onOpenConnectModal} className="btn-primary">
             + Quick Ingest Client Data
@@ -92,7 +100,7 @@ export default function ClientPortfolio({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input-text-field"
-              style={{ width: "220px", padding: "6px 10px", fontSize: "12px" }}
+              style={{ width: "220px", padding: "6px 10px", fontSize: "var(--font-size-sm)" }}
             />
           </div>
         </div>
@@ -100,9 +108,8 @@ export default function ClientPortfolio({
         <div className="anomaly-table-wrapper">
           {filteredList.length === 0 ? (
             <div style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-muted)" }}>
-              <div style={{ fontSize: "28px", marginBottom: "8px" }}>🔍</div>
-              <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)" }}>No Client Accounts Found</div>
-              <p style={{ fontSize: "12px", margin: "4px 0 16px 0" }}>
+              <div style={{ fontSize: "var(--font-size-base)", fontWeight: 600, color: "var(--text-primary)" }}>No Client Accounts Found</div>
+              <p style={{ fontSize: "var(--font-size-sm)", margin: "4px 0 16px 0" }}>
                 {searchQuery ? `No accounts matched search term "${searchQuery}".` : "Your portfolio does not have any tracked accounts yet."}
               </p>
               <button onClick={onOpenConnectModal} className="btn-primary" style={{ margin: "0 auto" }}>
@@ -113,11 +120,11 @@ export default function ClientPortfolio({
             <table className="anomaly-data-table">
               <thead>
                 <tr>
-                  <th>Target Client</th>
+                  <th>Client</th>
                   <th>Platform</th>
-                  <th>Health Index</th>
+                  <th>Health</th>
                   <th>Current vs Baseline</th>
-                  <th>Active Algorithmic State</th>
+                  <th>Status</th>
                   <th>Last Audit</th>
                   <th style={{ textAlign: "right" }}>Actions</th>
                 </tr>
@@ -125,8 +132,9 @@ export default function ClientPortfolio({
               <tbody>
                 {filteredList.map((client) => {
                   const score = client.health_score || 50;
-                  const isCrit = score < 50;
-                  const isWarn = score >= 50 && score < 70;
+                  // Same thresholds as the health range bar and radar alerts
+                  const isCrit = score < 40;
+                  const isWarn = score >= 40 && score < 70;
                   const statusColor = isCrit ? "var(--status-drift)" : isWarn ? "var(--status-warning)" : "var(--status-nominal)";
 
                   return (
@@ -137,7 +145,7 @@ export default function ClientPortfolio({
                           {client.tag && (
                             <span style={{
                               marginLeft: "8px",
-                              fontSize: "10.5px",
+                              fontSize: "var(--font-size-2xs)",
                               padding: "1px 6px",
                               borderRadius: "4px",
                               background: "var(--bg-surface-subtle)",
@@ -162,13 +170,13 @@ export default function ClientPortfolio({
                               display: "inline-block",
                             }}
                           />
-                          <span className="mono-num font-semibold" style={{ color: statusColor, fontSize: "12.5px" }}>
+                          <span className="mono-num font-semibold" style={{ color: statusColor, fontSize: "var(--font-size-sm)" }}>
                             {score}/100
                           </span>
                         </div>
                       </td>
                       <td className="mono-num">
-                        <div style={{ fontSize: "12.5px" }}>
+                        <div style={{ fontSize: "var(--font-size-sm)", whiteSpace: "nowrap" }}>
                           <span>{client.current ? Math.round(client.current).toLocaleString() : "N/A"}</span>
                           <span style={{ color: "var(--text-dim)" }}> / {client.baseline ? Math.round(client.baseline).toLocaleString() : "N/A"}</span>
                           {client.change_pct !== undefined && (
@@ -187,19 +195,20 @@ export default function ClientPortfolio({
                       <td>
                         <span
                           style={{
-                            fontSize: "11px",
+                            fontSize: "var(--font-size-xs)",
                             fontWeight: 600,
                             padding: "3px 8px",
                             borderRadius: "4px",
-                            backgroundColor: isCrit ? "rgba(239, 68, 68, 0.1)" : isWarn ? "rgba(245, 158, 11, 0.1)" : "rgba(16, 185, 129, 0.1)",
+                            backgroundColor: isCrit ? "var(--status-drift-bg)" : isWarn ? "var(--status-warning-bg)" : "var(--status-nominal-bg)",
                             color: statusColor,
-                            border: `1px solid ${isCrit ? "rgba(239, 68, 68, 0.25)" : isWarn ? "rgba(245, 158, 11, 0.25)" : "rgba(16, 185, 129, 0.25)"}`,
+                            border: `1px solid ${isCrit ? "var(--status-drift-border)" : isWarn ? "var(--status-warning-border)" : "var(--status-nominal-border)"}`,
+                            whiteSpace: "nowrap",
                           }}
                         >
-                          {client.status || "Analyzing"}
+                          {formatStatus(client.status)}
                         </span>
                       </td>
-                      <td style={{ color: "var(--text-dim)", fontSize: "12px" }}>
+                      <td style={{ color: "var(--text-dim)", fontSize: "var(--font-size-sm)" }}>
                         {client.last_audited || "Just now"}
                       </td>
                       <td style={{ textAlign: "right" }}>
