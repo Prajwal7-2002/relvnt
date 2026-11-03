@@ -372,17 +372,20 @@ export default function Page() {
           ))}
           {activePreset === "custom_upload" && (
             <span className="benchmark-tab benchmark-tab-active">
-              Custom Uploaded CSV
+              <span>{data?.account_name || "Custom Upload"}</span>
+              <span className="benchmark-tab-handle mono-num">(CSV Data)</span>
             </span>
           )}
           {activePreset === "google_sheet" && (
             <span className="benchmark-tab benchmark-tab-active">
-              Google Sheet Live Sync
+              <span>{data?.account_name || "Google Sheet"}</span>
+              <span className="benchmark-tab-handle mono-num">(Live Sync)</span>
             </span>
           )}
           {activePreset === "instagram_live" && (
             <span className="benchmark-tab benchmark-tab-active">
-              Instagram Live API
+              <span>{data?.account_name || "Instagram Live"}</span>
+              <span className="benchmark-tab-handle mono-num">(Meta API)</span>
             </span>
           )}
         </div>
