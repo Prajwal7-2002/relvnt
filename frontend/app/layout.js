@@ -25,7 +25,7 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" className={`${displayFont.variable} ${monoFont.variable}`}>
-      <body className="antialiased">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
