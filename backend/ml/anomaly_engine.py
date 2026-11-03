@@ -274,6 +274,8 @@ class AnomalyEngine:
         metrics: Dict,
         anomalies: List[Dict],
         diagnosis: str,
+        agency_name: str = "Growth Agency Partner",
+        auditor_name: str = "Lead Growth Strategist",
     ) -> Dict:
         return self.ai_agent.query_copilot(
             question=question,
@@ -284,4 +286,6 @@ class AnomalyEngine:
             metrics=metrics,
             anomalies=anomalies,
             diagnosis=diagnosis,
+            agency_name=agency_name,
+            auditor_name=auditor_name,
         )

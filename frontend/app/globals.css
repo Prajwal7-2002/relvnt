@@ -1088,6 +1088,399 @@ html, body {
 }
 
 /* ==========================================================================
+   VIEW MODE TABS & AGENCY BRANDING
+   ========================================================================== */
+
+.view-mode-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--bg-card);
+  padding: 3px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-light);
+}
+
+.view-mode-btn {
+  padding: 6px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.view-mode-btn:hover {
+  color: var(--text-title);
+}
+
+.view-mode-btn-active {
+  background: var(--bg-card-subtle);
+  color: var(--text-title);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-agency-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-title);
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-agency-brand:hover {
+  border-color: var(--text-dim);
+}
+
+.agency-brand-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--accent-coral);
+}
+
+/* ==========================================================================
+   FORENSIC ANOMALY INCIDENT TABLE
+   ========================================================================== */
+
+.anomaly-table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.anomaly-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 16px;
+}
+
+.anomaly-table-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-title);
+  letter-spacing: -0.01em;
+}
+
+.anomaly-table-subtitle {
+  font-size: 12.5px;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.anomaly-count-pill {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-light);
+  color: var(--text-body);
+  white-space: nowrap;
+}
+
+.anomaly-table-empty {
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--status-good);
+  background: rgba(21, 128, 61, 0.06);
+  border-radius: var(--radius-sm);
+  border: 1px dashed rgba(21, 128, 61, 0.25);
+}
+
+.anomaly-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+}
+
+.anomaly-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.anomaly-data-table th {
+  background: var(--bg-card-subtle);
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.anomaly-data-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-light);
+  color: var(--text-body);
+}
+
+.anomaly-data-table tr:last-child td {
+  border-bottom: none;
+}
+
+.anomaly-data-table tr:hover td {
+  background: var(--bg-card-subtle);
+}
+
+.classification-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.anomaly-table-footer {
+  margin-top: 14px;
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex;
+  justify-content: space-between;
+}
+
+/* ==========================================================================
+   CLIENT PORTFOLIO LEDGER VIEW
+   ========================================================================== */
+
+.portfolio-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.portfolio-header-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.portfolio-agency-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.portfolio-agency-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--accent-coral);
+}
+
+.portfolio-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text-title);
+}
+
+.portfolio-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.portfolio-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.portfolio-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+@media (max-width: 900px) {
+  .portfolio-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.portfolio-metric-box {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+.portfolio-metric-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  margin-bottom: 6px;
+}
+
+.portfolio-metric-value {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text-title);
+}
+
+.portfolio-metric-sub {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+.portfolio-table-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.portfolio-table-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.portfolio-table-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-title);
+}
+
+.portfolio-table-count {
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.client-cell-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.client-handle {
+  font-size: 13.5px;
+  color: var(--text-title);
+}
+
+.client-subtag {
+  font-size: 10.5px;
+  color: var(--text-dim);
+  background: var(--bg-card-subtle);
+  padding: 1px 6px;
+  border-radius: 3px;
+  border: 1px solid var(--border-light);
+}
+
+.health-score-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.health-score-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.btn-portfolio-inspect {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-title);
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.btn-portfolio-inspect:hover {
+  background: var(--bg-surface);
+  border-color: var(--text-dim);
+}
+
+/* ==========================================================================
+   AGENCY BRANDING MODAL PREVIEW
+   ========================================================================== */
+
+.branding-preview-card {
+  background: var(--bg-card-subtle);
+  border: 1px dashed var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+}
+
+.branding-preview-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+  display: block;
+  margin-bottom: 6px;
+}
+
+.branding-preview-content {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 4px;
+  padding: 10px 14px;
+}
+
+.text-critical {
+  color: var(--status-critical) !important;
+}
+
+.text-good {
+  color: var(--status-good) !important;
+}
+
+/* ==========================================================================
    PRINT STYLESHEET: 1-CLICK BOARDROOM PDF EXPORT
    ========================================================================== */
 
@@ -1106,8 +1499,11 @@ html, body {
   }
 
   .top-nav,
+  .view-mode-tabs,
+  .btn-agency-brand,
   .account-bar-card,
   .benchmark-strip,
+  .portfolio-container,
   .btn-primary,
   .btn-secondary,
   .btn-audit-ingest,
@@ -1128,6 +1524,7 @@ html, body {
 
   .executive-story-card,
   .chart-card,
+  .anomaly-table-card,
   .action-plan-card {
     border: 1px solid #D1D5DB !important;
     box-shadow: none !important;

@@ -167,6 +167,8 @@ class LocalDiagnosticEngine:
         metrics: Dict,
         anomalies: List[Dict],
         diagnosis: str,
+        agency_name: str = "Growth Agency Partner",
+        auditor_name: str = "Lead Growth Strategist",
     ) -> Dict:
         """
         Local deterministic Copilot reasoning fallback.
@@ -190,7 +192,8 @@ class LocalDiagnosticEngine:
                 f"1. Halting lower-performing static assets for 48 hours to preserve algorithmic index scores.\n"
                 f"2. Preparing 2 high-retention hook variants to reclaim explore distribution.\n"
                 f"3. Monitoring daily velocity recovery against our rolling median baseline.\n\n"
-                f"We will share our next benchmark update in 48 hours.\n\nBest regards,\nGrowth Team"
+                f"We will share our next benchmark update in 48 hours.\n\n"
+                f"Best regards,\n{auditor_name}\n{agency_name}"
             )
         elif any(w in q for w in ["why", "drop", "reason", "cause"]):
             answer = (
@@ -319,25 +322,29 @@ class HybridAIAgent:
         metrics: Dict,
         anomalies: List[Dict],
         diagnosis: str,
+        agency_name: str = "Growth Agency Partner",
+        auditor_name: str = "Lead Growth Strategist",
     ) -> Dict:
         if self.api_key:
             prompt = (
-                f"You are the Relvnt AI Growth & Incident Copilot. "
-                f"The user is asking a question about their account performance.\n\n"
-                f"ACCOUNT CONTEXT:\n"
-                f"- Account: {account_name}\n"
-                f"- Platform: {platform}\n"
-                f"- Metric: {metric_type}\n"
-                f"- Health Score: {health_score}/100\n"
-                f"- Current Run-Rate: {metrics.get('current_value')}\n"
-                f"- Baseline: {metrics.get('baseline_avg')}\n"
-                f"- Net Drift: {metrics.get('change_pct')}%\n"
-                f"- Active Diagnosis: {diagnosis}\n\n"
+                f"You are the Relvnt AI Growth & Incident Copilot acting on behalf of agency '{agency_name}'.\n"
+                f"Lead Strategist/Auditor: {auditor_name}\n"
+                f"Client Account: {account_name}\n"
+                f"Platform: {platform} | Metric: {metric_type}\n"
+                f"Health Score: {health_score}/100\n"
+                f"Current Run-Rate: {metrics.get('current_value')}\n"
+                f"Baseline: {metrics.get('baseline_avg')}\n"
+                f"Net Drift: {metrics.get('change_pct')}%\n"
+                f"Active Diagnosis: {diagnosis}\n\n"
                 f"USER QUESTION: {question}\n\n"
                 f"INSTRUCTIONS:\n"
-                f"Provide an authoritative, direct, and actionable answer citing their specific data. "
-                f"If they ask for an email, write a polished ready-to-send draft. "
-                f"Do not use generic buzzwords or emojis. Keep it professional and clear."
+                f"Provide an authoritative, direct, and actionable answer citing their specific data.\n"
+                f"If the user asks to draft an email, memo, or update to the client/sponsor:\n"
+                f"- Write a polished, complete, ready-to-send draft addressing the client.\n"
+                f"- Clearly explain the algorithmic shift without defensiveness, outline the 72-hour turnaround protocol, and sign off as:\n"
+                f"  {auditor_name}\n"
+                f"  {agency_name}\n"
+                f"Do not use generic buzzwords or emojis. Keep it professional, high-trust, and clear."
             )
             payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
@@ -359,5 +366,5 @@ class HybridAIAgent:
                     continue
 
         return LocalDiagnosticEngine.answer_copilot(
-            question, account_name, platform, metric_type, health_score, metrics, anomalies, diagnosis
+            question, account_name, platform, metric_type, health_score, metrics, anomalies, diagnosis, agency_name, auditor_name
         )
