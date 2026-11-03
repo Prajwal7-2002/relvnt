@@ -7,9 +7,9 @@ import pandas as pd
 class DefensiveCSVParser:
     """
     Robust, production-grade CSV parser for Meta Ads Manager, Instagram Insights,
-    and YouTube Studio exports. Resilient against BOM headers, footer summaries,
-    dirty currencies ($1,234.50, 1.4x), and unconventional date formats.
-    Zero-Data-Leak: All operations executed in-memory.
+    Google Sheets exports, and YouTube Studio exports. Resilient against BOM headers,
+    preamble metadata rows (0-5 skipped), footer summaries, dirty currencies ($1,234.50, 1.4x),
+    and unconventional date formats. Zero-Data-Leak: All operations executed in-memory.
     """
 
     DATE_ALIASES = [
@@ -60,17 +60,25 @@ class DefensiveCSVParser:
         Parses raw bytes and returns (clean_dataframe, detected_date_col, detected_val_col).
         clean_dataframe columns: ['date', 'value']
         """
-        # Try reading with common encodings and separators
+        # Try reading with common encodings, separators, and preamble skipping (0-5 rows)
         df = None
         for encoding in ["utf-8-sig", "utf-8", "latin1", "cp1252"]:
             for sep in [",", ";", "\t"]:
-                try:
-                    df = pd.read_csv(io.BytesIO(file_bytes), encoding=encoding, sep=sep)
-                    if len(df.columns) > 1 and len(df) > 0:
-                        break
-                except Exception:
-                    continue
-            if df is not None and len(df.columns) > 1:
+                for skip in [0, 1, 2, 3, 4, 5]:
+                    try:
+                        temp_df = pd.read_csv(io.BytesIO(file_bytes), encoding=encoding, sep=sep, skiprows=skip)
+                        cols_lower = [str(c).lower().strip() for c in temp_df.columns]
+                        has_date = any(any(d in c for d in cls.DATE_ALIASES) for c in cols_lower)
+                        if len(temp_df.columns) > 1 and len(temp_df) >= 7 and has_date:
+                            df = temp_df
+                            break
+                        if df is None and len(temp_df.columns) > 1 and len(temp_df) > 0:
+                            df = temp_df
+                    except Exception:
+                        continue
+                if df is not None and len(df.columns) > 1 and len(df) >= 7:
+                    break
+            if df is not None and len(df.columns) > 1 and len(df) >= 7:
                 break
 
         if df is None or df.empty:

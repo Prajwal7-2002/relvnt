@@ -19,8 +19,10 @@ load_dotenv(BASE_DIR.parent / ".env")
 
 from ml.anomaly_engine import AnomalyEngine
 from ml.presets import get_preset_datasets
+from services.alert_dispatcher import AlertDispatcher
 from services.csv_parser import DefensiveCSVParser
 from services.instagram_api import get_90_days_reach
+from services.supabase_service import supabase_service
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
 logger = logging.getLogger("relvnt.api")
@@ -79,9 +81,15 @@ async def safe_exception_handler(request: Request, exc: Exception):
     )
 
 # CORS configuration
+allowed_origins_env = os.getenv("CORS_ORIGINS", "").strip()
+if allowed_origins_env:
+    allowed_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
+else:
+    allowed_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins if "*" not in allowed_origins else ["*"],
     allow_credentials=True,
     allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
@@ -192,7 +200,71 @@ class SlackAlertPayload(BaseModel):
     action_plan: str = "Review recent asset delivery."
 
 
+class AgencyProfilePayload(BaseModel):
+    name: str = Field(default="Your Agency")
+    slug: Optional[str] = None
+    tagline: Optional[str] = "Social Media & Distribution Advisory"
+    auditor_name: str = Field(default="Lead Strategist")
+    auditor_role: str = Field(default="Growth & Retention Director")
+    contact_email: str = Field(default="audit@youragency.com")
+    confidentiality: str = Field(default="CONFIDENTIAL & PROPRIETARY // CLIENT EYES ONLY")
+    monogram: Optional[str] = "YA"
+
+
+class RadarAccountItem(BaseModel):
+    account_name: str
+    platform: Optional[str] = "instagram"
+    metric_type: Optional[str] = "reach"
+    health_score: int = 50
+    diagnosis: Optional[str] = ""
+    action_plan: Optional[str] = ""
+
+
+class RadarScanPayload(BaseModel):
+    agency_name: Optional[str] = "Your Agency"
+    webhook_url: Optional[str] = None
+    threshold: Optional[str] = "critical"  # "critical" (< 40) or "warning" (< 70)
+    accounts: Optional[List[RadarAccountItem]] = None
+
+
+class TestAlertPayload(BaseModel):
+    webhook_url: str = Field(..., description="Destination webhook URL (Slack, Discord, or generic)")
+    agency_name: Optional[str] = "Your Agency"
+
+
 # --- API Routes ---
+
+
+
+def record_analysis_telemetry(res: Dict[str, Any], agency_id: str = "default-agency"):
+    """Zero-crash telemetry logging into Supabase / local DAO."""
+    try:
+        supabase_service.save_client(
+            agency_id=agency_id,
+            client_data={
+                "account_handle": res.get("account_name", "Target Account"),
+                "platform": res.get("platform", "instagram"),
+                "metric_type": res.get("metric_type", "reach"),
+                "health_score": res.get("health_score", 50),
+                "status": res.get("severity", "nominal"),
+            },
+        )
+        if res.get("health_score", 100) < 50 or res.get("severity") in ["CRITICAL_DRIFT", "ELEVATED_RISK"]:
+            reach_data = res.get("reach_data") or []
+            last_date = reach_data[-1].get("date") if reach_data else "today"
+            supabase_service.log_incident(
+                {
+                    "client_id": agency_id,
+                    "incident_date": last_date,
+                    "severity": res.get("severity", "critical"),
+                    "classification": res.get("prediction", "Algorithmic Decoupling"),
+                    "variance_percentage": res.get("metrics_summary", {}).get("change_pct", -50.0),
+                    "root_cause_diagnosis": res.get("diagnosis", ""),
+                }
+            )
+    except Exception as exc:
+        logger.warning("Telemetry auto-record error (non-fatal): %s", exc)
+
 
 @app.get("/health", response_model=HealthResponse, tags=["System Health"], status_code=status.HTTP_200_OK)
 def health():
@@ -264,6 +336,7 @@ def analyze(preset: Optional[str] = Query(default=None), source: Optional[str] =
     res["username"] = selected["account_name"]
     res["data_source"] = "demo" if selected_key == "instagram_drop" else f"preset_{selected_key}"
     PRESET_CACHE[selected_key] = res
+    record_analysis_telemetry(res)
     return res
 
 
@@ -288,6 +361,7 @@ def analyze_custom(payload: AnalyzePayload):
     )
     res["username"] = clean_account
     res["data_source"] = "user_input"
+    record_analysis_telemetry(res)
     return res
 
 
@@ -327,6 +401,7 @@ async def analyze_csv(
         res["username"] = acc
         res["data_source"] = "csv_upload"
         res["detected_columns"] = {"date": date_col, "metric": val_col}
+        record_analysis_telemetry(res)
         return res
     except ValueError as val_err:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(val_err))
@@ -405,6 +480,7 @@ def analyze_google_sheet(payload: GoogleSheetPayload):
         analysis["username"] = acc
         analysis["data_source"] = "google_sheets_live"
         analysis["detected_columns"] = {"date": date_col, "metric": val_col}
+        record_analysis_telemetry(analysis)
         return analysis
     except ValueError as val_err:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(val_err))
@@ -515,4 +591,130 @@ def send_slack_alert(payload: SlackAlertPayload):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to communicate with Slack webhook: {str(exc)}",
+        )
+
+
+
+# --- Agency Multi-Tenancy & Radar Endpoints (Phase 2 & Phase 4) ---
+
+@app.post("/agency/profile", tags=["Agency Tenancy"], status_code=status.HTTP_200_OK)
+def save_agency_profile(payload: AgencyProfilePayload):
+    """Saves or updates white-label agency branding and auditor details."""
+    data = payload.model_dump() if hasattr(payload, "model_dump") else payload.dict()
+    saved = supabase_service.save_agency(data)
+    return {"status": "success", "agency": saved}
+
+
+@app.get("/agency/profile/{slug_or_id}", tags=["Agency Tenancy"], status_code=status.HTTP_200_OK)
+def get_agency_profile(slug_or_id: str):
+    """Retrieves agency profile by slug or identifier."""
+    agency = supabase_service.get_agency(slug_or_id)
+    if not agency:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Agency profile not found.")
+    return agency
+
+
+@app.get("/agency/{agency_id}/portfolio", tags=["Agency Tenancy"], status_code=status.HTTP_200_OK)
+def get_agency_portfolio(agency_id: str):
+    """Retrieves all tracked client accounts under the agency tenant."""
+    return {"portfolio": supabase_service.get_portfolio(agency_id)}
+
+
+@app.post("/radar/scan", tags=["Early-Warning Radar"], status_code=status.HTTP_200_OK)
+def run_radar_scan(payload: RadarScanPayload):
+    """
+    Proactive Algorithmic Decoupling Radar:
+    Evaluates client accounts against rolling 7-day baselines.
+    Dispatches instant alerts to Slack, Discord, or Webhooks when decoupling is detected.
+    """
+    scanned_accounts = []
+    flagged_incidents = []
+    dispatched_alerts = []
+
+    accounts_to_scan = payload.accounts or []
+    if not accounts_to_scan:
+        portfolio = supabase_service.get_portfolio("default-agency")
+        for p in portfolio:
+            accounts_to_scan.append(
+                RadarAccountItem(
+                    account_name=p.get("account_handle", "Client"),
+                    platform=p.get("platform", "instagram"),
+                    metric_type=p.get("metric_type", "reach"),
+                    health_score=p.get("current_health_score", 50),
+                    diagnosis="Active monitoring record in portfolio.",
+                    action_plan="Verify reach continuity.",
+                )
+            )
+
+    cutoff_score = 40 if payload.threshold == "critical" else 70
+
+    for acc in accounts_to_scan:
+        scanned_accounts.append(acc.account_name)
+        if acc.health_score <= cutoff_score:
+            flagged = {
+                "account_name": acc.account_name,
+                "health_score": acc.health_score,
+                "alert_level": "critical" if acc.health_score <= 40 else "warning",
+                "diagnosis": acc.diagnosis or "Algorithmic distribution decoupling detected below baseline.",
+            }
+            flagged_incidents.append(flagged)
+
+            if payload.webhook_url:
+                try:
+                    dispatch_res = AlertDispatcher.dispatch_auto(
+                        webhook_url=payload.webhook_url,
+                        account_name=acc.account_name,
+                        health_score=acc.health_score,
+                        alert_level="critical" if acc.health_score <= 40 else "warning",
+                        diagnosis=acc.diagnosis or "Distribution decoupling detected.",
+                        action_plan=acc.action_plan or "Execute 72-Hour Turnaround Protocol.",
+                        agency_name=payload.agency_name or "Your Agency",
+                    )
+                    dispatched_alerts.append({
+                        "account": acc.account_name,
+                        "channel": dispatch_res.get("channel"),
+                        "status": "delivered",
+                    })
+                except Exception as exc:
+                    logger.error("Failed to dispatch alert for %s: %s", acc.account_name, exc)
+                    dispatched_alerts.append({
+                        "account": acc.account_name,
+                        "status": "failed",
+                        "error": str(exc),
+                    })
+
+    return {
+        "status": "completed",
+        "total_scanned": len(scanned_accounts),
+        "total_flagged": len(flagged_incidents),
+        "flagged_accounts": flagged_incidents,
+        "dispatched_count": len(dispatched_alerts),
+        "dispatches": dispatched_alerts,
+    }
+
+
+@app.post("/alerts/test", tags=["Plug-and-Play Integrations"], status_code=status.HTTP_200_OK)
+def test_alert_webhook(payload: TestAlertPayload):
+    """
+    Sends an immediate test verification ping to the specified Slack, Discord, or generic webhook.
+    """
+    try:
+        res = AlertDispatcher.dispatch_auto(
+            webhook_url=payload.webhook_url,
+            account_name="Verification Account (@relvnt_test)",
+            health_score=35,
+            alert_level="critical",
+            diagnosis="Live Sentinel connection check. Algorithmic early-warning pipeline is operational.",
+            action_plan="Channel link confirmed. Ready for 24/7 automated decoupling surveillance.",
+            agency_name=payload.agency_name or "Your Agency",
+        )
+        return {
+            "status": "success",
+            "channel": res.get("channel", "webhook"),
+            "message": "Verification test alert dispatched successfully.",
+        }
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Webhook delivery test failed: {str(exc)}",
         )

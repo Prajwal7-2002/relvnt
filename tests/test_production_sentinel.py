@@ -174,3 +174,102 @@ def test_slack_alert_validation():
     )
     assert res.status_code == 200
     assert res.json()["status"] == "dispatched"
+
+
+
+def test_csv_parser_with_preamble_metadata_rows():
+    """Phase 1: Verify defensive parser skips 0-5 preamble rows from Meta Ads Manager exports."""
+    preamble_csv = """# Meta Ads Manager Export - Account: 104928192
+# Date Range: 2026-08-01 to 2026-08-10
+Reporting Starts,Website Purchase ROAS,Amount Spent
+2026-08-01,3.4x,"$1,200.00"
+2026-08-02,3.2x,"$1,250.00"
+2026-08-03,3.5x,"$1,180.00"
+2026-08-04,3.3x,"$1,220.00"
+2026-08-05,3.1x,"$1,300.00"
+2026-08-06,2.9x,"$1,400.00"
+2026-08-07,2.8x,"$1,350.00"
+2026-08-08,1.4x,"$1,500.00"
+2026-08-09,1.2x,"$1,450.00"
+2026-08-10,1.1x,"$1,600.00"
+Total,2.59x,"$13,450.00"
+"""
+    clean_df, date_col, val_col = DefensiveCSVParser.parse(
+        file_bytes=preamble_csv.encode("utf-8"),
+        filename="meta_export.csv",
+        preferred_metric="roas",
+    )
+    assert len(clean_df) == 10
+    assert "date" in clean_df.columns
+    assert "value" in clean_df.columns
+    assert clean_df.iloc[0]["value"] == 3.4
+    assert clean_df.iloc[-1]["value"] == 1.1
+
+
+def test_agency_profile_and_portfolio_endpoints():
+    """Phase 2: Verify Supabase multi-tenant agency profile and portfolio management."""
+    agency_payload = {
+        "name": "BrandVitamin Advisory",
+        "slug": "brandvitamin-advisory",
+        "tagline": "DTC Retention & Algorithmic Defense",
+        "auditor_name": "Bhagwan Das",
+        "auditor_role": "Managing Partner & Distribution Architect",
+        "contact_email": "audit@brandvitamin.com",
+        "confidentiality": "STRICTLY PRIVATE // DTC AUDIT",
+        "monogram": "BV",
+    }
+    save_res = client.post("/agency/profile", json=agency_payload)
+    assert save_res.status_code == 200
+    assert save_res.json()["status"] == "success"
+    assert save_res.json()["agency"]["name"] == "BrandVitamin Advisory"
+
+    get_res = client.get("/agency/profile/brandvitamin-advisory")
+    assert get_res.status_code == 200
+    agency_data = get_res.json()
+    assert agency_data["auditor_name"] == "Bhagwan Das"
+    assert agency_data["monogram"] == "BV"
+
+    port_res = client.get("/agency/brandvitamin-advisory/portfolio")
+    assert port_res.status_code == 200
+    assert "portfolio" in port_res.json()
+
+
+def test_radar_scan_endpoint():
+    """Phase 4: Verify proactive decoupling radar scanning across client accounts."""
+    radar_payload = {
+        "agency_name": "K.R Digital Media",
+        "threshold": "critical",
+        "accounts": [
+            {
+                "account_name": "@high_growth_brand",
+                "health_score": 88,
+                "diagnosis": "Nominal performance",
+            },
+            {
+                "account_name": "@stagnant_account",
+                "health_score": 34,
+                "diagnosis": "Explore feed decoupling confirmed",
+            },
+        ],
+    }
+    scan_res = client.post("/radar/scan", json=radar_payload)
+    assert scan_res.status_code == 200
+    res = scan_res.json()
+    assert res["status"] == "completed"
+    assert res["total_scanned"] == 2
+    assert res["total_flagged"] == 1
+    assert res["flagged_accounts"][0]["account_name"] == "@stagnant_account"
+    assert res["flagged_accounts"][0]["alert_level"] == "critical"
+
+
+def test_alerts_test_endpoint():
+    """Phase 4: Verify webhook connectivity test endpoint."""
+    res = client.post(
+        "/alerts/test",
+        json={
+            "webhook_url": "https://httpbin.org/status/200",
+            "agency_name": "Adsfellow Media",
+        },
+    )
+    assert res.status_code == 200
+    assert res.json()["status"] == "success"

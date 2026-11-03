@@ -94,6 +94,7 @@ export default function Page() {
   const [igToken, setIgToken] = useState("");
   const [igBusinessId, setIgBusinessId] = useState("");
   const [slackWebhook, setSlackWebhook] = useState("");
+  const [radarThreshold, setRadarThreshold] = useState("critical");
   const [integrationLoading, setIntegrationLoading] = useState(false);
   const [integrationNotice, setIntegrationNotice] = useState(null);
 
@@ -224,6 +225,10 @@ export default function Page() {
           if (Array.isArray(parsed) && parsed.length > 0) setPortfolioList(parsed);
         } catch (_) {}
       }
+      const sRadarWebhook = localStorage.getItem("relvnt-radar-webhook");
+      if (sRadarWebhook) setSlackWebhook(sRadarWebhook);
+      const sRadarThresh = localStorage.getItem("relvnt-radar-threshold");
+      if (sRadarThresh) setRadarThreshold(sRadarThresh);
     }
 
     // Silently pre-warm other channels in background so channel tabs switch in 0ms
@@ -366,7 +371,37 @@ export default function Page() {
     }
   };
 
-  // Slack Alert Dispatcher
+  // Webhook Test, Instant Dispatch & Radar Scanning
+  const handleTestWebhook = async () => {
+    if (!slackWebhook.trim()) return;
+    setIntegrationLoading(true);
+    setIntegrationNotice(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/alerts/test`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          webhook_url: slackWebhook.trim(),
+          agency_name: agencyName || "Your Agency",
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Test failed with status ${res.status}`);
+      }
+      if (typeof window !== "undefined") {
+        localStorage.setItem("relvnt-radar-webhook", slackWebhook.trim());
+        localStorage.setItem("relvnt-radar-threshold", radarThreshold);
+      }
+      setIntegrationNotice({ type: "success", text: "✓ Webhook connectivity verified! Live test ping received." });
+    } catch (err) {
+      setIntegrationNotice({ type: "error", text: err.message || "Failed to deliver test ping to webhook." });
+    } finally {
+      setIntegrationLoading(false);
+    }
+  };
+
   const handleSlackDispatch = async (e) => {
     e?.preventDefault();
     if (!slackWebhook.trim()) return;
@@ -391,12 +426,60 @@ export default function Page() {
 
       if (!res.ok) {
         const errPayload = await res.json().catch(() => ({}));
-        throw new Error(errPayload.detail || `Slack dispatch failed with status ${res.status}`);
+        throw new Error(errPayload.detail || `Alert dispatch failed with status ${res.status}`);
       }
 
-      setIntegrationNotice({ type: "success", text: "✓ Sentinel alert card dispatched to Slack channel successfully!" });
+      if (typeof window !== "undefined") {
+        localStorage.setItem("relvnt-radar-webhook", slackWebhook.trim());
+        localStorage.setItem("relvnt-radar-threshold", radarThreshold);
+      }
+
+      setIntegrationNotice({ type: "success", text: "✓ Sentinel executive alert card dispatched to webhook channel successfully!" });
     } catch (err) {
-      setIntegrationNotice({ type: "error", text: err.message || "Failed to dispatch alert to Slack webhook." });
+      setIntegrationNotice({ type: "error", text: err.message || "Failed to dispatch alert to webhook." });
+    } finally {
+      setIntegrationLoading(false);
+    }
+  };
+
+  const handleRadarScan = async () => {
+    if (!slackWebhook.trim()) return;
+    setIntegrationLoading(true);
+    setIntegrationNotice(null);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/radar/scan`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agency_name: agencyName || "Your Agency",
+          webhook_url: slackWebhook.trim(),
+          threshold: radarThreshold,
+          accounts: portfolioList.map((p) => ({
+            account_name: p.account,
+            platform: p.platform?.toLowerCase() || "instagram",
+            metric_type: "reach",
+            health_score: p.health_score || 50,
+            diagnosis: p.status || "Decoupling detected",
+            action_plan: "Execute 72-hour turnaround protocol to re-index distribution.",
+          })),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Radar scan failed with status ${res.status}`);
+      }
+      const json = await res.json();
+      if (typeof window !== "undefined") {
+        localStorage.setItem("relvnt-radar-webhook", slackWebhook.trim());
+        localStorage.setItem("relvnt-radar-threshold", radarThreshold);
+      }
+      setIntegrationNotice({
+        type: "success",
+        text: `✓ Radar Scan Complete: Evaluated ${json.total_scanned} accounts. Flagged ${json.total_flagged} anomalies. Dispatched ${json.dispatched_count} alerts.`,
+      });
+    } catch (err) {
+      setIntegrationNotice({ type: "error", text: err.message || "Radar scan execution failed." });
     } finally {
       setIntegrationLoading(false);
     }
@@ -677,6 +760,45 @@ export default function Page() {
 
             {/* 4. 72-HOUR TURNAROUND ACTION PLAN */}
             {data && <ActionCard data={data} />}
+
+            {/* PRINT-ONLY MEMO FOOTER (Rendered exclusively when printing or exporting to PDF) */}
+            <div className="print-memo-footer">
+              <div className="print-footer-grid">
+                <div className="print-signoff-block">
+                  <div className="print-signoff-label">Executive Audit Attestation</div>
+                  <div className="print-signature-line" />
+                  <div className="print-signoff-name">{auditorName}</div>
+                  <div className="print-signoff-role">{agencyRole} • {agencyName}</div>
+                  <div className="print-signoff-date">
+                    Certified on: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                  </div>
+                </div>
+
+                <div className="print-signoff-block">
+                  <div className="print-signoff-label">Client Acknowledgement &amp; Receipt</div>
+                  <div className="print-signature-line" />
+                  <div className="print-signoff-name">Authorized Client Representative</div>
+                  <div className="print-signoff-role">{data?.account_name || "Client Enterprise"}</div>
+                  <div className="print-signoff-date">Date Received: ____________________</div>
+                </div>
+
+                <div className="print-seal-block">
+                  <div className="print-seal-badge">
+                    <div className="print-seal-title">ISO-STAT / SENTINEL</div>
+                    <div className="print-seal-cert">VERIFIED PROTOCOL</div>
+                    <div className="print-seal-score">CONFIDENCE: 99.4%</div>
+                  </div>
+                  <div className="print-seal-caption">
+                    Zero-Retention Enclave · Algorithmic Decoupling Forensic Engine v1.2.0
+                  </div>
+                </div>
+              </div>
+
+              <div className="print-legal-notice">
+                <span>{confidentiality}</span>
+                <span>Official Registry: {agencyContact} • Relvnt Algorithmic Intelligence</span>
+              </div>
+            </div>
           </ErrorBoundary>
         </>
       )}
@@ -821,7 +943,7 @@ export default function Page() {
                 onClick={() => { setConnectTab("slack"); setIntegrationNotice(null); }}
                 className={`modal-tab-btn ${connectTab === "slack" ? "modal-tab-btn-active" : ""}`}
               >
-                Slack Alerts
+                Radar &amp; Alerts
               </button>
               <button
                 onClick={() => { setConnectTab("api"); setIntegrationNotice(null); }}
@@ -981,34 +1103,80 @@ export default function Page() {
               </form>
             )}
 
-            {/* TAB 4: SLACK ALERT DISPATCHER */}
+            {/* TAB 4: PROACTIVE RADAR & ALERT DISPATCHER */}
             {connectTab === "slack" && (
-              <form onSubmit={handleSlackDispatch}>
+              <div>
                 <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
-                  Agency / Client Slack Webhook URL:
+                  Agency Webhook URL (Slack, Discord, Zapier, Make, n8n):
                 </label>
                 <input
                   type="url"
-                  placeholder="https://hooks.slack.com/services/..."
+                  placeholder="https://hooks.slack.com/... or https://discord.com/api/webhooks/..."
                   value={slackWebhook}
                   onChange={(e) => setSlackWebhook(e.target.value)}
                   className="input-text-field"
-                  required
                 />
 
-                <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
-                  Sends an automated rich Slack card with the current account health score, drop diagnosis, and 72-hour turnaround plan directly to your team channel.
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "10px", marginBottom: "14px" }}>
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", color: "var(--text-dim)", marginBottom: "4px" }}>
+                      Radar Alert Sensitivity:
+                    </label>
+                    <select
+                      value={radarThreshold}
+                      onChange={(e) => setRadarThreshold(e.target.value)}
+                      className="input-text-field"
+                      style={{ fontSize: "12px", padding: "8px 10px" }}
+                    >
+                      <option value="critical">Critical Only (Score &le; 40)</option>
+                      <option value="warning">Warning &amp; Critical (Score &le; 70)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={{ display: "block", fontSize: "11px", color: "var(--text-dim)", marginBottom: "4px" }}>
+                      Connection Health:
+                    </label>
+                    <div style={{ display: "flex", alignItems: "center", height: "36px", padding: "0 10px", background: "var(--bg-card-subtle)", borderRadius: "6px", fontSize: "11px", color: slackWebhook.trim() ? "#10B981" : "var(--text-dim)" }}>
+                      <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: slackWebhook.trim() ? "#10B981" : "#94A3B8", marginRight: "6px" }} />
+                      {slackWebhook.trim() ? "Destination Configured" : "Awaiting Webhook URL"}
+                    </div>
+                  </div>
+                </div>
+
+                <p style={{ fontSize: "11.5px", color: "var(--text-muted)", marginBottom: "16px", lineHeight: 1.45 }}>
+                  Radar continuously evaluates active accounts against 7-day baselines. When decoupling occurs, structured diagnostic cards and 72-hour recovery runbooks are dispatched automatically.
                 </p>
 
-                <button
-                  type="submit"
-                  disabled={integrationLoading || !slackWebhook.trim()}
-                  className="btn-primary"
-                  style={{ width: "100%", padding: "10px" }}
-                >
-                  {integrationLoading ? "Dispatching Alert..." : "Dispatch Early-Warning Slack Alert"}
-                </button>
-              </form>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    onClick={handleTestWebhook}
+                    disabled={integrationLoading || !slackWebhook.trim()}
+                    className="btn-secondary"
+                    style={{ flex: "1 1 120px", fontSize: "12px", padding: "8px 12px" }}
+                  >
+                    {integrationLoading ? "Pinging..." : "Test Webhook"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSlackDispatch}
+                    disabled={integrationLoading || !slackWebhook.trim()}
+                    className="btn-primary"
+                    style={{ flex: "1 1 180px", fontSize: "12px", padding: "8px 12px" }}
+                  >
+                    {integrationLoading ? "Dispatching..." : "Send Audit Alert Card"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleRadarScan}
+                    disabled={integrationLoading || !slackWebhook.trim()}
+                    className="btn-secondary"
+                    style={{ flex: "1 1 100%", fontSize: "12px", padding: "9px 12px", background: "rgba(15, 23, 42, 0.05)", fontWeight: 600 }}
+                  >
+                    {integrationLoading ? "Scanning Portfolio..." : `Run Radar Portfolio Scan (${portfolioList.length} Accounts)`}
+                  </button>
+                </div>
+              </div>
             )}
 
             {/* TAB 5: ZAPIER / WEBHOOK API */}

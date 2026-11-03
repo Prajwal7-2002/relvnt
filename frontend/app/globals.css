@@ -2113,19 +2113,136 @@ body {
    PRINT STYLESHEET: 1-CLICK BOARDROOM PDF EXPORT
    ========================================================================== */
 
-.print-memo-header {
+.print-memo-header,
+.print-memo-footer {
   display: none;
 }
 
+@page {
+  size: A4 portrait;
+  margin: 10mm 12mm;
+}
+
 @media print {
-  .print-memo-header {
-    display: block !important;
-    margin-bottom: 24px !important;
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   body {
     background: #FFFFFF !important;
-    color: #000000 !important;
+    color: #0F172A !important;
+    font-size: 11pt !important;
+  }
+
+  .print-memo-header {
+    display: block !important;
+    margin-bottom: 20px !important;
+  }
+
+  .print-memo-footer {
+    display: block !important;
+    margin-top: 24px !important;
+    padding-top: 16px !important;
+    border-top: 2px solid #0F172A !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  .print-footer-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr 140px !important;
+    gap: 20px !important;
+    margin-bottom: 14px !important;
+  }
+
+  .print-signoff-block {
+    font-size: 10px !important;
+  }
+
+  .print-signoff-label {
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    letter-spacing: 0.08em !important;
+    color: #475569 !important;
+    text-transform: uppercase !important;
+    margin-bottom: 24px !important;
+  }
+
+  .print-signature-line {
+    border-bottom: 1.5px solid #0F172A !important;
+    margin-bottom: 6px !important;
+  }
+
+  .print-signoff-name {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: #0F172A !important;
+  }
+
+  .print-signoff-role {
+    font-size: 9.5px !important;
+    color: #64748B !important;
+  }
+
+  .print-signoff-date {
+    font-size: 9px !important;
+    color: #94A3B8 !important;
+    margin-top: 2px !important;
+  }
+
+  .print-seal-block {
+    text-align: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  .print-seal-badge {
+    border: 2px solid #0F172A !important;
+    border-radius: 6px !important;
+    padding: 6px 8px !important;
+    background: #F8FAFC !important;
+    width: 100% !important;
+  }
+
+  .print-seal-title {
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.1em !important;
+    color: #0F172A !important;
+  }
+
+  .print-seal-cert {
+    font-size: 8px !important;
+    font-weight: 700 !important;
+    color: #0284C7 !important;
+    margin: 2px 0 !important;
+  }
+
+  .print-seal-score {
+    font-size: 8px !important;
+    font-weight: 800 !important;
+    color: #10B981 !important;
+  }
+
+  .print-seal-caption {
+    font-size: 7.5px !important;
+    color: #64748B !important;
+    margin-top: 4px !important;
+    line-height: 1.2 !important;
+  }
+
+  .print-legal-notice {
+    display: flex !important;
+    justify-content: space-between !important;
+    font-size: 8.5px !important;
+    color: #94A3B8 !important;
+    border-top: 1px dashed #CBD5E1 !important;
+    padding-top: 8px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.04em !important;
   }
 
   .top-nav,
@@ -2142,7 +2259,8 @@ body {
   .drawer-backdrop,
   .modal-box,
   .modal-overlay,
-  .range-pills {
+  .range-pills,
+  .status-badge-interactive {
     display: none !important;
   }
 
@@ -2155,29 +2273,32 @@ body {
   .executive-story-card,
   .chart-card,
   .anomaly-table-card,
-  .action-plan-card {
-    border: 1px solid #D1D5DB !important;
+  .action-plan-card,
+  .metric-card,
+  .protocol-card {
+    border: 1px solid #CBD5E1 !important;
     box-shadow: none !important;
     background: #FFFFFF !important;
-    break-inside: avoid;
-    margin-bottom: 16px !important;
-    padding: 20px !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+    margin-bottom: 14px !important;
+    padding: 16px !important;
   }
 
   .story-headline {
-    color: #000000 !important;
-    font-size: 20px !important;
+    color: #0F172A !important;
+    font-size: 18px !important;
   }
 
   .score-number {
-    color: #000000 !important;
+    color: #0F172A !important;
   }
 
   .quick-stat-value {
-    color: #000000 !important;
+    color: #0F172A !important;
   }
 
   .step-title {
-    color: #000000 !important;
+    color: #0F172A !important;
   }
 }
