@@ -8,6 +8,8 @@ import ClientPortfolio from "./components/ClientPortfolio";
 import ErrorBoundary from "./components/ErrorBoundary";
 import HealthScore from "./components/HealthScore";
 import ReachChart from "./components/ReachChart";
+import AuthModal from "./components/AuthModal";
+import { authService, isSupabaseConfigured } from "../lib/supabaseClient";
 
 const PRESETS = [
   { id: "instagram_drop", label: "Instagram Drop", account: "@tech_founder" },
@@ -76,6 +78,9 @@ export default function Page() {
   const [theme, setTheme] = useState("light");
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [connectTab, setConnectTab] = useState("sheet"); // "sheet" | "csv" | "instagram" | "slack" | "api"
+  const [currentUser, setCurrentUser] = useState(null);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   // Agency branding & multi-client state
   const [activeView, setActiveView] = useState("audit"); // "audit" | "portfolio"
@@ -189,6 +194,14 @@ export default function Page() {
 
   useEffect(() => {
     fetchAnalysis("instagram_drop");
+    authService.getSession().then((sessionData) => {
+      if (sessionData?.user) {
+        setCurrentUser(sessionData.user);
+        const meta = sessionData.user.user_metadata || {};
+        if (meta.agency_name) setAgencyName(meta.agency_name);
+        if (meta.auditor_name) setAuditorName(meta.auditor_name);
+      }
+    });
     const saved = typeof window !== "undefined" ? localStorage.getItem("relvnt-theme") || "light" : "light";
     setTheme(saved);
     document.documentElement.setAttribute("data-theme", saved);
@@ -559,6 +572,84 @@ export default function Page() {
         </div>
 
         <div className="nav-actions">
+          {currentUser ? (
+            <div style={{ position: "relative" }}>
+              <button
+                onClick={() => setShowUserDropdown(!showUserDropdown)}
+                className="btn-secondary"
+                style={{ display: "flex", alignItems: "center", gap: "8px", padding: "5px 12px" }}
+                title="User Account & Agency Session"
+              >
+                <span style={{
+                  width: "22px",
+                  height: "22px",
+                  borderRadius: "4px",
+                  backgroundColor: "#0F172A",
+                  color: "#FFFFFF",
+                  fontSize: "10px",
+                  fontWeight: 800,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center"
+                }}>
+                  {(agencyName || "YA").trim().replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "YA"}
+                </span>
+                <span style={{ fontSize: "12px", fontWeight: 600 }}>{auditorName}</span>
+                <span style={{ fontSize: "9px", color: "var(--text-dim)" }}>{showUserDropdown ? "▴" : "▾"}</span>
+              </button>
+
+              {showUserDropdown && (
+                <>
+                  <div className="dropdown-backdrop-transparent" onClick={() => setShowUserDropdown(false)} />
+                  <div style={{
+                    position: "absolute",
+                    top: "calc(100% + 6px)",
+                    right: 0,
+                    background: "var(--bg-card)",
+                    border: "1px solid var(--border-medium)",
+                    borderRadius: "8px",
+                    boxShadow: "0 10px 25px -5px rgba(0,0,0,0.2)",
+                    minWidth: "220px",
+                    zIndex: 90,
+                    overflow: "hidden"
+                  }}>
+                    <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border-light)", background: "var(--bg-card-subtle)" }}>
+                      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-title)" }}>{agencyName}</div>
+                      <div style={{ fontSize: "11px", color: "var(--text-dim)", marginTop: "2px" }}>{currentUser.email}</div>
+                    </div>
+                    <button
+                      onClick={() => { setShowAgencyModal(true); setShowUserDropdown(false); }}
+                      className="dropdown-item"
+                      style={{ width: "100%", textAlign: "left", padding: "9px 14px", fontSize: "12px" }}
+                    >
+                      Agency Customizer
+                    </button>
+                    <button
+                      onClick={async () => {
+                        await authService.signOut();
+                        setCurrentUser(null);
+                        setShowUserDropdown(false);
+                      }}
+                      className="dropdown-item"
+                      style={{ width: "100%", textAlign: "left", padding: "9px 14px", fontSize: "12px", color: "#EF4444" }}
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowAuthModal(true)}
+              className="btn-secondary"
+              style={{ borderColor: "rgba(2, 132, 199, 0.4)", color: "#0284C7", fontWeight: 600 }}
+              title="Sign in with your agency credentials"
+            >
+              Agency Sign In
+            </button>
+          )}
+
           <button
             onClick={() => setShowAgencyModal(true)}
             className="btn-agency-brand"
@@ -1230,6 +1321,18 @@ export default function Page() {
             localStorage.setItem("relvnt-agency-contact", newContact);
             localStorage.setItem("relvnt-confidentiality", newConf);
           }
+        }}
+      />
+
+      {/* SUPABASE AGENCY AUTH MODAL */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        onAuthSuccess={(user) => {
+          setCurrentUser(user);
+          const meta = user?.user_metadata || {};
+          if (meta.agency_name) setAgencyName(meta.agency_name);
+          if (meta.auditor_name) setAuditorName(meta.auditor_name);
         }}
       />
     </main>
