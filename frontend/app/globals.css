@@ -1072,3 +1072,122 @@ body {
     padding: 16px !important;
   }
 }
+
+/* ==========================================================================
+   TOAST NOTIFICATIONS, SKELETONS & QUICK INGEST
+   ========================================================================== */
+
+.toast-container {
+  position: fixed;
+  top: 24px;
+  right: 24px;
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.toast-banner {
+  pointer-events: auto;
+  min-width: 320px;
+  max-width: 460px;
+  padding: 12px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+  animation: toastSlideIn 200ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes toastSlideIn {
+  from {
+    transform: translateY(-12px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.toast-success {
+  background: var(--bg-surface);
+  color: var(--status-nominal);
+  border: 1px solid var(--status-nominal-border);
+}
+
+.toast-error {
+  background: var(--bg-surface);
+  color: var(--status-drift);
+  border: 1px solid var(--status-drift-border);
+}
+
+.toast-warning {
+  background: var(--bg-surface);
+  color: var(--status-warning);
+  border: 1px solid var(--status-warning-border);
+}
+
+.toast-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 16px;
+  cursor: pointer;
+  line-height: 1;
+}
+
+/* Loading Skeletons */
+.skeleton-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.skeleton-bar {
+  background: var(--bg-surface-subtle);
+  border-radius: 6px;
+  animation: pulseSkeleton 1.5s ease-in-out infinite;
+}
+
+@keyframes pulseSkeleton {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+/* Quick Ingest Modal */
+.quick-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  z-index: 150;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.quick-modal-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-medium);
+  border-radius: 12px;
+  width: 520px;
+  max-width: 100%;
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+}

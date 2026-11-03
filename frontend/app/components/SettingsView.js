@@ -109,13 +109,13 @@ export default function SettingsView({
           onClick={() => setActiveTab("connectors")}
           className={`settings-tab-btn ${activeTab === "connectors" ? "settings-tab-btn-active" : ""}`}
         >
-          Data Connectors (Sheets &amp; CSV)
+          Data Connectors (Sheets, CSV &amp; Meta API)
         </button>
         <button
           onClick={() => setActiveTab("security")}
           className={`settings-tab-btn ${activeTab === "security" ? "settings-tab-btn-active" : ""}`}
         >
-          Tenant Security &amp; Enclave
+          Security Hardening &amp; Governance
         </button>
       </div>
 
@@ -277,7 +277,7 @@ export default function SettingsView({
               placeholder="https://hooks.slack.com/services/... or https://discord.com/api/webhooks/..."
             />
             <span style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>
-              Alert cards are formatted automatically for both Slack Block Kit and Discord Embeds.
+              Alert cards are formatted automatically for both Slack Block Kit and Discord Embeds. Guarded by SSRF filter.
             </span>
           </div>
 
@@ -424,40 +424,107 @@ export default function SettingsView({
                   Click or drag CSV file to upload
                 </div>
                 <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "4px" }}>
-                  Supports Meta Ads Manager, Instagram Insights, TikTok, and standard CSV formats
+                  Protected by automated formula injection neutralization and MIME check
                 </div>
               </div>
             </div>
+          </div>
+
+          {/* META GRAPH API LIVE SYNC */}
+          <div className="settings-panel" style={{ gridColumn: "1 / -1" }}>
+            <h3 className="panel-title">Meta Graph API (Direct Instagram Insights)</h3>
+            <p className="panel-subtitle">Pull authentic 90-day reach insights directly from Meta Graph API without file exports.</p>
+
+            <form onSubmit={onInstagramSync} className="settings-form" style={{ marginTop: "16px" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
+                <div className="form-group">
+                  <label className="form-label">Meta User Access Token</label>
+                  <input
+                    type="password"
+                    value={igToken}
+                    onChange={(e) => setIgToken(e.target.value)}
+                    className="input-text-field"
+                    placeholder="EAA..."
+                  />
+                  <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "3px" }}>
+                    Leave blank to use server environment credentials (INSTAGRAM_ACCESS_TOKEN).
+                  </span>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Instagram Business Account ID</label>
+                  <input
+                    type="text"
+                    value={igBusinessId}
+                    onChange={(e) => setIgBusinessId(e.target.value)}
+                    className="input-text-field"
+                    placeholder="1784..."
+                  />
+                  <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "3px" }}>
+                    Leave blank to use server environment credentials (INSTAGRAM_BUSINESS_ID).
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn-primary"
+                style={{ width: "fit-content", marginTop: "6px" }}
+              >
+                {loading ? "Connecting to Meta API..." : "Sync Live Instagram Insights"}
+              </button>
+            </form>
           </div>
         </div>
       )}
 
       {/* TAB 4: TENANT SECURITY & ENCLAVE */}
       {activeTab === "security" && (
-        <div className="settings-panel" style={{ maxWidth: "800px" }}>
-          <h3 className="panel-title">Enterprise Tenant Security &amp; Data Governance</h3>
+        <div className="settings-panel" style={{ maxWidth: "880px" }}>
+          <h3 className="panel-title">Enterprise Security Hardening &amp; Compliance</h3>
           <p className="panel-subtitle">
-            Relvnt operates under a zero-retention algorithmic enclave standard. Your clients&apos; private distribution data is never used for training foundation models.
+            Relvnt is engineered with strict defensive security controls across rate limiting, network SSRF protection, formula injection defense, and cryptographic multi-tenancy.
           </p>
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "20px" }}>
             <div style={{ padding: "16px", borderRadius: "8px", background: "var(--bg-surface-subtle)", border: "1px solid var(--border-subtle)" }}>
-              <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>Database &amp; Tenancy</div>
-              <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
-                PostgreSQL + Row-Level Security
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--status-nominal)", textTransform: "uppercase" }}>● Active Enforcement</div>
+              <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
+                Tiered Rate Limiter (RFC 6585)
               </div>
-              <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "8px 0 0 0" }}>
-                Strict cryptographic agency tenancy ensures client accounts are never accessible across organizations.
+              <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "6px 0 0 0", lineHeight: 1.45 }}>
+                Compute endpoints capped at 45 req/min; metadata endpoints capped at 180 req/min. Emits <code>X-RateLimit-*</code> and <code>Retry-After</code> headers.
               </p>
             </div>
 
             <div style={{ padding: "16px", borderRadius: "8px", background: "var(--bg-surface-subtle)", border: "1px solid var(--border-subtle)" }}>
-              <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase" }}>AI Governance</div>
-              <div style={{ fontSize: "15px", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
-                Zero-Retention Enclave
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--status-nominal)", textTransform: "uppercase" }}>● Active Enforcement</div>
+              <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
+                Network SSRF Protection
               </div>
-              <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "8px 0 0 0" }}>
-                Machine learning calculations (IsolationForest + STL decomposition) execute locally with zero persistent storage.
+              <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "6px 0 0 0", lineHeight: 1.45 }}>
+                Destination URLs resolved through strict DNS validation; private ranges (RFC 1918) and cloud metadata services (169.254.169.254) are rejected.
+              </p>
+            </div>
+
+            <div style={{ padding: "16px", borderRadius: "8px", background: "var(--bg-surface-subtle)", border: "1px solid var(--border-subtle)" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--status-nominal)", textTransform: "uppercase" }}>● Active Enforcement</div>
+              <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
+                CSV Formula Sanitization (CWE-1236)
+              </div>
+              <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "6px 0 0 0", lineHeight: 1.45 }}>
+                Uploaded files are scanned for formula triggers (<code>=</code>, <code>+</code>, <code>-</code>, <code>@</code>) and sanitized before entering computation pipelines.
+              </p>
+            </div>
+
+            <div style={{ padding: "16px", borderRadius: "8px", background: "var(--bg-surface-subtle)", border: "1px solid var(--border-subtle)" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--status-nominal)", textTransform: "uppercase" }}>● Active Enforcement</div>
+              <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
+                Zero-Retention Enclave &amp; CSP
+              </div>
+              <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "6px 0 0 0", lineHeight: 1.45 }}>
+                Strict Content-Security-Policy disallows frame embedding (clickjacking defense). Machine learning executes locally with zero persistent telemetry leakage.
               </p>
             </div>
           </div>

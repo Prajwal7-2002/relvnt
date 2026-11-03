@@ -103,6 +103,22 @@ export default function Page() {
   const [integrationLoading, setIntegrationLoading] = useState(false);
   const [integrationNotice, setIntegrationNotice] = useState(null);
 
+  // Quick Ingest Modal & Explainer state
+  const [showQuickIngest, setShowQuickIngest] = useState(false);
+  const [showExplainer, setShowExplainer] = useState(false);
+
+  // Floating Toast Notification
+  const [toast, setToast] = useState({ show: false, type: "success", message: "" });
+  const toastTimeoutRef = useRef(null);
+
+  const triggerToast = (type, message) => {
+    if (toastTimeoutRef.current) clearTimeout(toastTimeoutRef.current);
+    setToast({ show: true, type, message });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast({ show: false, type: "success", message: "" });
+    }, 4500);
+  };
+
   // Copilot drawer state
   const [showCopilot, setShowCopilot] = useState(false);
   const [copilotInput, setCopilotInput] = useState("");
@@ -128,7 +144,7 @@ export default function Page() {
     initSession();
   }, []);
 
-  // 2. Fetch Target Audit Data
+  // 2. Fetch Target Audit Data with Rate Limit Interception
   const fetchAnalysis = async (presetKey = "instagram_drop") => {
     if (channelCache.current[presetKey]) {
       setData(channelCache.current[presetKey]);
@@ -143,6 +159,11 @@ export default function Page() {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(`${apiUrl}/analyze?preset=${presetKey}`);
       if (!res.ok) {
+        if (res.status === 429) {
+          const retry = res.headers.get("Retry-After") || 30;
+          triggerToast("warning", `Rate limit reached. Please throttle compute calls (${retry}s cooldown).`);
+          throw new Error(`Rate limit exceeded. Retry after ${retry} seconds.`);
+        }
         throw new Error(`API error: ${res.status}`);
       }
       const json = await res.json();
@@ -241,6 +262,10 @@ export default function Page() {
       });
 
       if (!res.ok) {
+        if (res.status === 429) {
+          const retry = res.headers.get("Retry-After") || 30;
+          throw new Error(`Rate limit reached. Please retry in ${retry} seconds.`);
+        }
         const errPayload = await res.json().catch(() => ({}));
         throw new Error(errPayload.detail || `Upload failed with status ${res.status}`);
       }
@@ -250,9 +275,10 @@ export default function Page() {
       setActivePreset("custom_upload");
       recordToPortfolio(json, "custom_upload", "CSV Audit");
       setActiveView("audit");
-      setIntegrationNotice({ type: "success", text: `✓ CSV parsed successfully: ${json.account_name} analyzed.` });
+      setShowQuickIngest(false);
+      triggerToast("success", `✓ CSV parsed successfully: ${json.account_name} analyzed.`);
     } catch (err) {
-      setIntegrationNotice({ type: "error", text: err.message || "Failed to process CSV file." });
+      triggerToast("error", err.message || "Failed to process CSV file.");
     } finally {
       setIntegrationLoading(false);
     }
@@ -279,6 +305,10 @@ export default function Page() {
       });
 
       if (!res.ok) {
+        if (res.status === 429) {
+          const retry = res.headers.get("Retry-After") || 30;
+          throw new Error(`Rate limit reached. Please retry in ${retry} seconds.`);
+        }
         const errPayload = await res.json().catch(() => ({}));
         throw new Error(errPayload.detail || `Sheet sync failed with status ${res.status}`);
       }
@@ -288,9 +318,46 @@ export default function Page() {
       setActivePreset("google_sheet");
       recordToPortfolio(json, "google_sheet", "Google Sheet");
       setActiveView("audit");
-      setIntegrationNotice({ type: "success", text: `✓ Google Sheet synchronized: ${json.account_name} analyzed.` });
+      setShowQuickIngest(false);
+      triggerToast("success", `✓ Google Sheet synchronized: ${json.account_name} analyzed.`);
     } catch (err) {
-      setIntegrationNotice({ type: "error", text: err.message || "Could not sync Google Sheet. Verify sharing permissions." });
+      triggerToast("error", err.message || "Could not sync Google Sheet. Verify sharing permissions.");
+    } finally {
+      setIntegrationLoading(false);
+    }
+  };
+
+  // Meta Graph API Live Sync
+  const handleInstagramSync = async (e) => {
+    e?.preventDefault();
+    setIntegrationLoading(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/analyze/instagram`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          access_token: igToken.trim() || null,
+          business_id: igBusinessId.trim() || null,
+          account_name: clientHandle.trim() || "Connected Instagram Account",
+        }),
+      });
+      if (!res.ok) {
+        if (res.status === 429) {
+          const retry = res.headers.get("Retry-After") || 30;
+          throw new Error(`Rate limit reached. Please retry in ${retry} seconds.`);
+        }
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || `Meta Graph API failed with status ${res.status}`);
+      }
+      const json = await res.json();
+      setData(json);
+      setActivePreset("instagram_live");
+      recordToPortfolio(json, "instagram_live", "Meta API Live");
+      setActiveView("audit");
+      triggerToast("success", `✓ Meta Graph API synchronized: ${json.account_name} analyzed.`);
+    } catch (err) {
+      triggerToast("error", err.message || "Meta API connection failed.");
     } finally {
       setIntegrationLoading(false);
     }
@@ -300,7 +367,6 @@ export default function Page() {
   const handleTestWebhook = async () => {
     if (!slackWebhook.trim()) return;
     setIntegrationLoading(true);
-    setIntegrationNotice(null);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(`${apiUrl}/alerts/test`, {
@@ -312,15 +378,19 @@ export default function Page() {
         }),
       });
       if (!res.ok) {
+        if (res.status === 429) {
+          const retry = res.headers.get("Retry-After") || 30;
+          throw new Error(`Rate limit reached. Retry after ${retry} seconds.`);
+        }
         const err = await res.json().catch(() => ({}));
         throw new Error(err.detail || `Test failed with status ${res.status}`);
       }
       if (typeof window !== "undefined") {
         localStorage.setItem("relvnt-radar-webhook", slackWebhook.trim());
       }
-      setIntegrationNotice({ type: "success", text: "✓ Webhook connectivity confirmed! Verification alert delivered." });
+      triggerToast("success", "✓ Webhook connectivity confirmed! Verification alert delivered.");
     } catch (err) {
-      setIntegrationNotice({ type: "error", text: err.message || "Failed to deliver test ping to webhook." });
+      triggerToast("error", err.message || "Failed to deliver test ping to webhook.");
     } finally {
       setIntegrationLoading(false);
     }
@@ -328,8 +398,6 @@ export default function Page() {
 
   const handleRunRadarScan = async () => {
     setIntegrationLoading(true);
-    setIntegrationNotice(null);
-
     const accountsToScan = portfolioList.map((p) => ({
       account_name: p.account,
       platform: p.platform?.toLowerCase() || "instagram",
@@ -352,16 +420,20 @@ export default function Page() {
       });
 
       if (!res.ok) {
+        if (res.status === 429) {
+          const retry = res.headers.get("Retry-After") || 30;
+          throw new Error(`Rate limit reached. Retry after ${retry} seconds.`);
+        }
         throw new Error(`Radar scan failed with status ${res.status}`);
       }
 
       const json = await res.json();
-      setIntegrationNotice({
-        type: "success",
-        text: `✓ Decoupling Radar completed: ${json.total_scanned} scanned, ${json.total_flagged} at risk, ${json.dispatched_count} alerts dispatched.`,
-      });
+      triggerToast(
+        "success",
+        `✓ Radar scan complete: ${json.total_scanned} audited, ${json.total_flagged} at risk, ${json.dispatched_count} alerts dispatched.`
+      );
     } catch (err) {
-      setIntegrationNotice({ type: "error", text: err.message || "Radar scan execution failed." });
+      triggerToast("error", err.message || "Radar scan execution failed.");
     } finally {
       setIntegrationLoading(false);
     }
@@ -397,6 +469,10 @@ export default function Page() {
       });
 
       if (!res.ok) {
+        if (res.status === 429) {
+          const retry = res.headers.get("Retry-After") || 30;
+          throw new Error(`Rate limit reached on AI engine. Please wait ${retry}s.`);
+        }
         throw new Error(`Copilot response status ${res.status}`);
       }
 
@@ -449,6 +525,18 @@ export default function Page() {
 
   return (
     <main className="app-container">
+      {/* FLOATING TOAST NOTIFICATION */}
+      {toast.show && (
+        <div className="toast-container">
+          <div className={`toast-banner toast-${toast.type}`}>
+            <span>{toast.message}</span>
+            <button onClick={() => setToast({ show: false, type: "success", message: "" })} className="toast-close">
+              ×
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* 1. TOP CORPORATE SAAS NAVIGATION */}
       <header className="top-nav">
         <div className="brand-group">
@@ -610,7 +698,7 @@ export default function Page() {
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9.5px", fontWeight: 700, letterSpacing: "0.05em", color: "#64748B", textTransform: "uppercase", paddingBottom: "12px", borderBottom: "1px dashed #CBD5E1", marginBottom: "16px" }}>
           <span>{confidentiality}</span>
-          <span>Official Inquiries: {agencyContact} · Protocol v2.0.0</span>
+          <span>Official Inquiries: {agencyContact} · Protocol v2.1.0</span>
         </div>
       </div>
 
@@ -622,7 +710,7 @@ export default function Page() {
             fetchAnalysis(presetOrId);
             setActiveView("audit");
           }}
-          onOpenConnectModal={() => setActiveView("settings")}
+          onOpenConnectModal={() => setShowQuickIngest(true)}
           onOpenAgencyModal={() => setActiveView("settings")}
           agencyName={agencyName}
           auditorName={auditorName}
@@ -649,12 +737,29 @@ export default function Page() {
                     ? "CSV Ingestion"
                     : activePreset === "google_sheet"
                     ? "Google Sheet Sync"
+                    : activePreset === "instagram_live"
+                    ? "Meta Graph API"
                     : "Industry Benchmark"}
                 </span>
 
                 <span className="account-period-tag mono-num">
                   90-Day Rolling Observation Window
                 </span>
+
+                <button
+                  onClick={() => setShowExplainer(!showExplainer)}
+                  style={{
+                    background: "transparent",
+                    border: "none",
+                    color: "var(--accent-primary)",
+                    fontSize: "12px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    textDecoration: "underline",
+                  }}
+                >
+                  {showExplainer ? "Hide Explainer" : "ℹ️ Anomaly Methodology"}
+                </button>
               </div>
             </div>
 
@@ -699,13 +804,32 @@ export default function Page() {
               </div>
 
               <button
-                onClick={() => setActiveView("settings")}
+                onClick={() => setShowQuickIngest(true)}
                 className="btn-primary"
               >
-                + Connect New Data
+                + Quick Ingest Data
               </button>
             </div>
           </div>
+
+          {/* METHODOLOGY EXPLAINER BANNER */}
+          {showExplainer && (
+            <div style={{
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-medium)",
+              borderRadius: "10px",
+              padding: "18px 22px",
+              marginBottom: "20px",
+              fontSize: "12.5px",
+              color: "var(--text-secondary)",
+              lineHeight: 1.55,
+            }}>
+              <strong style={{ color: "var(--text-primary)", display: "block", marginBottom: "6px" }}>
+                Scientific Decoupling Methodology:
+              </strong>
+              Relvnt continuously models daily account distribution using an ensemble of STL (Seasonal and Trend decomposition using Loess) and scikit-learn IsolationForest anomaly detection. A score &lt; 40 indicates that content distribution has disconnected from established follower velocity due to feed suppression or acute creative fatigue.
+            </div>
+          )}
 
           {error && (
             <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", padding: "14px 18px", marginBottom: "20px", color: "#EF4444", fontSize: "13px" }}>
@@ -713,51 +837,65 @@ export default function Page() {
             </div>
           )}
 
-          <ErrorBoundary onReset={() => fetchAnalysis(activePreset)}>
-            {/* Story & Resonance Range Bar */}
-            {data && <HealthScore data={data} />}
-
-            {/* Reach vs Baseline Chart */}
-            {data && <ReachChart data={data} />}
-
-            {/* Forensic Incident Log */}
-            {data && <AnomalyTable data={data} />}
-
-            {/* 72-Hour Turnaround Action Plan */}
-            {data && <ActionCard data={data} />}
-
-            {/* PRINT-ONLY BOARDROOM MEMO FOOTER */}
-            <div className="print-memo-footer">
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "16px" }}>
-                <div style={{ fontSize: "11px" }}>
-                  <div style={{ fontWeight: 800, textTransform: "uppercase", color: "#475569", marginBottom: "20px" }}>
-                    Executive Audit Attestation
-                  </div>
-                  <div style={{ borderBottom: "1.5px solid #0F172A", marginBottom: "6px" }} />
-                  <div style={{ fontWeight: 700, color: "#0F172A" }}>{auditorName}</div>
-                  <div style={{ color: "#64748B", fontSize: "10px" }}>{agencyRole} • {agencyName}</div>
-                  <div style={{ color: "#94A3B8", fontSize: "9px", marginTop: "2px" }}>
-                    Certified: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-                  </div>
-                </div>
-
-                <div style={{ fontSize: "11px" }}>
-                  <div style={{ fontWeight: 800, textTransform: "uppercase", color: "#475569", marginBottom: "20px" }}>
-                    Client Acknowledgement &amp; Receipt
-                  </div>
-                  <div style={{ borderBottom: "1.5px solid #0F172A", marginBottom: "6px" }} />
-                  <div style={{ fontWeight: 700, color: "#0F172A" }}>Authorized Client Representative</div>
-                  <div style={{ color: "#64748B", fontSize: "10px" }}>{data?.account_name || "Client Enterprise"}</div>
-                  <div style={{ color: "#94A3B8", fontSize: "9px", marginTop: "2px" }}>Date Received: ____________________</div>
-                </div>
+          {/* LOADING SKELETON SCREEN */}
+          {loading ? (
+            <div>
+              <div className="skeleton-card">
+                <div className="skeleton-bar" style={{ height: "24px", width: "40%" }} />
+                <div className="skeleton-bar" style={{ height: "16px", width: "75%" }} />
+                <div className="skeleton-bar" style={{ height: "12px", width: "95%" }} />
               </div>
-
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#94A3B8", borderTop: "1px dashed #CBD5E1", paddingTop: "8px", textTransform: "uppercase" }}>
-                <span>{confidentiality}</span>
-                <span>Relvnt Algorithmic Intelligence · Zero-Data-Leak Enclave</span>
+              <div className="skeleton-card" style={{ height: "320px" }}>
+                <div className="skeleton-bar" style={{ height: "100%", width: "100%" }} />
               </div>
             </div>
-          </ErrorBoundary>
+          ) : (
+            <ErrorBoundary onReset={() => fetchAnalysis(activePreset)}>
+              {/* Story & Resonance Range Bar */}
+              {data && <HealthScore data={data} />}
+
+              {/* Reach vs Baseline Chart */}
+              {data && <ReachChart data={data} />}
+
+              {/* Forensic Incident Log */}
+              {data && <AnomalyTable data={data} />}
+
+              {/* 72-Hour Turnaround Action Plan */}
+              {data && <ActionCard data={data} />}
+
+              {/* PRINT-ONLY BOARDROOM MEMO FOOTER */}
+              <div className="print-memo-footer">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "16px" }}>
+                  <div style={{ fontSize: "11px" }}>
+                    <div style={{ fontWeight: 800, textTransform: "uppercase", color: "#475569", marginBottom: "20px" }}>
+                      Executive Audit Attestation
+                    </div>
+                    <div style={{ borderBottom: "1.5px solid #0F172A", marginBottom: "6px" }} />
+                    <div style={{ fontWeight: 700, color: "#0F172A" }}>{auditorName}</div>
+                    <div style={{ color: "#64748B", fontSize: "10px" }}>{agencyRole} • {agencyName}</div>
+                    <div style={{ color: "#94A3B8", fontSize: "9px", marginTop: "2px" }}>
+                      Certified: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: "11px" }}>
+                    <div style={{ fontWeight: 800, textTransform: "uppercase", color: "#475569", marginBottom: "20px" }}>
+                      Client Acknowledgement &amp; Receipt
+                    </div>
+                    <div style={{ borderBottom: "1.5px solid #0F172A", marginBottom: "6px" }} />
+                    <div style={{ fontWeight: 700, color: "#0F172A" }}>Authorized Client Representative</div>
+                    <div style={{ color: "#64748B", fontSize: "10px" }}>{data?.account_name || "Client Enterprise"}</div>
+                    <div style={{ color: "#94A3B8", fontSize: "9px", marginTop: "2px" }}>Date Received: ____________________</div>
+                  </div>
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#94A3B8", borderTop: "1px dashed #CBD5E1", paddingTop: "8px", textTransform: "uppercase" }}>
+                  <span>{confidentiality}</span>
+                  <span>Relvnt Algorithmic Intelligence · Zero-Data-Leak Enclave</span>
+                </div>
+              </div>
+            </ErrorBoundary>
+          )}
         </>
       )}
 
@@ -784,7 +922,7 @@ export default function Page() {
           onRunRadarScan={handleRunRadarScan}
           onGoogleSheetSync={handleGoogleSheetSync}
           onFileUpload={handleFileUpload}
-          onInstagramSync={() => {}}
+          onInstagramSync={handleInstagramSync}
           sheetUrl={sheetUrl}
           setSheetUrl={setSheetUrl}
           clientHandle={clientHandle}
@@ -796,6 +934,81 @@ export default function Page() {
           loading={integrationLoading}
           notice={integrationNotice}
         />
+      )}
+
+      {/* QUICK INGEST MODAL */}
+      {showQuickIngest && (
+        <div className="quick-modal-overlay" onClick={() => setShowQuickIngest(false)}>
+          <div className="quick-modal-box" onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
+              <h3 style={{ fontSize: "17px", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+                Quick Ingest Client Data
+              </h3>
+              <button
+                onClick={() => setShowQuickIngest(false)}
+                style={{ background: "transparent", border: "none", fontSize: "20px", color: "var(--text-muted)", cursor: "pointer" }}
+              >
+                ×
+              </button>
+            </div>
+
+            <p style={{ fontSize: "12.5px", color: "var(--text-muted)", margin: "0 0 16px 0", lineHeight: 1.5 }}>
+              Evaluate custom time-series performance data in real time. Choose CSV upload or live Google Sheet URL.
+            </p>
+
+            <div style={{ marginBottom: "14px" }}>
+              <label style={{ display: "block", fontSize: "11.5px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px" }}>
+                Client / Handle Identifier:
+              </label>
+              <input
+                type="text"
+                value={clientHandle}
+                onChange={(e) => setClientHandle(e.target.value)}
+                placeholder="e.g. @acme_brand or Campaign Alpha"
+                className="input-text-field"
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
+              <div className="file-dropzone">
+                <input
+                  type="file"
+                  accept=".csv,text/csv"
+                  onChange={handleFileUpload}
+                  style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
+                />
+                <div style={{ fontSize: "24px", marginBottom: "4px" }}>📄</div>
+                <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>
+                  Upload CSV File
+                </div>
+                <div style={{ fontSize: "11px", color: "var(--text-muted)" }}>
+                  Meta Ads, Instagram, or TikTok exports
+                </div>
+              </div>
+
+              <div style={{ textAlign: "center", fontSize: "11.5px", color: "var(--text-dim)", fontWeight: 600 }}>— OR —</div>
+
+              <form onSubmit={handleGoogleSheetSync}>
+                <input
+                  type="url"
+                  value={sheetUrl}
+                  onChange={(e) => setSheetUrl(e.target.value)}
+                  placeholder="https://docs.google.com/spreadsheets/d/.../edit"
+                  className="input-text-field"
+                  style={{ marginBottom: "8px" }}
+                />
+                <button
+                  type="submit"
+                  disabled={integrationLoading || !sheetUrl.trim()}
+                  className="btn-primary"
+                  style={{ width: "100%", justifyContent: "center" }}
+                >
+                  {integrationLoading ? "Evaluating..." : "Sync Google Sheet"}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* 6. AI COPILOT SLIDE-OVER DRAWER */}

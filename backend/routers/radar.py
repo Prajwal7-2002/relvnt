@@ -4,6 +4,7 @@ from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, Field
 import requests
 
+from core.network_security import validate_public_url
 from services.alert_dispatcher import AlertDispatcher
 from services.supabase_service import supabase_service
 
@@ -52,10 +53,16 @@ async def run_radar_scan(payload: RadarScanPayload):
     Proactive Algorithmic Decoupling Radar:
     Evaluates client accounts against rolling 7-day baselines.
     Dispatches non-blocking async alerts to Slack, Discord, or generic Webhooks.
+    Guarded by SSRF Network Validation.
     """
     scanned_accounts = []
     flagged_incidents = []
     dispatched_alerts = []
+
+    # SSRF Validation on destination webhook if provided
+    validated_webhook = None
+    if payload.webhook_url and payload.webhook_url.strip():
+        validated_webhook = validate_public_url(payload.webhook_url, allow_localhost=True)
 
     accounts_to_scan = payload.accounts or []
     if not accounts_to_scan:
@@ -86,9 +93,9 @@ async def run_radar_scan(payload: RadarScanPayload):
             }
             flagged_incidents.append(flagged)
 
-            if payload.webhook_url:
+            if validated_webhook:
                 async_dispatch_tasks.append({
-                    "webhook_url": payload.webhook_url,
+                    "webhook_url": validated_webhook,
                     "account_name": acc.account_name,
                     "health_score": acc.health_score,
                     "alert_level": "critical" if acc.health_score <= 40 else "warning",
@@ -124,10 +131,14 @@ async def run_radar_scan(payload: RadarScanPayload):
 async def test_alert_webhook(payload: TestAlertPayload):
     """
     Sends an immediate non-blocking test verification ping to the specified Slack, Discord, or generic webhook.
+    Guarded by SSRF Network Validation.
     """
+    # SSRF Protection
+    clean_webhook = validate_public_url(payload.webhook_url, allow_localhost=True)
+
     try:
         res = await AlertDispatcher.dispatch_auto_async(
-            webhook_url=payload.webhook_url,
+            webhook_url=clean_webhook,
             account_name="Verification Account (@relvnt_test)",
             health_score=35,
             alert_level="critical",
@@ -151,7 +162,10 @@ async def test_alert_webhook(payload: TestAlertPayload):
 def send_slack_alert(payload: SlackAlertPayload):
     """
     Dispatches a formatted executive alert card to a client or internal Slack channel via incoming webhook.
+    Guarded by SSRF Network Validation.
     """
+    clean_webhook = validate_public_url(payload.webhook_url, allow_localhost=True)
+
     status_emoji = "🚨" if payload.health_score < 40 else "⚠️" if payload.health_score < 70 else "✅"
     color_hex = "#EF4444" if payload.health_score < 40 else "#F59E0B" if payload.health_score < 70 else "#10B981"
 
@@ -198,7 +212,7 @@ def send_slack_alert(payload: SlackAlertPayload):
     }
 
     try:
-        resp = requests.post(payload.webhook_url, json=slack_msg, timeout=10)
+        resp = requests.post(clean_webhook, json=slack_msg, timeout=10)
         if resp.status_code != 200:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
