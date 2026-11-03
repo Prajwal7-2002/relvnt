@@ -2,6 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import ActionCard from "./components/ActionCard";
+import AgencyBrandingModal from "./components/AgencyBrandingModal";
+import AnomalyTable from "./components/AnomalyTable";
+import ClientPortfolio from "./components/ClientPortfolio";
 import ErrorBoundary from "./components/ErrorBoundary";
 import HealthScore from "./components/HealthScore";
 import ReachChart from "./components/ReachChart";
@@ -13,6 +16,57 @@ const PRESETS = [
   { id: "healthy_growth", label: "Healthy Equilibrium", account: "@growth_studio" },
 ];
 
+const DEFAULT_PORTFOLIO = [
+  {
+    id: "instagram_drop",
+    account: "@tech_founder",
+    platform: "Instagram",
+    health_score: 42,
+    status: "Explore Decoupling",
+    last_audited: "Today, 14:15",
+    baseline: 12500,
+    current: 5750,
+    change_pct: -54.0,
+    tag: "Benchmark",
+  },
+  {
+    id: "meta_ads_fatigue",
+    account: "US Retargeting",
+    platform: "Meta Ads",
+    health_score: 38,
+    status: "Creative Fatigue",
+    last_audited: "Yesterday",
+    baseline: 2.8,
+    current: 1.2,
+    change_pct: -57.1,
+    tag: "Benchmark",
+  },
+  {
+    id: "real_creator",
+    account: "99D History",
+    platform: "Instagram",
+    health_score: 51,
+    status: "Velocity Drift",
+    last_audited: "2 days ago",
+    baseline: 8900,
+    current: 6200,
+    change_pct: -30.3,
+    tag: "Benchmark",
+  },
+  {
+    id: "healthy_growth",
+    account: "@growth_studio",
+    platform: "Instagram",
+    health_score: 88,
+    status: "Equilibrium",
+    last_audited: "3 days ago",
+    baseline: 14200,
+    current: 15100,
+    change_pct: +6.3,
+    tag: "Benchmark",
+  },
+];
+
 export default function Page() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -22,6 +76,14 @@ export default function Page() {
   const [theme, setTheme] = useState("light");
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [connectTab, setConnectTab] = useState("sheet"); // "sheet" | "csv" | "instagram" | "slack" | "api"
+
+  // Agency branding & multi-client state
+  const [activeView, setActiveView] = useState("audit"); // "audit" | "portfolio"
+  const [showAgencyModal, setShowAgencyModal] = useState(false);
+  const [agencyName, setAgencyName] = useState("K.R Digital Media");
+  const [auditorName, setAuditorName] = useState("Vashu Singhal");
+  const [agencyRole, setAgencyRole] = useState("CEO & Growth Strategist");
+  const [portfolioList, setPortfolioList] = useState(DEFAULT_PORTFOLIO);
 
   // Integration inputs
   const [sheetUrl, setSheetUrl] = useState("");
@@ -60,12 +122,42 @@ export default function Page() {
     URL.revokeObjectURL(a);
   };
 
+  const recordToPortfolio = (analysisJson, presetId = "custom_upload", customTag = "Client Audit") => {
+    if (!analysisJson) return;
+    const accountName = analysisJson.account_name || (presetId === "custom_upload" ? "Client CSV Audit" : "@account");
+    const newEntry = {
+      id: presetId,
+      account: accountName,
+      platform: analysisJson.platform ? analysisJson.platform.toUpperCase() : "INSTAGRAM",
+      health_score: analysisJson.health_score || 50,
+      status: analysisJson.protocol_phases?.[0]?.title || analysisJson.diagnosis?.slice(0, 32) || "Analyzing",
+      last_audited: "Just now",
+      baseline: analysisJson.metrics_summary?.baseline_avg || 10000,
+      current: analysisJson.metrics_summary?.current_value || 5000,
+      change_pct: analysisJson.metrics_summary?.change_pct ?? -50.0,
+      tag: customTag,
+    };
+
+    setPortfolioList((prev) => {
+      const filtered = prev.filter((item) => item.account !== accountName && item.id !== presetId);
+      const updated = [newEntry, ...filtered];
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("relvnt-portfolio", JSON.stringify(updated.slice(0, 25)));
+        } catch (_) {}
+      }
+      return updated;
+    });
+  };
+
   const fetchAnalysis = async (presetKey = "instagram_drop", skipCache = false) => {
     setActivePreset(presetKey);
 
     // Instant zero-latency switch if already in memory cache
     if (!skipCache && channelCache.current[presetKey]) {
-      setData(channelCache.current[presetKey]);
+      const cached = channelCache.current[presetKey];
+      setData(cached);
+      recordToPortfolio(cached, presetKey, "Benchmark");
       setLoading(false);
       return;
     }
@@ -83,6 +175,7 @@ export default function Page() {
       const json = await res.json();
       channelCache.current[presetKey] = json;
       setData(json);
+      recordToPortfolio(json, presetKey, "Benchmark");
     } catch (err) {
       setError(err.message || "Failed to connect to local anomaly engine");
     } finally {
@@ -95,6 +188,22 @@ export default function Page() {
     const saved = typeof window !== "undefined" ? localStorage.getItem("relvnt-theme") || "light" : "light";
     setTheme(saved);
     document.documentElement.setAttribute("data-theme", saved);
+
+    if (typeof window !== "undefined") {
+      const sAgency = localStorage.getItem("relvnt-agency-name");
+      if (sAgency) setAgencyName(sAgency);
+      const sAuditor = localStorage.getItem("relvnt-auditor-name");
+      if (sAuditor) setAuditorName(sAuditor);
+      const sRole = localStorage.getItem("relvnt-agency-role");
+      if (sRole) setAgencyRole(sRole);
+      const sPortfolio = localStorage.getItem("relvnt-portfolio");
+      if (sPortfolio) {
+        try {
+          const parsed = JSON.parse(sPortfolio);
+          if (Array.isArray(parsed) && parsed.length > 0) setPortfolioList(parsed);
+        } catch (_) {}
+      }
+    }
 
     // Silently pre-warm other channels in background so channel tabs switch in 0ms
     const timer = setTimeout(() => {
@@ -152,6 +261,8 @@ export default function Page() {
       const json = await res.json();
       setData(json);
       setActivePreset("custom_upload");
+      recordToPortfolio(json, "custom_upload", "CSV Audit");
+      setActiveView("audit");
       setShowConnectModal(false);
     } catch (err) {
       setIntegrationNotice({ type: "error", text: err.message || "Failed to process CSV file." });
@@ -188,6 +299,8 @@ export default function Page() {
       const json = await res.json();
       setData(json);
       setActivePreset("google_sheet");
+      recordToPortfolio(json, "google_sheet", "Google Sheet");
+      setActiveView("audit");
       setShowConnectModal(false);
     } catch (err) {
       setIntegrationNotice({ type: "error", text: err.message || "Could not sync Google Sheet. Verify sharing permissions." });
@@ -222,6 +335,8 @@ export default function Page() {
       const json = await res.json();
       setData(json);
       setActivePreset("instagram_live");
+      recordToPortfolio(json, "instagram_live", "Meta API");
+      setActiveView("audit");
       setShowConnectModal(false);
     } catch (err) {
       setIntegrationNotice({ type: "error", text: err.message || "Meta API connection failed." });
@@ -289,6 +404,8 @@ export default function Page() {
           metrics: data?.metrics_summary || {},
           anomalies: data?.anomalies || [],
           diagnosis: data?.diagnosis || "",
+          agency_name: agencyName,
+          auditor_name: auditorName,
         }),
       });
 
@@ -322,7 +439,31 @@ export default function Page() {
           <span className="brand-subtext">Distribution &amp; reach early-warning radar</span>
         </div>
 
+        <div className="view-mode-tabs">
+          <button
+            onClick={() => setActiveView("audit")}
+            className={`view-mode-btn ${activeView === "audit" ? "view-mode-btn-active" : ""}`}
+          >
+            Diagnostic Audit
+          </button>
+          <button
+            onClick={() => setActiveView("portfolio")}
+            className={`view-mode-btn ${activeView === "portfolio" ? "view-mode-btn-active" : ""}`}
+          >
+            Client Portfolio ({portfolioList.length})
+          </button>
+        </div>
+
         <div className="nav-actions">
+          <button
+            onClick={() => setShowAgencyModal(true)}
+            className="btn-agency-brand"
+            title="Configure Agency White-Label Branding"
+          >
+            <span className="agency-brand-dot" />
+            <span>{agencyName}</span>
+          </button>
+
           <div className="privacy-pill">
             <span
               className="privacy-dot"
@@ -357,106 +498,15 @@ export default function Page() {
         </div>
       </header>
 
-      {/* EXECUTIVE ACCOUNT & AUDIT WORKSPACE BAR */}
-      <div className="account-bar-card">
-        <div className="account-bar-left">
-          <div className="account-badge">
-            <span className="account-badge-indicator" />
-            <span className="account-badge-label">Active Audit Target</span>
-          </div>
-
-          <div className="account-profile-main">
-            <span className="account-name-text">
-              {data?.account_name || "@tech_founder"}
-            </span>
-
-            <span className="account-platform-tag">
-              {data?.platform ? data.platform.toUpperCase() : "INSTAGRAM"}
-            </span>
-
-            <span className="account-mode-tag">
-              {activePreset === "custom_upload"
-                ? "CSV Ingestion"
-                : activePreset === "google_sheet"
-                ? "Live Sheet Sync"
-                : activePreset === "instagram_live"
-                ? "Meta Graph API"
-                : "Industry Benchmark"}
-            </span>
-
-            <span className="account-period-tag mono-num">
-              90-Day Telemetry Window
-            </span>
-          </div>
-        </div>
-
-        <div className="account-bar-actions">
-          {/* Executive Reference Scenarios Dropdown */}
-          <div className="benchmark-dropdown-wrapper">
-            <button
-              onClick={() => setShowBenchmarkDropdown(!showBenchmarkDropdown)}
-              className="btn-dropdown-trigger"
-              title="Load pre-calibrated industry anomaly scenarios"
-            >
-              <span>Benchmark Scenarios</span>
-              <span className="dropdown-arrow">{showBenchmarkDropdown ? "▴" : "▾"}</span>
-            </button>
-
-            {showBenchmarkDropdown && (
-              <>
-                <div
-                  className="dropdown-backdrop-transparent"
-                  onClick={() => setShowBenchmarkDropdown(false)}
-                />
-                <div className="benchmark-dropdown-menu">
-                  <div className="dropdown-header">Pre-Calibrated Reference Scenarios</div>
-                  {PRESETS.map((p) => (
-                    <button
-                      key={p.id}
-                      onClick={() => {
-                        fetchAnalysis(p.id);
-                        setShowBenchmarkDropdown(false);
-                      }}
-                      className={`dropdown-item ${activePreset === p.id ? "dropdown-item-active" : ""}`}
-                    >
-                      <div className="dropdown-item-title">
-                        <span>{p.label}</span>
-                        {activePreset === p.id && <span className="dropdown-item-check">✓</span>}
-                      </div>
-                      <div className="dropdown-item-sub mono-num">{p.account} • Reference Baseline</div>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
-          <button
-            onClick={() => setShowConnectModal(true)}
-            className="btn-audit-ingest"
-          >
-            <span>+ Ingest Client Audit Data</span>
-          </button>
-        </div>
-      </div>
-
-      {/* ERROR NOTICE */}
-      {error && (
-        <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "10px", padding: "14px 18px", marginBottom: "20px" }}>
-          <span style={{ color: "#EF4444", fontWeight: 600, fontSize: "13px" }}>Connection Notice:</span>
-          <p style={{ margin: "4px 0 0 0", color: "var(--text-muted)", fontSize: "13px" }}>{error}</p>
-        </div>
-      )}
-
       {/* PRINT-ONLY MEMO HEADER (Rendered exclusively when printing or exporting to PDF) */}
       <div className="print-memo-header">
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "2px solid #0F172A", paddingBottom: "12px", marginBottom: "20px" }}>
           <div>
             <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "-0.03em", color: "#0F172A" }}>
-              RELVNT // EXECUTIVE DISTRIBUTION AUDIT
+              RELVNT × {agencyName.toUpperCase()} // EXECUTIVE DISTRIBUTION AUDIT
             </div>
             <div style={{ fontSize: "12px", color: "#64748B", marginTop: "3px" }}>
-              Confidential Algorithmic Early-Warning Diagnostic &amp; 72-Hour Turnaround Plan
+              Lead Auditor: <strong>{auditorName}</strong> ({agencyRole}) • Certified Sentinel Protocol v1.2.0
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: "12px", color: "#334155" }}>
@@ -468,16 +518,126 @@ export default function Page() {
         </div>
       </div>
 
-      <ErrorBoundary onReset={() => fetchAnalysis(activePreset)}>
-        {/* 1. EXECUTIVE STORY & HORIZONTAL RESONANCE RANGE BAR */}
-        {data && <HealthScore data={data} />}
+      {activeView === "portfolio" ? (
+        <ClientPortfolio
+          portfolioList={portfolioList}
+          onSelectClient={(presetOrId) => {
+            fetchAnalysis(presetOrId);
+            setActiveView("audit");
+          }}
+          onOpenConnectModal={() => setShowConnectModal(true)}
+          onOpenAgencyModal={() => setShowAgencyModal(true)}
+          agencyName={agencyName}
+          auditorName={auditorName}
+        />
+      ) : (
+        <>
+          {/* EXECUTIVE ACCOUNT & AUDIT WORKSPACE BAR */}
+          <div className="account-bar-card">
+            <div className="account-bar-left">
+              <div className="account-badge">
+                <span className="account-badge-indicator" />
+                <span className="account-badge-label">Active Audit Target</span>
+              </div>
 
-        {/* 2. DAILY REACH VS EXPECTED BASELINE CHART */}
-        {data && <ReachChart data={data} />}
+              <div className="account-profile-main">
+                <span className="account-name-text">
+                  {data?.account_name || "@tech_founder"}
+                </span>
 
-        {/* 3. 72-HOUR TURNAROUND ACTION PLAN */}
-        {data && <ActionCard data={data} />}
-      </ErrorBoundary>
+                <span className="account-platform-tag">
+                  {data?.platform ? data.platform.toUpperCase() : "INSTAGRAM"}
+                </span>
+
+                <span className="account-mode-tag">
+                  {activePreset === "custom_upload"
+                    ? "CSV Ingestion"
+                    : activePreset === "google_sheet"
+                    ? "Live Sheet Sync"
+                    : activePreset === "instagram_live"
+                    ? "Meta Graph API"
+                    : "Industry Benchmark"}
+                </span>
+
+                <span className="account-period-tag mono-num">
+                  90-Day Telemetry Window
+                </span>
+              </div>
+            </div>
+
+            <div className="account-bar-actions">
+              {/* Executive Reference Scenarios Dropdown */}
+              <div className="benchmark-dropdown-wrapper">
+                <button
+                  onClick={() => setShowBenchmarkDropdown(!showBenchmarkDropdown)}
+                  className="btn-dropdown-trigger"
+                  title="Load pre-calibrated industry anomaly scenarios"
+                >
+                  <span>Benchmark Scenarios</span>
+                  <span className="dropdown-arrow">{showBenchmarkDropdown ? "▴" : "▾"}</span>
+                </button>
+
+                {showBenchmarkDropdown && (
+                  <>
+                    <div
+                      className="dropdown-backdrop-transparent"
+                      onClick={() => setShowBenchmarkDropdown(false)}
+                    />
+                    <div className="benchmark-dropdown-menu">
+                      <div className="dropdown-header">Pre-Calibrated Reference Scenarios</div>
+                      {PRESETS.map((p) => (
+                        <button
+                          key={p.id}
+                          onClick={() => {
+                            fetchAnalysis(p.id);
+                            setShowBenchmarkDropdown(false);
+                          }}
+                          className={`dropdown-item ${activePreset === p.id ? "dropdown-item-active" : ""}`}
+                        >
+                          <div className="dropdown-item-title">
+                            <span>{p.label}</span>
+                            {activePreset === p.id && <span className="dropdown-item-check">✓</span>}
+                          </div>
+                          <div className="dropdown-item-sub mono-num">{p.account} • Reference Baseline</div>
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowConnectModal(true)}
+                className="btn-audit-ingest"
+              >
+                <span>+ Ingest Client Audit Data</span>
+              </button>
+            </div>
+          </div>
+
+          {/* ERROR NOTICE */}
+          {error && (
+            <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "10px", padding: "14px 18px", marginBottom: "20px" }}>
+              <span style={{ color: "#EF4444", fontWeight: 600, fontSize: "13px" }}>Connection Notice:</span>
+              <p style={{ margin: "4px 0 0 0", color: "var(--text-muted)", fontSize: "13px" }}>{error}</p>
+            </div>
+          )}
+
+          <ErrorBoundary onReset={() => fetchAnalysis(activePreset)}>
+            {/* 1. EXECUTIVE STORY & HORIZONTAL RESONANCE RANGE BAR */}
+            {data && <HealthScore data={data} />}
+
+            {/* 2. DAILY REACH VS EXPECTED BASELINE CHART */}
+            {data && <ReachChart data={data} />}
+
+            {/* 3. FORENSIC ALGORITHMIC INCIDENT LOG TABLE */}
+            {data && <AnomalyTable data={data} />}
+
+            {/* 4. 72-HOUR TURNAROUND ACTION PLAN */}
+            {data && <ActionCard data={data} />}
+          </ErrorBoundary>
+        </>
+      )}
 
       {/* SLIDE-OVER AI ANALYST DRAWER */}
       {showCopilot && (
@@ -834,6 +994,25 @@ export default function Page() {
           </div>
         </>
       )}
+
+      {/* AGENCY WHITE-LABEL BRANDING MODAL */}
+      <AgencyBrandingModal
+        isOpen={showAgencyModal}
+        onClose={() => setShowAgencyModal(false)}
+        currentAgencyName={agencyName}
+        currentAuditorName={auditorName}
+        currentAgencyRole={agencyRole}
+        onSave={({ agencyName: newAgency, auditorName: newAuditor, agencyRole: newRole }) => {
+          setAgencyName(newAgency);
+          setAuditorName(newAuditor);
+          setAgencyRole(newRole);
+          if (typeof window !== "undefined") {
+            localStorage.setItem("relvnt-agency-name", newAgency);
+            localStorage.setItem("relvnt-auditor-name", newAuditor);
+            localStorage.setItem("relvnt-agency-role", newRole);
+          }
+        }}
+      />
     </main>
   );
 }

@@ -114,6 +114,8 @@ class CopilotQuery(BaseModel):
     metrics: Optional[Dict[str, Any]] = {}
     anomalies: Optional[List[Dict[str, Any]]] = []
     diagnosis: Optional[str] = ""
+    agency_name: Optional[str] = "Growth Agency Partner"
+    auditor_name: Optional[str] = "Lead Growth Strategist"
 
 
 class HealthResponse(BaseModel):
@@ -355,6 +357,8 @@ def copilot_query(payload: CopilotQuery):
         metrics=payload.metrics or {},
         anomalies=payload.anomalies or [],
         diagnosis=payload.diagnosis or "",
+        agency_name=payload.agency_name or "Growth Agency Partner",
+        auditor_name=payload.auditor_name or "Lead Growth Strategist",
     )
     return res
 
