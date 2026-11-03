@@ -1,13 +1,21 @@
 import logging
+import os
 import re
 import time
 from collections import defaultdict
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import requests
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, Query, Request, Response, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+
+# Load environment variables from backend/.env or root .env
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR / ".env")
+load_dotenv(BASE_DIR.parent / ".env")
 
 from ml.anomaly_engine import AnomalyEngine
 from ml.presets import get_preset_datasets
@@ -113,6 +121,8 @@ class HealthResponse(BaseModel):
     system: str
     version: str
     data_governance: str
+    ai_engine: Optional[str] = None
+    gemini_connected: Optional[bool] = False
 
 
 class ProtocolPhase(BaseModel):
@@ -186,11 +196,15 @@ class SlackAlertPayload(BaseModel):
 
 @app.get("/health", response_model=HealthResponse, tags=["System Health"], status_code=status.HTTP_200_OK)
 def health():
+    has_gemini = bool((os.getenv("GEMINI_API_KEY") or "").strip())
+    model = (os.getenv("GEMINI_MODEL") or "gemini-1.5-flash").strip()
     return {
         "status": "nominal",
         "system": "Relvnt Algorithmic Intelligence Sentinel",
         "version": "1.2.0",
         "data_governance": "Compound AI: Local IsolationForest + Optional Zero-Retention Gemini Reasoning",
+        "ai_engine": f"Google Gemini Live AI ({model})" if has_gemini else "Local Deterministic Sentinel (Zero-Data-Leak)",
+        "gemini_connected": has_gemini,
     }
 
 

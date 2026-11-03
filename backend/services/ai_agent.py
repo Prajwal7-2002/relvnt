@@ -228,12 +228,20 @@ class LocalDiagnosticEngine:
 class HybridAIAgent:
     """
     Hybrid Compound AI Agent:
-    - If GEMINI_API_KEY is available: calls Gemini 1.5 Flash for live, bespoke generative AI reasoning.
+    - If GEMINI_API_KEY is available: calls Google Gemini (1.5 Flash by default) for live generative reasoning.
     - If offline / no key: seamlessly falls back to LocalDiagnosticEngine (Zero-Data-Leak).
     """
 
     def __init__(self):
-        self.api_key = os.getenv("GEMINI_API_KEY")
+        from pathlib import Path
+        from dotenv import load_dotenv
+
+        base_dir = Path(__file__).resolve().parent.parent
+        load_dotenv(base_dir / ".env")
+        load_dotenv(base_dir.parent / ".env")
+
+        self.api_key = (os.getenv("GEMINI_API_KEY") or "").strip() or None
+        self.model = (os.getenv("GEMINI_MODEL") or "gemini-1.5-flash").strip()
 
     def generate_briefing(
         self,
@@ -247,7 +255,7 @@ class HybridAIAgent:
     ) -> Dict:
         if self.api_key:
             try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.api_key}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
                 prompt = (
                     f"You are the Relvnt Enterprise Algorithmic Incident Sentinel. "
                     f"Analyze this performance anomaly report and generate a clinical, quantified Root-Cause Analysis (RCA) "
@@ -272,13 +280,15 @@ class HybridAIAgent:
                     "contents": [{"parts": [{"text": prompt}]}],
                     "generationConfig": {"response_mime_type": "application/json"},
                 }
-                res = requests.post(url, json=payload, timeout=8)
+                res = requests.post(url, json=payload, timeout=10)
                 if res.status_code == 200:
                     resp_json = res.json()
                     text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
                     data = json.loads(text)
-                    data["ai_engine"] = "Gemini 1.5 Flash (Live Generative AI)"
+                    data["ai_engine"] = f"Gemini ({self.model}) (Live Generative AI)"
                     return data
+                else:
+                    logger.warning("Gemini briefing returned HTTP %s: %s", res.status_code, res.text[:200])
             except Exception as exc:
                 logger.warning("Gemini live briefing failed, using local engine: %s", exc)
 
@@ -299,7 +309,7 @@ class HybridAIAgent:
     ) -> Dict:
         if self.api_key:
             try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={self.api_key}"
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
                 prompt = (
                     f"You are the Relvnt AI Growth & Incident Copilot. "
                     f"The user is asking a question about their account performance.\n\n"
@@ -319,14 +329,16 @@ class HybridAIAgent:
                     f"Do not use generic buzzwords or emojis. Keep it professional and clear."
                 )
                 payload = {"contents": [{"parts": [{"text": prompt}]}]}
-                res = requests.post(url, json=payload, timeout=8)
+                res = requests.post(url, json=payload, timeout=10)
                 if res.status_code == 200:
                     resp_json = res.json()
                     text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
                     return {
                         "answer": text.strip(),
-                        "engine": "Gemini 1.5 Flash (Live AI Copilot)",
+                        "engine": f"Gemini ({self.model}) (Live AI Copilot)",
                     }
+                else:
+                    logger.warning("Gemini copilot query returned HTTP %s: %s", res.status_code, res.text[:200])
             except Exception as exc:
                 logger.warning("Gemini live copilot query failed, using local engine: %s", exc)
 
