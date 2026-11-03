@@ -18,6 +18,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activePreset, setActivePreset] = useState("instagram_drop");
+  const [showBenchmarkDropdown, setShowBenchmarkDropdown] = useState(false);
   const [theme, setTheme] = useState("light");
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [connectTab, setConnectTab] = useState("sheet"); // "sheet" | "csv" | "instagram" | "slack" | "api"
@@ -332,8 +333,8 @@ export default function Page() {
               }}
             />
             <span>
-              {data?.ai_engine?.toLowerCase().includes("gemini")
-                ? "Gemini 1.5 Active"
+              {data?.ai_engine
+                ? `${data.ai_engine} Active`
                 : "Local Sentinel (Zero-Data-Leak)"}
             </span>
           </div>
@@ -346,8 +347,8 @@ export default function Page() {
             Export Memo (PDF)
           </button>
 
-          <button onClick={() => setShowConnectModal(true)} className="btn-primary">
-            + Plug In &amp; Automate Data
+          <button onClick={() => setShowConnectModal(true)} className="btn-secondary" title="Automate with Meta Graph API, Google Sheets, or Slack Webhooks">
+            Integrations &amp; Webhooks
           </button>
 
           <button onClick={() => setShowCopilot(true)} className="btn-secondary">
@@ -356,38 +357,86 @@ export default function Page() {
         </div>
       </header>
 
-      {/* SEGMENTED BENCHMARK SELECTOR */}
-      <div className="benchmark-strip">
-        <span className="benchmark-strip-label">Active Channel:</span>
-        <div className="benchmark-buttons">
-          {PRESETS.map((p) => (
+      {/* EXECUTIVE ACCOUNT & AUDIT WORKSPACE BAR */}
+      <div className="account-bar-card">
+        <div className="account-bar-left">
+          <div className="account-badge">
+            <span className="account-badge-indicator" />
+            <span className="account-badge-label">Active Audit Target</span>
+          </div>
+
+          <div className="account-profile-main">
+            <span className="account-name-text">
+              {data?.account_name || "@tech_founder"}
+            </span>
+
+            <span className="account-platform-tag">
+              {data?.platform ? data.platform.toUpperCase() : "INSTAGRAM"}
+            </span>
+
+            <span className="account-mode-tag">
+              {activePreset === "custom_upload"
+                ? "CSV Ingestion"
+                : activePreset === "google_sheet"
+                ? "Live Sheet Sync"
+                : activePreset === "instagram_live"
+                ? "Meta Graph API"
+                : "Industry Benchmark"}
+            </span>
+
+            <span className="account-period-tag mono-num">
+              90-Day Telemetry Window
+            </span>
+          </div>
+        </div>
+
+        <div className="account-bar-actions">
+          {/* Executive Reference Scenarios Dropdown */}
+          <div className="benchmark-dropdown-wrapper">
             <button
-              key={p.id}
-              onClick={() => fetchAnalysis(p.id)}
-              className={`benchmark-tab ${activePreset === p.id ? "benchmark-tab-active" : ""}`}
+              onClick={() => setShowBenchmarkDropdown(!showBenchmarkDropdown)}
+              className="btn-dropdown-trigger"
+              title="Load pre-calibrated industry anomaly scenarios"
             >
-              <span>{p.label}</span>
-              <span className="benchmark-tab-handle mono-num">({p.account})</span>
+              <span>Benchmark Scenarios</span>
+              <span className="dropdown-arrow">{showBenchmarkDropdown ? "▴" : "▾"}</span>
             </button>
-          ))}
-          {activePreset === "custom_upload" && (
-            <span className="benchmark-tab benchmark-tab-active">
-              <span>{data?.account_name || "Custom Upload"}</span>
-              <span className="benchmark-tab-handle mono-num">(CSV Data)</span>
-            </span>
-          )}
-          {activePreset === "google_sheet" && (
-            <span className="benchmark-tab benchmark-tab-active">
-              <span>{data?.account_name || "Google Sheet"}</span>
-              <span className="benchmark-tab-handle mono-num">(Live Sync)</span>
-            </span>
-          )}
-          {activePreset === "instagram_live" && (
-            <span className="benchmark-tab benchmark-tab-active">
-              <span>{data?.account_name || "Instagram Live"}</span>
-              <span className="benchmark-tab-handle mono-num">(Meta API)</span>
-            </span>
-          )}
+
+            {showBenchmarkDropdown && (
+              <>
+                <div
+                  className="dropdown-backdrop-transparent"
+                  onClick={() => setShowBenchmarkDropdown(false)}
+                />
+                <div className="benchmark-dropdown-menu">
+                  <div className="dropdown-header">Pre-Calibrated Reference Scenarios</div>
+                  {PRESETS.map((p) => (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        fetchAnalysis(p.id);
+                        setShowBenchmarkDropdown(false);
+                      }}
+                      className={`dropdown-item ${activePreset === p.id ? "dropdown-item-active" : ""}`}
+                    >
+                      <div className="dropdown-item-title">
+                        <span>{p.label}</span>
+                        {activePreset === p.id && <span className="dropdown-item-check">✓</span>}
+                      </div>
+                      <div className="dropdown-item-sub mono-num">{p.account} • Reference Baseline</div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={() => setShowConnectModal(true)}
+            className="btn-audit-ingest"
+          >
+            <span>+ Ingest Client Audit Data</span>
+          </button>
         </div>
       </div>
 
