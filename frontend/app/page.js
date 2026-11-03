@@ -80,9 +80,9 @@ export default function Page() {
   // Agency branding & multi-client state
   const [activeView, setActiveView] = useState("audit"); // "audit" | "portfolio"
   const [showAgencyModal, setShowAgencyModal] = useState(false);
-  const [agencyName, setAgencyName] = useState("K.R Digital Media");
-  const [auditorName, setAuditorName] = useState("Vashu Singhal");
-  const [agencyRole, setAgencyRole] = useState("CEO & Growth Strategist");
+  const [agencyName, setAgencyName] = useState("Your Agency");
+  const [auditorName, setAuditorName] = useState("Lead Strategist");
+  const [agencyRole, setAgencyRole] = useState("Growth & Retention Director");
   const [portfolioList, setPortfolioList] = useState(DEFAULT_PORTFOLIO);
 
   // Integration inputs
