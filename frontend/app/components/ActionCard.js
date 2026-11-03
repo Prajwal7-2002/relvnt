@@ -1,104 +1,89 @@
 "use client";
 
 import { useState } from "react";
+import { displayName, formatMetric, platformLabel } from "../../lib/health";
 
 export default function ActionCard({ data }) {
   const [copied, setCopied] = useState(false);
-  const phases = data?.protocol_phases || [];
+  const steps = data?.protocol_phases || [];
   const metrics = data?.metrics_summary || {};
-  const isRoas = data?.metric_type === "roas";
+  const metricType = data?.metric_type;
+  const account = displayName(data?.account_name || data?.username || "Account");
 
-  const targetAccount = data?.account_name || data?.username || "Account";
-  const platform = (data?.platform || "Platform").toUpperCase();
+  const buildBrief = () => {
+    const plan =
+      steps.length > 0
+        ? steps.map((s, i) => `${i + 1}. Day ${i + 1}: ${s.title}\n   ${s.action}`).join("\n\n")
+        : data?.recommended_action || "No changes needed. Keep the current schedule.";
+    return `${account} (${platformLabel(data?.platform)}): performance summary
+Health score: ${data?.health_score ?? 0}/100
 
-  const generateCleanTextBrief = () => {
-    return `RELVNT PERFORMANCE SUMMARY & TURNAROUND PLAN
-Account: ${targetAccount} (${platform})
-Health Score: ${data?.health_score || 0}/100
+What happened
+${data?.diagnosis || "Performance shifted relative to its usual level."}
 
-SITUATION SUMMARY:
-${data?.diagnosis || "Performance shift detected relative to baseline expectations."}
+Key numbers
+- Recent 7-day average: ${formatMetric(metrics.recent_avg ?? metrics.current_value, metricType)}
+- Usual for this period: ${formatMetric(metrics.baseline_avg, metricType)}
+- Change: ${Number(metrics.change_pct || 0).toFixed(1)}%
 
-72-HOUR ACTION PLAN:
-${
-  phases.length > 0
-    ? phases
-        .map(
-          (p, idx) =>
-            `Step ${idx + 1} (${p.phase || "Day " + (idx + 1)}): ${p.title}\n${p.action}`
-        )
-        .join("\n\n")
-    : data?.recommended_action || "Maintain current publishing parameters."
-}
-
-KEY METRICS:
-- Current Velocity: ${metrics.current_value || 0}${isRoas ? "x" : " views/day"}
-- Expected Baseline: ${metrics.baseline_avg || 0}${isRoas ? "x" : " views/day"}
-- Net Change: ${metrics.change_pct || 0}%
-${metrics.projected_impact ? `- 7-Day Estimated Impact: ${metrics.projected_impact}` : ""}
+What to do next
+${plan}
 `;
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(generateCleanTextBrief());
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2400);
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(buildBrief());
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      setCopied(false);
+    }
   };
 
-  const handleDownloadMarkdown = () => {
-    const text = generateCleanTextBrief();
-    const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+  const handleDownload = () => {
+    const blob = new Blob([buildBrief()], { type: "text/markdown;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
-    link.download = `relvnt_audit_${targetAccount.replace(/[^a-zA-Z0-9_\-]/g, "_")}.md`;
+    link.download = `relvnt-${account.replace(/[^a-zA-Z0-9_-]/g, "-").toLowerCase()}.md`;
     link.click();
     URL.revokeObjectURL(url);
   };
 
   return (
-    <section className="action-plan-card">
-      <div className="plan-header">
-        <div className="plan-title-area">
-          <h2>Recommended 72-Hour Turnaround Plan</h2>
-          <p>
-            Concrete steps to recover algorithmic distribution and reset viewer completion signals.
-          </p>
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2 className="section-title">What to do next</h2>
+          <p className="section-subtitle">Suggested steps for the next three days.</p>
         </div>
-
-        <div style={{ display: "flex", gap: "8px" }}>
-          <button onClick={handleCopy} className="btn-secondary">
-            {copied ? "✓ Copied to Clipboard" : "Copy Brief"}
+        <div className="panel-actions">
+          <button onClick={handleCopy} className="btn-secondary btn-sm">
+            {copied ? "Copied" : "Copy summary"}
           </button>
-          <button onClick={handleDownloadMarkdown} className="btn-secondary" title="Download clean Markdown brief">
-            Download Brief (.md)
+          <button onClick={handleDownload} className="btn-secondary btn-sm">
+            Download
           </button>
         </div>
       </div>
 
-      <div className="plan-steps-grid">
-        {phases.length > 0 ? (
-          phases.map((p, idx) => (
-            <div key={idx} className="plan-step-box">
-              <span className="step-day-badge">
-                {idx === 0 ? "Day 1 (0–24h)" : idx === 1 ? "Day 2 (24–48h)" : "Day 3 (48–72h)"}
-              </span>
-              <h3 className="step-title">{p.title}</h3>
-              <p className="step-description">{p.action}</p>
-            </div>
-          ))
-        ) : (
-          <div className="plan-step-box" style={{ gridColumn: "span 3" }}>
-            <span className="step-day-badge" style={{ color: "var(--status-nominal)", background: "var(--status-nominal-bg)" }}>
-              Maintain Status
-            </span>
-            <h3 className="step-title">Normal Operations</h3>
-            <p className="step-description">
-              {data?.recommended_action || "Account distribution metrics remain within healthy baseline ranges."}
-            </p>
-          </div>
-        )}
-      </div>
+      {steps.length > 0 ? (
+        <ol className="steps">
+          {steps.map((s, i) => (
+            <li key={i} className="step">
+              <span className="step-number">{i + 1}</span>
+              <div>
+                <div className="step-day">Day {i + 1}</div>
+                <h3 className="step-heading">{s.title}</h3>
+                <p className="step-body">{s.action}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      ) : (
+        <p className="panel-text">{data?.recommended_action || "No changes needed. Keep the current schedule."}</p>
+      )}
     </section>
   );
 }

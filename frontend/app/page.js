@@ -11,13 +11,13 @@ import AuthGate from "./components/AuthGate";
 import SettingsView from "./components/SettingsView";
 import Sidebar from "./components/Sidebar";
 import { authService } from "../lib/supabaseClient";
-import { needsAttention } from "../lib/health";
+import { displayName, needsAttention, platformLabel } from "../lib/health";
 
 const PRESETS = [
-  { id: "instagram_drop", label: "Instagram Drop", account: "@tech_founder" },
-  { id: "meta_ads_fatigue", label: "Meta Ads Fatigue", account: "US Retargeting" },
-  { id: "real_creator", label: "Creator History", account: "99D History" },
-  { id: "healthy_growth", label: "Healthy Equilibrium", account: "@growth_studio" },
+  { id: "instagram_drop", label: "Instagram reach drop", account: "@tech_founder" },
+  { id: "meta_ads_fatigue", label: "Meta Ads fatigue", account: "US Retargeting" },
+  { id: "real_creator", label: "Creator history", account: "99D History" },
+  { id: "healthy_growth", label: "Healthy account", account: "@growth_studio" },
 ];
 
 const DEFAULT_PORTFOLIO = [
@@ -614,133 +614,99 @@ export default function Page() {
         <>
           <div className="page-header">
             <div>
-              <h1 className="page-title">Analysis</h1>
-              <p className="page-subtitle">How {data?.account_name || "this account"} is performing against its usual baseline.</p>
-            </div>
-            <div className="page-actions">
-              <button onClick={() => setShowCopilot(true)} className="btn-secondary">
-                Ask AI
+              <button className="breadcrumb" onClick={() => setActiveView("radar")}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+                Clients
               </button>
-              <button onClick={() => window.print()} className="btn-secondary">
-                Export PDF
-              </button>
-            </div>
-          </div>
-
-          {/* TARGET ACCOUNT HEADER */}
-          <div className="account-bar-card">
-            <div className="account-bar-left">
-              <div className="account-profile-main">
-                <span className="account-name-text">
-                  {data?.account_name || "@tech_founder"}
-                </span>
-
-                <span className="account-platform-tag">
-                  {data?.platform ? data.platform.toUpperCase() : "INSTAGRAM"}
-                </span>
-
-                <span className="account-mode-tag">
+              <h1 className="page-title">{displayName(data?.account_name || "Analysis")}</h1>
+              <p className="page-meta">
+                <span>{platformLabel(data?.platform)}</span>
+                <span>Last 90 days</span>
+                <span>
                   {activePreset === "custom_upload"
-                    ? "CSV Ingestion"
+                    ? "CSV upload"
                     : activePreset === "google_sheet"
-                    ? "Google Sheet Sync"
+                    ? "Google Sheet"
                     : activePreset === "instagram_live"
-                    ? "Meta Graph API"
-                    : "Industry Benchmark"}
+                    ? "Instagram"
+                    : "Sample data"}
                 </span>
-
-                <span className="account-period-tag">
-                  Last 90 days
-                </span>
-
-                <button
-                  onClick={() => setShowExplainer(!showExplainer)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    padding: 0,
-                    color: "var(--accent-primary)",
-                    fontSize: "var(--font-size-sm)",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {showExplainer ? "Hide methodology" : "How this is calculated"}
+                <button className="link-button" onClick={() => setShowExplainer(!showExplainer)}>
+                  {showExplainer ? "Hide details" : "How this works"}
                 </button>
-              </div>
+              </p>
             </div>
 
-            <div className="account-bar-actions">
-              {/* Benchmark Dropdown */}
-              <div className="benchmark-dropdown-wrapper">
+            <div className="page-actions">
+              <div className="menu-wrap">
                 <button
                   onClick={() => setShowBenchmarkDropdown(!showBenchmarkDropdown)}
-                  className="btn-dropdown-trigger"
+                  className="btn-secondary"
+                  aria-expanded={showBenchmarkDropdown}
                 >
-                  <span>Benchmark Scenarios</span>
-                  <span>{showBenchmarkDropdown ? "▴" : "▾"}</span>
+                  Change data
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
                 </button>
 
                 {showBenchmarkDropdown && (
                   <>
-                    <div
-                      className="dropdown-backdrop-transparent"
-                      onClick={() => setShowBenchmarkDropdown(false)}
-                    />
-                    <div className="benchmark-dropdown-menu">
-                      <div className="dropdown-header">Pre-Calibrated Reference Datasets</div>
+                    <div className="dropdown-backdrop-transparent" onClick={() => setShowBenchmarkDropdown(false)} />
+                    <div className="menu-popover" role="menu">
+                      <button
+                        className="menu-item"
+                        role="menuitem"
+                        onClick={() => {
+                          setShowBenchmarkDropdown(false);
+                          setShowQuickIngest(true);
+                        }}
+                      >
+                        <span className="menu-item-title">Upload new data</span>
+                        <span className="menu-item-sub">CSV export or Google Sheet</span>
+                      </button>
+                      <div className="menu-divider" />
+                      <div className="menu-label">Sample data</div>
                       {PRESETS.map((p) => (
                         <button
                           key={p.id}
+                          role="menuitem"
                           onClick={() => {
                             fetchAnalysis(p.id);
                             setShowBenchmarkDropdown(false);
                           }}
-                          className="dropdown-item"
+                          className={`menu-item ${activePreset === p.id ? "menu-item-active" : ""}`}
                         >
-                          <div className="dropdown-item-title">
-                            <span>{p.label}</span>
-                            {activePreset === p.id && <span>✓</span>}
-                          </div>
-                          <div className="dropdown-item-sub mono-num">{p.account}</div>
+                          <span className="menu-item-title">{p.label}</span>
+                          <span className="menu-item-sub">{p.account}</span>
                         </button>
                       ))}
                     </div>
                   </>
                 )}
               </div>
-
-              <button
-                onClick={() => setShowQuickIngest(true)}
-                className="btn-primary"
-              >
-                + Quick Ingest Data
+              <button onClick={() => setShowCopilot(true)} className="btn-secondary">
+                Ask AI
+              </button>
+              <button onClick={() => window.print()} className="btn-primary">
+                Export report
               </button>
             </div>
           </div>
 
-          {/* METHODOLOGY EXPLAINER BANNER */}
           {showExplainer && (
-            <div style={{
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border-medium)",
-              borderRadius: "10px",
-              padding: "18px 22px",
-              marginBottom: "20px",
-              fontSize: "var(--font-size-sm)",
-              color: "var(--text-secondary)",
-              lineHeight: 1.55,
-            }}>
-              <strong style={{ color: "var(--text-primary)", display: "block", marginBottom: "6px" }}>
-                Scientific Decoupling Methodology:
-              </strong>
-              Relvnt continuously models daily account distribution using an ensemble of STL (Seasonal and Trend decomposition using Loess) and scikit-learn IsolationForest anomaly detection. A score &lt; 40 indicates that content distribution has disconnected from established follower velocity due to feed suppression or acute creative fatigue.
+            <div className="note">
+              <strong>How this works.</strong> Relvnt compares each day with what is usual for that day of the
+              week, based on the account&apos;s own history. One-off viral spikes are capped so they don&apos;t
+              inflate &quot;usual&quot;. Days that fall well below usual are flagged, and the health score summarises
+              how far recent days are below normal: under 40 is critical, under 70 is worth watching.
             </div>
           )}
 
           {error && (
-            <div style={{ background: "var(--status-drift-bg)", border: "1px solid var(--status-drift-border)", borderRadius: "8px", padding: "14px 18px", marginBottom: "20px", color: "var(--status-drift)", fontSize: "var(--font-size-md)" }}>
+            <div className="note note-error" role="alert">
               {error}
             </div>
           )}

@@ -23,22 +23,22 @@
   height: 100vh;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 20px 12px;
+  gap: 28px;
+  padding: 22px 12px 16px;
   background: var(--bg-sidebar);
-  border-right: 1px solid var(--border-subtle);
+  color: var(--sidebar-text);
 }
 
 .sidebar-brand {
   font-size: var(--font-size-xl);
   font-weight: 800;
   letter-spacing: -0.04em;
-  color: var(--text-primary);
+  color: var(--sidebar-text-strong);
   padding: 0 10px;
 }
 
 .sidebar-brand span {
-  color: var(--accent-primary);
+  color: var(--brand-gold);
 }
 
 .sidebar-nav {
@@ -52,11 +52,12 @@
   align-items: center;
   gap: 10px;
   width: 100%;
-  padding: 7px 10px;
+  height: 36px;
+  padding: 0 10px;
   border: none;
   border-radius: var(--radius-sm);
   background: transparent;
-  color: var(--text-secondary);
+  color: var(--sidebar-text);
   font-size: var(--font-size-base);
   font-weight: 500;
   text-align: left;
@@ -66,23 +67,22 @@
 
 .sidebar-link svg {
   flex-shrink: 0;
-  color: var(--text-muted);
+  color: var(--sidebar-text-muted);
 }
 
 .sidebar-link:hover {
-  background: var(--bg-surface-hover);
-  color: var(--text-primary);
+  background: var(--sidebar-hover);
+  color: var(--sidebar-text-strong);
 }
 
 .sidebar-link-active,
 .sidebar-link-active:hover {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-sm), 0 0 0 1px var(--border-subtle);
+  background: var(--sidebar-active);
+  color: var(--sidebar-text-strong);
 }
 
 .sidebar-link-active svg {
-  color: var(--accent-primary);
+  color: var(--brand-gold);
 }
 
 .sidebar-count {
@@ -90,8 +90,8 @@
   min-width: 20px;
   padding: 0 6px;
   border-radius: 999px;
-  background: var(--status-drift-bg);
-  color: var(--status-drift);
+  background: var(--status-drift);
+  color: #FFFFFF;
   font-size: var(--font-size-xs);
   font-weight: 600;
   line-height: 18px;
@@ -102,7 +102,7 @@
   margin-top: auto;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
 
 .sidebar-account-wrap {
@@ -115,15 +115,15 @@
   gap: 10px;
   width: 100%;
   padding: 8px 10px;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--sidebar-border);
   border-radius: var(--radius-md);
-  background: var(--bg-surface);
+  background: var(--sidebar-hover);
   text-align: left;
-  color: var(--text-muted);
+  color: var(--sidebar-text-muted);
 }
 
 .sidebar-account:hover {
-  border-color: var(--border-medium);
+  background: var(--sidebar-active);
 }
 
 .sidebar-avatar {
@@ -131,8 +131,8 @@
   width: 28px;
   height: 28px;
   border-radius: var(--radius-sm);
-  background: var(--accent-primary);
-  color: #FFFFFF;
+  background: var(--brand-gold);
+  color: var(--brand-forest);
   font-size: var(--font-size-xs);
   font-weight: 700;
   display: inline-flex;
@@ -157,12 +157,12 @@
 .sidebar-account-name {
   font-size: var(--font-size-md);
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--sidebar-text-strong);
 }
 
 .sidebar-account-email {
   font-size: var(--font-size-xs);
-  color: var(--text-muted);
+  color: var(--sidebar-text-muted);
 }
 
 .sidebar-menu {
@@ -200,10 +200,12 @@
 
 .page-title {
   margin: 0;
-  font-size: var(--font-size-2xl);
-  font-weight: 650;
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 500;
+  line-height: 1.2;
   color: var(--text-primary);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.015em;
 }
 
 .page-subtitle {
@@ -467,29 +469,32 @@
   white-space: nowrap;
 }
 
+/* Health: coloured dot + score + plain label (no pastel pills) */
 .health-pill {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 2px 10px 2px 4px;
-  border-radius: 999px;
-  font-size: var(--font-size-md);
-  font-weight: 500;
+  font-size: var(--font-size-base);
+  color: var(--text-primary);
 }
+
+.health-pill::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.health-pill-critical::before { background: var(--status-drift); }
+.health-pill-watch::before { background: var(--status-warning); }
+.health-pill-healthy::before { background: var(--status-nominal); }
 
 .health-pill-score {
-  min-width: 26px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--bg-surface);
-  font-weight: 650;
-  text-align: center;
-  line-height: 20px;
+  min-width: 18px;
+  font-weight: 600;
+  text-align: right;
 }
-
-.health-pill-critical { background: var(--status-drift-bg); color: var(--status-drift); }
-.health-pill-watch { background: var(--status-warning-bg); color: var(--status-warning); }
-.health-pill-healthy { background: var(--status-nominal-bg); color: var(--status-nominal); }
 
 .text-muted { color: var(--text-muted); }
 .text-down { color: var(--status-drift); font-weight: 550; }
@@ -648,7 +653,7 @@
     padding-right: 12px;
   }
 
-  .data-table td:first-child {
+  .clients-page .data-table td:first-child {
     white-space: normal;
   }
 

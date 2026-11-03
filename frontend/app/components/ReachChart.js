@@ -1,157 +1,141 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import {
-  Area,
-  AreaChart,
-  CartesianGrid,
-  ResponsiveContainer,
-  Tooltip,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { formatMetric } from "../../lib/health";
+
+const RANGES = [
+  { id: "30", label: "30d" },
+  { id: "60", label: "60d" },
+  { id: "90", label: "90d" },
+  { id: "all", label: "All" },
+];
 
 function formatDate(value) {
   try {
-    return new Intl.DateTimeFormat("en", {
-      month: "short",
-      day: "numeric",
-    }).format(new Date(value));
+    return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(value));
   } catch {
     return value;
   }
 }
 
 export default function ReachChart({ data }) {
-  const [range, setRange] = useState("ALL");
-  const rawData = data?.reach_data || [];
-  const isRoas = data?.metric_type === "roas";
-  const alertLevel = data?.alert_level || "green";
-
-  // Mature, non-neon editorial tones
-  const chartColor = alertLevel === "red" ? "#B91C1C" : alertLevel === "yellow" ? "#D97706" : "#15803D";
+  const [range, setRange] = useState("all");
+  const metricType = data?.metric_type;
+  const isRoas = metricType === "roas";
+  const metricLabel = isRoas ? "ROAS" : "reach";
 
   const chartData = useMemo(() => {
-    if (!rawData || rawData.length === 0) return [];
-    if (range === "30D") return rawData.slice(-30);
-    if (range === "60D") return rawData.slice(-60);
-    if (range === "90D") return rawData.slice(-90);
-    return rawData;
-  }, [rawData, range]);
+    const raw = data?.reach_data || [];
+    return range === "all" ? raw : raw.slice(-Number(range));
+  }, [data?.reach_data, range]);
 
-  const anomalySet = useMemo(() => {
-    return new Set((data?.anomalies || []).map((a) => a.date));
-  }, [data?.anomalies]);
+  const flagged = useMemo(() => new Set((data?.anomalies || []).map((a) => a.date)), [data?.anomalies]);
+  const flaggedInView = chartData.filter((pt) => flagged.has(pt.date)).length;
+
+  // Mark flagged days directly on the line
+  const renderDot = ({ cx, cy, payload, index }) =>
+    flagged.has(payload.date) ? (
+      <circle key={index} cx={cx} cy={cy} r={3} fill="var(--status-drift)" stroke="var(--bg-surface)" strokeWidth={1.5} />
+    ) : (
+      <g key={index} />
+    );
 
   return (
-    <section className="chart-card">
-      <div className="chart-header">
-        <div className="chart-title-group">
-          <h2>Daily Reach vs. Expected Baseline</h2>
-          <p>Tracking daily observed performance against seasonality-adjusted baseline.</p>
+    <section className="panel">
+      <div className="panel-header">
+        <div>
+          <h2 className="section-title">Daily {metricLabel}</h2>
+          <p className="section-subtitle">Compared with what is usual for each day of the week.</p>
         </div>
-
-        <div className="range-pills">
-          {["30D", "60D", "90D", "ALL"].map((tab) => (
+        <div className="segmented" role="tablist" aria-label="Date range">
+          {RANGES.map((r) => (
             <button
-              key={tab}
-              onClick={() => setRange(tab)}
-              className={`range-pill-btn ${range === tab ? "range-pill-btn-active" : ""}`}
+              key={r.id}
+              role="tab"
+              aria-selected={range === r.id}
+              onClick={() => setRange(r.id)}
+              className={`segmented-btn ${range === r.id ? "segmented-btn-active" : ""}`}
             >
-              {tab}
+              {r.label}
             </button>
           ))}
         </div>
       </div>
 
-      <div className="chart-legend">
-        <div className="chart-legend-item">
-          <span className="legend-swatch-solid" style={{ backgroundColor: chartColor }} />
-          <span>Actual Reach</span>
-        </div>
-        <div className="chart-legend-item">
-          <span className="legend-swatch-dash" />
-          <span>Expected Baseline</span>
-        </div>
-        {data?.anomalies?.length > 0 && (
-          <div className="chart-legend-item">
-            <span
-              style={{
-                width: "8px",
-                height: "8px",
-                borderRadius: "50%",
-                backgroundColor: "var(--status-drift)",
-                display: "inline-block",
-              }}
-            />
-            <span style={{ color: "var(--status-drift)" }}>
-              Decoupling Events ({data.anomalies.length} days)
-            </span>
-          </div>
+      <div className="legend">
+        <span className="legend-item">
+          <span className="legend-line" />
+          Actual
+        </span>
+        <span className="legend-item">
+          <span className="legend-line legend-line-dashed" />
+          Usual
+        </span>
+        {flaggedInView > 0 && (
+          <span className="legend-item">
+            <span className="legend-dot" />
+            Flagged days ({flaggedInView})
+          </span>
         )}
       </div>
 
       <div className="chart-box">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+          <AreaChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
             <defs>
               <linearGradient id="actualFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={chartColor} stopOpacity={0.12} />
-                <stop offset="100%" stopColor={chartColor} stopOpacity={0.0} />
+                <stop offset="0%" stopColor="var(--chart-line)" stopOpacity={0.14} />
+                <stop offset="100%" stopColor="var(--chart-line)" stopOpacity={0} />
               </linearGradient>
             </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
+            <CartesianGrid stroke="var(--border-subtle)" vertical={false} />
 
             <XAxis
               dataKey="date"
               tickFormatter={formatDate}
               interval="preserveStartEnd"
-              minTickGap={32}
-              stroke="transparent"
-              tick={{ fill: "var(--text-dim)", fontSize: 12, fontFamily: "var(--font-mono)" }}
+              minTickGap={40}
+              axisLine={false}
+              tickLine={false}
+              tick={{ fill: "var(--text-muted)", fontSize: 12 }}
             />
 
             <YAxis
-              stroke="transparent"
-              tick={{ fill: "var(--text-dim)", fontSize: 12, fontFamily: "var(--font-mono)" }}
-              tickFormatter={(v) => (isRoas ? `${v}x` : Number(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
+              axisLine={false}
+              tickLine={false}
+              width={52}
+              tick={{ fill: "var(--text-muted)", fontSize: 12 }}
+              tickFormatter={(v) => (isRoas ? `${v}x` : v >= 1000 ? `${Math.round(v / 1000)}k` : v)}
               domain={["auto", "auto"]}
             />
 
             <Tooltip
+              cursor={{ stroke: "var(--border-medium)" }}
               content={({ active, payload }) => {
-                if (!active || !payload || !payload.length) return null;
+                if (!active || !payload?.length) return null;
                 const pt = payload[0].payload;
-                const isAnomaly = anomalySet.has(pt.date);
-                const variance = pt.baseline > 0 ? (((pt.reach - pt.baseline) / pt.baseline) * 100).toFixed(1) : "0.0";
-
+                const diff = pt.baseline > 0 ? ((pt.reach - pt.baseline) / pt.baseline) * 100 : 0;
                 return (
-                  <div className="clean-tooltip mono-num">
-                    <div className="tooltip-date">{formatDate(pt.date)}</div>
-                    <div className="tooltip-line">
-                      <span style={{ color: chartColor }}>Actual:</span>
-                      <span style={{ color: "var(--text-title)", fontWeight: 600 }}>
-                        {isRoas ? `${pt.reach}x` : Number(pt.reach).toLocaleString()}
-                      </span>
+                  <div className="chart-tooltip">
+                    <div className="chart-tooltip-date">{formatDate(pt.date)}</div>
+                    <div className="chart-tooltip-row">
+                      <span>Actual</span>
+                      <strong>{formatMetric(pt.reach, metricType)}</strong>
                     </div>
-                    <div className="tooltip-line">
-                      <span style={{ color: "var(--text-muted)" }}>Expected:</span>
-                      <span style={{ color: "var(--text-body)" }}>
-                        {isRoas ? `${pt.baseline}x` : Number(pt.baseline).toLocaleString()}
-                      </span>
+                    <div className="chart-tooltip-row">
+                      <span>Usual</span>
+                      <span>{formatMetric(pt.baseline, metricType)}</span>
                     </div>
-                    <div className="tooltip-line" style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid var(--border-light)" }}>
-                      <span style={{ color: "var(--text-dim)" }}>Variance:</span>
-                      <span style={{ color: Number(variance) < 0 ? "var(--status-drift)" : "var(--status-nominal)", fontWeight: 600 }}>
-                        {Number(variance) > 0 ? "+" : ""}{variance}%
-                      </span>
+                    <div className="chart-tooltip-row">
+                      <span>Difference</span>
+                      <strong className={diff < 0 ? "text-down" : "text-up"}>
+                        {diff > 0 ? "+" : diff < 0 ? "−" : ""}
+                        {Math.abs(diff).toFixed(1)}%
+                      </strong>
                     </div>
-                    {isAnomaly && (
-                      <div style={{ marginTop: "6px", fontSize: "var(--font-size-xs)", color: "var(--status-drift)", fontWeight: 600 }}>
-                        ● Statistical Anomaly Flag
-                      </div>
-                    )}
+                    {flagged.has(pt.date) && <div className="chart-tooltip-flag">Flagged: well below usual</div>}
                   </div>
                 );
               }}
@@ -170,11 +154,12 @@ export default function ReachChart({ data }) {
             <Area
               type="monotone"
               dataKey="reach"
-              stroke={chartColor}
+              stroke="var(--chart-line)"
               strokeWidth={2}
               fill="url(#actualFill)"
-              isAnimationActive={true}
-              animationDuration={600}
+              dot={renderDot}
+              activeDot={{ r: 4, fill: "var(--chart-line)", stroke: "var(--bg-surface)", strokeWidth: 2 }}
+              isAnimationActive={false}
             />
           </AreaChart>
         </ResponsiveContainer>

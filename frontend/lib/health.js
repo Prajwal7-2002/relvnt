@@ -31,6 +31,12 @@ export function platformLabel(platform) {
   return PLATFORM_LABELS[String(platform).toLowerCase()] || platform;
 }
 
+// Sample datasets carry descriptive suffixes ("@tech_founder (Distribution Shock)");
+// show just the account name
+export function displayName(name) {
+  return String(name || "").replace(/\s*\([^)]*\)\s*$/, "").trim() || "Account";
+}
+
 // ROAS is a ratio (2.8x); reach and impressions are counts (13,457)
 export function formatMetric(value, metricType) {
   if (value === undefined || value === null || Number.isNaN(Number(value))) return "–";

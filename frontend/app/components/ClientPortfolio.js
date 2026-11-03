@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { formatMetric, healthLevel, platformLabel } from "../../lib/health";
+import { displayName, formatMetric, healthLevel, platformLabel } from "../../lib/health";
 
 const FILTERS = [
   { id: "all", label: "All" },
@@ -144,7 +144,7 @@ export default function ClientPortfolio({ portfolioList, onSelectClient, onOpenC
                       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openClient(client)}
                     >
                       <td>
-                        <div className="client-name">{client.account}</div>
+                        <div className="client-name">{displayName(client.account)}</div>
                         <div className="client-meta">
                           {platformLabel(client.platform)}
                           {client.tag && /benchmark/i.test(client.tag) && <span className="sample-tag">Sample data</span>}

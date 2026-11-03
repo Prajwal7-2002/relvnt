@@ -1,49 +1,61 @@
 /* ==========================================================================
-   RELVNT DESIGN TOKENS
-   Warm neutrals, one brand colour, status colours used only for status.
+   RELVNT DESIGN TOKENS: "Forest & Paper"
+   Warm paper canvas, deep forest brand surface, gold highlight.
+   Red / amber / green are reserved for health status.
    ========================================================================== */
 
 :root,
 [data-theme="light"] {
   /* Surfaces */
-  --bg-canvas: #F6F6F4;
-  --bg-surface: #FFFFFF;
-  --bg-surface-subtle: #F2F1EE;
-  --bg-surface-hover: #EBEAE6;
+  --bg-canvas: #F3F0E8;
+  --bg-surface: #FFFDF7;
+  --bg-surface-subtle: #EEEADF;
+  --bg-surface-hover: #E6E1D3;
 
   --bg-app: var(--bg-canvas);
   --bg-page: var(--bg-canvas);
   --bg-card: var(--bg-surface);
   --bg-card-subtle: var(--bg-surface-subtle);
   --bg-card-hover: var(--bg-surface-hover);
-  --bg-sidebar: #FBFBFA;
+
+  /* Brand surface (sidebar) */
+  --bg-sidebar: #17342A;
+  --sidebar-text: rgba(243, 240, 232, 0.74);
+  --sidebar-text-strong: #F7F4EC;
+  --sidebar-text-muted: rgba(243, 240, 232, 0.52);
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active: rgba(255, 255, 255, 0.11);
+  --sidebar-border: rgba(255, 255, 255, 0.10);
+  --brand-gold: #E8B04A;
+  --brand-forest: #17342A;
+  --chart-line: #1F4A3A;
 
   /* Borders */
-  --border-subtle: #E7E5E0;
-  --border-medium: #D7D4CD;
+  --border-subtle: #E3DED1;
+  --border-medium: #CFC8B7;
   --border-focus: var(--accent-primary);
   --border-light: var(--border-subtle);
 
   /* Text */
-  --text-primary: #1C1B19;
-  --text-secondary: #4A4843;
-  --text-muted: #77746C;
-  --text-dim: #A19D94;
+  --text-primary: #1A1F1B;
+  --text-secondary: #424A44;
+  --text-muted: #6F7770;
+  --text-dim: #A3A79F;
   --text-title: var(--text-primary);
   --text-body: var(--text-secondary);
 
   /* Status */
-  --status-nominal: #15803D;
-  --status-nominal-bg: #EBF6EE;
-  --status-nominal-border: #C3E4CC;
+  --status-nominal: #3A8F5C;
+  --status-nominal-bg: #E6F0E7;
+  --status-nominal-border: #C2DBC6;
 
-  --status-warning: #B45309;
-  --status-warning-bg: #FDF4E4;
-  --status-warning-border: #F1D8A8;
+  --status-warning: #C27B12;
+  --status-warning-bg: #F8EDD6;
+  --status-warning-border: #EBD3A0;
 
-  --status-drift: #C8322B;
-  --status-drift-bg: #FCEEEC;
-  --status-drift-border: #F2C6C1;
+  --status-drift: #C8402F;
+  --status-drift-bg: #F7E3DE;
+  --status-drift-border: #EBC0B7;
 
   --status-good: var(--status-nominal);
   --status-good-bg: var(--status-nominal-bg);
@@ -56,25 +68,25 @@
   --status-alert-border: var(--status-drift-border);
   --status-critical: var(--status-drift);
 
-  /* Brand & Buttons */
-  --accent-primary: #3B5BDB;
-  --accent-primary-hover: #2F4AC0;
-  --accent-primary-soft: #EEF1FC;
+  /* Accent & Buttons */
+  --accent-primary: #1F4A3A;
+  --accent-primary-hover: #17342A;
+  --accent-primary-soft: #DCE6DD;
 
-  --btn-primary-bg: var(--accent-primary);
-  --btn-primary-text: #FFFFFF;
-  --btn-primary-hover: var(--accent-primary-hover);
+  --btn-primary-bg: #17342A;
+  --btn-primary-text: #F7F4EC;
+  --btn-primary-hover: #234A3C;
 
-  --btn-secondary-bg: #FFFFFF;
+  --btn-secondary-bg: var(--bg-surface);
   --btn-secondary-text: var(--text-primary);
   --btn-secondary-border: var(--border-medium);
   --btn-secondary-hover: var(--bg-surface-subtle);
 
-  /* Elevation */
-  --shadow-sm: 0 1px 2px rgba(28, 27, 25, 0.05);
-  --shadow-md: 0 2px 8px rgba(28, 27, 25, 0.06);
-  --shadow-lg: 0 12px 32px -8px rgba(28, 27, 25, 0.16);
-  --shadow-dropdown: 0 12px 32px -8px rgba(28, 27, 25, 0.18), 0 2px 6px rgba(28, 27, 25, 0.06);
+  /* Elevation (kept flat: borders do the work) */
+  --shadow-sm: 0 1px 2px rgba(26, 31, 27, 0.04);
+  --shadow-md: 0 2px 8px rgba(26, 31, 27, 0.06);
+  --shadow-lg: 0 16px 40px -12px rgba(26, 31, 27, 0.22);
+  --shadow-dropdown: 0 16px 40px -12px rgba(26, 31, 27, 0.24), 0 2px 6px rgba(26, 31, 27, 0.06);
 
   /* Radii */
   --radius-sm: 6px;
@@ -83,6 +95,7 @@
 
   /* Type */
   --font-mono: var(--font-sans);
+  --font-display: var(--font-serif, Georgia, "Times New Roman", serif);
   --font-size-2xs: 10px;
   --font-size-xs: 11px;
   --font-size-sm: 12px;
@@ -104,41 +117,49 @@
 }
 
 [data-theme="dark"] {
-  --bg-canvas: #121211;
-  --bg-surface: #1B1B19;
-  --bg-surface-subtle: #232320;
-  --bg-surface-hover: #2C2B28;
+  --bg-canvas: #0F1613;
+  --bg-surface: #16201B;
+  --bg-surface-subtle: #1C2822;
+  --bg-surface-hover: #24332B;
 
   --bg-app: var(--bg-canvas);
   --bg-page: var(--bg-canvas);
   --bg-card: var(--bg-surface);
   --bg-card-subtle: var(--bg-surface-subtle);
   --bg-card-hover: var(--bg-surface-hover);
-  --bg-sidebar: #161615;
 
-  --border-subtle: #2D2C29;
-  --border-medium: #3B3A36;
+  --bg-sidebar: #0B110E;
+  --sidebar-text: rgba(238, 240, 234, 0.72);
+  --sidebar-text-strong: #F2F3EE;
+  --sidebar-text-muted: rgba(238, 240, 234, 0.48);
+  --sidebar-hover: rgba(255, 255, 255, 0.05);
+  --sidebar-active: rgba(255, 255, 255, 0.09);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --chart-line: #A9CDB5;
+
+  --border-subtle: #25342C;
+  --border-medium: #33463B;
   --border-focus: var(--accent-primary);
   --border-light: var(--border-subtle);
 
-  --text-primary: #EDEBE6;
-  --text-secondary: #C6C3BB;
-  --text-muted: #918D84;
-  --text-dim: #6C6963;
+  --text-primary: #EEF0EA;
+  --text-secondary: #C9CEC5;
+  --text-muted: #8E978E;
+  --text-dim: #66705F;
   --text-title: var(--text-primary);
   --text-body: var(--text-secondary);
 
-  --status-nominal: #4ADE80;
-  --status-nominal-bg: rgba(74, 222, 128, 0.10);
-  --status-nominal-border: rgba(74, 222, 128, 0.28);
+  --status-nominal: #6CC28A;
+  --status-nominal-bg: rgba(108, 194, 138, 0.10);
+  --status-nominal-border: rgba(108, 194, 138, 0.28);
 
-  --status-warning: #FBBF57;
-  --status-warning-bg: rgba(251, 191, 87, 0.10);
-  --status-warning-border: rgba(251, 191, 87, 0.28);
+  --status-warning: #E3A13F;
+  --status-warning-bg: rgba(227, 161, 63, 0.10);
+  --status-warning-border: rgba(227, 161, 63, 0.28);
 
-  --status-drift: #F47A6F;
-  --status-drift-bg: rgba(244, 122, 111, 0.10);
-  --status-drift-border: rgba(244, 122, 111, 0.28);
+  --status-drift: #EE7A66;
+  --status-drift-bg: rgba(238, 122, 102, 0.10);
+  --status-drift-border: rgba(238, 122, 102, 0.28);
 
   --status-good: var(--status-nominal);
   --status-good-bg: var(--status-nominal-bg);
@@ -151,13 +172,13 @@
   --status-alert-border: var(--status-drift-border);
   --status-critical: var(--status-drift);
 
-  --accent-primary: #7D93F2;
-  --accent-primary-hover: #95A7F5;
-  --accent-primary-soft: rgba(125, 147, 242, 0.12);
+  --accent-primary: #A9CDB5;
+  --accent-primary-hover: #C1DDCA;
+  --accent-primary-soft: rgba(169, 205, 181, 0.12);
 
-  --btn-primary-bg: #4C68E0;
-  --btn-primary-text: #FFFFFF;
-  --btn-primary-hover: #5B76E6;
+  --btn-primary-bg: #F2EEE3;
+  --btn-primary-text: #17342A;
+  --btn-primary-hover: #FFFFFF;
 
   --btn-secondary-bg: var(--bg-surface);
   --btn-secondary-text: var(--text-primary);
@@ -166,8 +187,8 @@
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
-  --shadow-dropdown: 0 12px 32px -8px rgba(0, 0, 0, 0.7);
+  --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
+  --shadow-dropdown: 0 16px 40px -12px rgba(0, 0, 0, 0.75);
 
   --range-pin-border: var(--text-primary);
 }
