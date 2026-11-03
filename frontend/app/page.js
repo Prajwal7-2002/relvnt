@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import ActionCard from "./components/ActionCard";
+import ErrorBoundary from "./components/ErrorBoundary";
 import HealthScore from "./components/HealthScore";
 import ReachChart from "./components/ReachChart";
 
@@ -17,6 +18,7 @@ export default function Page() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [activePreset, setActivePreset] = useState("instagram_drop");
+  const [theme, setTheme] = useState("light");
   const [showConnectModal, setShowConnectModal] = useState(false);
   const [connectTab, setConnectTab] = useState("sheet"); // "sheet" | "csv" | "instagram" | "slack" | "api"
 
@@ -58,7 +60,19 @@ export default function Page() {
 
   useEffect(() => {
     fetchAnalysis("instagram_drop");
+    const saved = typeof window !== "undefined" ? localStorage.getItem("relvnt-theme") || "light" : "light";
+    setTheme(saved);
+    document.documentElement.setAttribute("data-theme", saved);
   }, []);
+
+  const toggleTheme = () => {
+    const next = theme === "light" ? "dark" : "light";
+    setTheme(next);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("relvnt-theme", next);
+    }
+    document.documentElement.setAttribute("data-theme", next);
+  };
 
   // CSV Ingestion
   const handleFileUpload = async (event) => {
@@ -262,6 +276,14 @@ export default function Page() {
             <span>Local Sentinel Engine</span>
           </div>
 
+          <button onClick={toggleTheme} className="theme-toggle-btn" title="Switch between Executive Paper and Titanium Dark mode">
+            <span>{theme === "light" ? "🌙 Dark" : "☀️ Light"}</span>
+          </button>
+
+          <button onClick={() => window.print()} className="btn-secondary" title="Export 1-Click Boardroom PDF Memo">
+            Export Memo (PDF)
+          </button>
+
           <button onClick={() => setShowConnectModal(true)} className="btn-primary">
             + Plug In &amp; Automate Data
           </button>
@@ -312,14 +334,16 @@ export default function Page() {
         </div>
       )}
 
-      {/* 1. EXECUTIVE STORY & HORIZONTAL RESONANCE RANGE BAR */}
-      {data && <HealthScore data={data} />}
+      <ErrorBoundary onReset={() => fetchAnalysis(activePreset)}>
+        {/* 1. EXECUTIVE STORY & HORIZONTAL RESONANCE RANGE BAR */}
+        {data && <HealthScore data={data} />}
 
-      {/* 2. DAILY REACH VS EXPECTED BASELINE CHART */}
-      {data && <ReachChart data={data} />}
+        {/* 2. DAILY REACH VS EXPECTED BASELINE CHART */}
+        {data && <ReachChart data={data} />}
 
-      {/* 3. 72-HOUR TURNAROUND ACTION PLAN */}
-      {data && <ActionCard data={data} />}
+        {/* 3. 72-HOUR TURNAROUND ACTION PLAN */}
+        {data && <ActionCard data={data} />}
+      </ErrorBoundary>
 
       {/* SLIDE-OVER AI ANALYST DRAWER */}
       {showCopilot && (
@@ -407,7 +431,7 @@ export default function Page() {
           <div className="modal-overlay" onClick={() => setShowConnectModal(false)} />
           <div className="modal-box">
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h2 style={{ fontSize: "18px", fontWeight: 700, margin: 0, color: "#FFFFFF" }}>
+              <h2 style={{ fontSize: "18px", fontWeight: 700, margin: 0, color: "var(--text-title)" }}>
                 Plug In &amp; Automate Client Data
               </h2>
               <button
@@ -510,7 +534,7 @@ export default function Page() {
                   padding: "28px 20px",
                   textAlign: "center",
                   cursor: "pointer",
-                  background: "rgba(255, 255, 255, 0.02)",
+                  background: "var(--bg-card-subtle)",
                 }}
                 onClick={() => fileInputRef.current?.click()}
               >
@@ -521,7 +545,7 @@ export default function Page() {
                   accept=".csv"
                   style={{ display: "none" }}
                 />
-                <div style={{ fontSize: "14px", fontWeight: 600, color: "#FFFFFF", marginBottom: "4px" }}>
+                <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-title)", marginBottom: "4px" }}>
                   {integrationLoading ? "Evaluating Dataset..." : "Click to select CSV file"}
                 </div>
                 <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
