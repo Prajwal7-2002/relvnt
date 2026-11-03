@@ -24,6 +24,7 @@ export default function Page() {
 
   // Integration inputs
   const [sheetUrl, setSheetUrl] = useState("");
+  const [clientHandle, setClientHandle] = useState("");
   const [igToken, setIgToken] = useState("");
   const [igBusinessId, setIgBusinessId] = useState("");
   const [slackWebhook, setSlackWebhook] = useState("");
@@ -37,6 +38,26 @@ export default function Page() {
   const [copilotLoading, setCopilotLoading] = useState(false);
   const fileInputRef = useRef(null);
   const channelCache = useRef({});
+
+  const handleDownloadSampleCsv = () => {
+    const today = new Date();
+    const rows = ["Date,Reach"];
+    for (let i = 89; i >= 0; i--) {
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const dateStr = d.toISOString().split("T")[0];
+      const base = 12500 + Math.sin((i / 7) * Math.PI * 2) * 1600;
+      const drop = i < 12 ? 0.46 : 1.0;
+      rows.push(`${dateStr},${Math.round(base * drop)}`);
+    }
+    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "sample_reach_data.csv";
+    a.click();
+    URL.revokeObjectURL(a);
+  };
 
   const fetchAnalysis = async (presetKey = "instagram_drop", skipCache = false) => {
     setActivePreset(presetKey);
@@ -111,6 +132,9 @@ export default function Page() {
 
     const formData = new FormData();
     formData.append("file", file);
+    if (clientHandle.trim()) {
+      formData.append("account_name", clientHandle.trim());
+    }
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
@@ -151,7 +175,7 @@ export default function Page() {
         body: JSON.stringify({
           sheet_url: sheetUrl.trim(),
           metric_type: "reach",
-          account_name: "Google Sheet Sync",
+          account_name: clientHandle.trim() || "Google Sheet Sync",
         }),
       });
 
@@ -372,6 +396,26 @@ export default function Page() {
         </div>
       )}
 
+      {/* PRINT-ONLY MEMO HEADER (Rendered exclusively when printing or exporting to PDF) */}
+      <div className="print-memo-header">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "2px solid #0F172A", paddingBottom: "12px", marginBottom: "20px" }}>
+          <div>
+            <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "-0.03em", color: "#0F172A" }}>
+              RELVNT // EXECUTIVE DISTRIBUTION AUDIT
+            </div>
+            <div style={{ fontSize: "12px", color: "#64748B", marginTop: "3px" }}>
+              Confidential Algorithmic Early-Warning Diagnostic &amp; 72-Hour Turnaround Plan
+            </div>
+          </div>
+          <div style={{ textAlign: "right", fontSize: "12px", color: "#334155" }}>
+            <div><strong>Target Account:</strong> {data?.account_name || "Client Account"}</div>
+            <div style={{ color: "#64748B", marginTop: "2px" }}>
+              Audit Date: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <ErrorBoundary onReset={() => fetchAnalysis(activePreset)}>
         {/* 1. EXECUTIVE STORY & HORIZONTAL RESONANCE RANGE BAR */}
         {data && <HealthScore data={data} />}
@@ -554,6 +598,17 @@ export default function Page() {
             {connectTab === "sheet" && (
               <form onSubmit={handleGoogleSheetSync}>
                 <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
+                  Client / Brand Handle (Optional):
+                </label>
+                <input
+                  type="text"
+                  placeholder="e.g. @client_brand or Acme Retargeting"
+                  value={clientHandle}
+                  onChange={(e) => setClientHandle(e.target.value)}
+                  className="input-text-field"
+                />
+
+                <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
                   Google Sheets Sharing URL:
                 </label>
                 <input
@@ -580,29 +635,54 @@ export default function Page() {
 
             {/* TAB 2: CSV DROP */}
             {connectTab === "csv" && (
-              <div
-                style={{
-                  border: "2px dashed var(--border-medium)",
-                  borderRadius: "10px",
-                  padding: "28px 20px",
-                  textAlign: "center",
-                  cursor: "pointer",
-                  background: "var(--bg-card-subtle)",
-                }}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={handleFileUpload}
-                  accept=".csv"
-                  style={{ display: "none" }}
-                />
-                <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-title)", marginBottom: "4px" }}>
-                  {integrationLoading ? "Evaluating Dataset..." : "Click to select CSV file"}
+              <div>
+                <div style={{ marginBottom: "14px" }}>
+                  <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
+                    Client / Brand Handle (Optional):
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. @client_brand or Acme DTC"
+                    value={clientHandle}
+                    onChange={(e) => setClientHandle(e.target.value)}
+                    className="input-text-field"
+                  />
+                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "-4px" }}>
+                    <button
+                      type="button"
+                      onClick={handleDownloadSampleCsv}
+                      className="btn-secondary"
+                      style={{ fontSize: "11px", padding: "4px 10px" }}
+                    >
+                      ⬇ Download Sample CSV Template
+                    </button>
+                  </div>
                 </div>
-                <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
-                  Drop any Meta Ads Manager, Instagram Insights, or TikTok CSV
+
+                <div
+                  style={{
+                    border: "2px dashed var(--border-medium)",
+                    borderRadius: "10px",
+                    padding: "28px 20px",
+                    textAlign: "center",
+                    cursor: "pointer",
+                    background: "var(--bg-card-subtle)",
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleFileUpload}
+                    accept=".csv"
+                    style={{ display: "none" }}
+                  />
+                  <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-title)", marginBottom: "4px" }}>
+                    {integrationLoading ? "Evaluating Dataset..." : "Click to select CSV file"}
+                  </div>
+                  <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
+                    Drop any Meta Ads Manager, Instagram Insights, or TikTok CSV
+                  </div>
                 </div>
               </div>
             )}

@@ -940,7 +940,15 @@ html, body {
    PRINT STYLESHEET: 1-CLICK BOARDROOM PDF EXPORT
    ========================================================================== */
 
+.print-memo-header {
+  display: none;
+}
+
 @media print {
+  .print-memo-header {
+    display: block !important;
+    margin-bottom: 24px !important;
+  }
   body {
     background: #FFFFFF !important;
     color: #000000 !important;
