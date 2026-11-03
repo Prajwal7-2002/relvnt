@@ -83,6 +83,9 @@ export default function Page() {
   const [agencyName, setAgencyName] = useState("Your Agency");
   const [auditorName, setAuditorName] = useState("Lead Strategist");
   const [agencyRole, setAgencyRole] = useState("Growth & Retention Director");
+  const [agencyTagline, setAgencyTagline] = useState("Social Media & Distribution Advisory");
+  const [agencyContact, setAgencyContact] = useState("audit@youragency.com");
+  const [confidentiality, setConfidentiality] = useState("CONFIDENTIAL & PROPRIETARY // CLIENT EYES ONLY");
   const [portfolioList, setPortfolioList] = useState(DEFAULT_PORTFOLIO);
 
   // Integration inputs
@@ -208,6 +211,12 @@ export default function Page() {
 
       const sRole = localStorage.getItem("relvnt-agency-role");
       if (sRole) setAgencyRole(sRole);
+      const sTagline = localStorage.getItem("relvnt-agency-tagline");
+      if (sTagline) setAgencyTagline(sTagline);
+      const sContact = localStorage.getItem("relvnt-agency-contact");
+      if (sContact) setAgencyContact(sContact);
+      const sConf = localStorage.getItem("relvnt-confidentiality");
+      if (sConf) setConfidentiality(sConf);
       const sPortfolio = localStorage.getItem("relvnt-portfolio");
       if (sPortfolio) {
         try {
@@ -512,13 +521,13 @@ export default function Page() {
 
       {/* PRINT-ONLY MEMO HEADER (Rendered exclusively when printing or exporting to PDF) */}
       <div className="print-memo-header">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "2px solid #0F172A", paddingBottom: "12px", marginBottom: "20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "2px solid #0F172A", paddingBottom: "12px", marginBottom: "8px" }}>
           <div>
             <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "-0.03em", color: "#0F172A" }}>
               RELVNT × {agencyName.toUpperCase()} // EXECUTIVE DISTRIBUTION AUDIT
             </div>
             <div style={{ fontSize: "12px", color: "#64748B", marginTop: "3px" }}>
-              Lead Auditor: <strong>{auditorName}</strong> ({agencyRole}) • Certified Sentinel Protocol v1.2.0
+              {agencyTagline} • Lead Auditor: <strong>{auditorName}</strong> ({agencyRole})
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: "12px", color: "#334155" }}>
@@ -527,6 +536,10 @@ export default function Page() {
               Audit Date: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
             </div>
           </div>
+        </div>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "#94A3B8", textTransform: "uppercase", paddingBottom: "14px", borderBottom: "1px dashed #CBD5E1", marginBottom: "16px" }}>
+          <span>{confidentiality}</span>
+          <span>Official Inquiries: {agencyContact} • Protocol v1.2.0</span>
         </div>
       </div>
 
@@ -1014,14 +1027,23 @@ export default function Page() {
         currentAgencyName={agencyName}
         currentAuditorName={auditorName}
         currentAgencyRole={agencyRole}
-        onSave={({ agencyName: newAgency, auditorName: newAuditor, agencyRole: newRole }) => {
+        currentAgencyTagline={agencyTagline}
+        currentAgencyContact={agencyContact}
+        currentConfidentiality={confidentiality}
+        onSave={({ agencyName: newAgency, auditorName: newAuditor, agencyRole: newRole, agencyTagline: newTag, agencyContact: newContact, confidentiality: newConf }) => {
           setAgencyName(newAgency);
           setAuditorName(newAuditor);
           setAgencyRole(newRole);
+          setAgencyTagline(newTag);
+          setAgencyContact(newContact);
+          setConfidentiality(newConf);
           if (typeof window !== "undefined") {
             localStorage.setItem("relvnt-agency-name", newAgency);
             localStorage.setItem("relvnt-auditor-name", newAuditor);
             localStorage.setItem("relvnt-agency-role", newRole);
+            localStorage.setItem("relvnt-agency-tagline", newTag);
+            localStorage.setItem("relvnt-agency-contact", newContact);
+            localStorage.setItem("relvnt-confidentiality", newConf);
           }
         }}
       />
