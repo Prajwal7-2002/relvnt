@@ -17,20 +17,23 @@ export const supabase = isSupabaseConfigured
 /**
  * Enterprise Auth Client wrapper with Zero-Lockout Graceful Fallback.
  * If live Supabase credentials are configured, delegates directly to Supabase Auth.
- * If credentials are not yet configured, operates in local Demo/Guest Mode without crashing.
+ * If credentials are not yet configured, operates in neutral local sandbox mode without crashing.
  */
 export const authService = {
   isConfigured: isSupabaseConfigured,
 
   async signUp({ email, password, agencyName, auditorName }) {
+    const finalAgency = (agencyName || "Your Agency").trim();
+    const finalAuditor = (auditorName || "Lead Strategist").trim();
+
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            agency_name: agencyName || "Your Agency",
-            auditor_name: auditorName || "Lead Strategist",
+            agency_name: finalAgency,
+            auditor_name: finalAuditor,
           },
         },
       });
@@ -40,19 +43,19 @@ export const authService = {
 
     // Local in-memory / storage fallback
     const mockUser = {
-      id: "demo-user-" + Date.now(),
+      id: "user-" + Date.now(),
       email,
       user_metadata: {
-        agency_name: agencyName || "Your Agency",
-        auditor_name: auditorName || "Lead Strategist",
+        agency_name: finalAgency,
+        auditor_name: finalAuditor,
       },
     };
     if (typeof window !== "undefined") {
       localStorage.setItem("relvnt-auth-session", JSON.stringify(mockUser));
-      localStorage.setItem("relvnt-agency-name", agencyName || "Your Agency");
-      localStorage.setItem("relvnt-auditor-name", auditorName || "Lead Strategist");
+      localStorage.setItem("relvnt-agency-name", finalAgency);
+      localStorage.setItem("relvnt-auditor-name", finalAuditor);
     }
-    return { user: mockUser, session: null, mode: "local_demo" };
+    return { user: mockUser, session: null, mode: "local_sandbox" };
   },
 
   async signIn({ email, password }) {
@@ -65,19 +68,26 @@ export const authService = {
       return { user: data.user, session: data.session, mode: "live" };
     }
 
-    // Local in-memory / storage fallback
+    // Local in-memory / storage fallback with neutral defaults
+    const savedAgency = typeof window !== "undefined"
+      ? localStorage.getItem("relvnt-agency-name") || "Your Agency"
+      : "Your Agency";
+    const savedAuditor = typeof window !== "undefined"
+      ? localStorage.getItem("relvnt-auditor-name") || "Lead Strategist"
+      : "Lead Strategist";
+
     const mockUser = {
-      id: "demo-user-1",
+      id: "user-" + Date.now(),
       email,
       user_metadata: {
-        agency_name: "BrandVitamin Advisory",
-        auditor_name: "Bhagwan Das",
+        agency_name: savedAgency,
+        auditor_name: savedAuditor,
       },
     };
     if (typeof window !== "undefined") {
       localStorage.setItem("relvnt-auth-session", JSON.stringify(mockUser));
     }
-    return { user: mockUser, session: null, mode: "local_demo" };
+    return { user: mockUser, session: null, mode: "local_sandbox" };
   },
 
   async signOut() {
@@ -98,27 +108,10 @@ export const authService = {
       const saved = localStorage.getItem("relvnt-auth-session");
       if (saved) {
         try {
-          return { user: JSON.parse(saved), session: null, mode: "local_demo" };
+          return { user: JSON.parse(saved), session: null, mode: "local_sandbox" };
         } catch (_) {}
       }
     }
     return null;
-  },
-
-  demoLogin({ agencyName = "BrandVitamin Advisory", auditorName = "Bhagwan Das", email = "demo@agency.com" }) {
-    const mockUser = {
-      id: "demo-agency-lead",
-      email,
-      user_metadata: {
-        agency_name: agencyName,
-        auditor_name: auditorName,
-      },
-    };
-    if (typeof window !== "undefined") {
-      localStorage.setItem("relvnt-auth-session", JSON.stringify(mockUser));
-      localStorage.setItem("relvnt-agency-name", agencyName);
-      localStorage.setItem("relvnt-auditor-name", auditorName);
-    }
-    return mockUser;
   },
 };
