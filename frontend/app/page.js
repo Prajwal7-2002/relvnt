@@ -272,8 +272,19 @@ export default function Page() {
 
         <div className="nav-actions">
           <div className="privacy-pill">
-            <span className="privacy-dot" />
-            <span>Local Sentinel Engine</span>
+            <span
+              className="privacy-dot"
+              style={{
+                backgroundColor: data?.ai_engine?.toLowerCase().includes("gemini")
+                  ? "var(--status-good)"
+                  : "var(--status-warn)",
+              }}
+            />
+            <span>
+              {data?.ai_engine?.toLowerCase().includes("gemini")
+                ? "Gemini 1.5 Active"
+                : "Local Sentinel (Zero-Data-Leak)"}
+            </span>
           </div>
 
           <button onClick={toggleTheme} className="theme-toggle-btn" title="Switch between Executive Paper and Titanium Dark mode">
@@ -393,6 +404,21 @@ export default function Page() {
                   key={idx}
                   className={msg.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"}
                 >
+                  {msg.role === "ai" && msg.engine && (
+                    <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-dim)", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                      <span
+                        style={{
+                          width: "6px",
+                          height: "6px",
+                          borderRadius: "50%",
+                          backgroundColor: msg.engine.toLowerCase().includes("gemini")
+                            ? "var(--status-good)"
+                            : "var(--text-dim)",
+                        }}
+                      />
+                      <span>{msg.engine}</span>
+                    </div>
+                  )}
                   {msg.text}
                 </div>
               ))}
