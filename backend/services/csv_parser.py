@@ -79,8 +79,16 @@ class DefensiveCSVParser:
         if len(df) > 50000:
             raise ValueError("CSV exceeds maximum supported limit of 50,000 rows.")
 
-        # Strip whitespace from column names
-        df.columns = [str(c).strip() for c in df.columns]
+        if len(df.columns) > 64:
+            raise ValueError("CSV exceeds maximum supported limit of 64 columns.")
+
+        # Sanitization: Strip dangerous formula injection prefixes (=, +, -, @) and whitespace
+        sanitized_cols = []
+        for c in df.columns:
+            clean_c = str(c).strip()
+            clean_c = re.sub(r"^[=+\-@\t\r]+", "", clean_c).strip()
+            sanitized_cols.append(clean_c or "col")
+        df.columns = sanitized_cols
 
         # 1. Detect Date Column
         date_col = None

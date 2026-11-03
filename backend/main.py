@@ -1,5 +1,7 @@
 import logging
 import re
+import time
+from collections import defaultdict
 from typing import Any, Dict, List, Optional
 
 import requests
@@ -23,7 +25,29 @@ app = FastAPI(
     redoc_url="/redoc",
 )
 
-# Strict Security Headers Middleware
+# In-Memory Rate Limiting Guard (Sliding Window per IP to protect ML compute)
+REQUEST_LOG = defaultdict(list)
+MAX_REQUESTS_PER_MINUTE = 180
+
+
+@app.middleware("http")
+async def rate_limit_guard(request: Request, call_next):
+    client_ip = request.client.host if request.client else "127.0.0.1"
+    now = time.time()
+    # prune timestamps older than 60 seconds
+    recent = [t for t in REQUEST_LOG[client_ip] if now - t < 60]
+    if len(recent) >= MAX_REQUESTS_PER_MINUTE:
+        return Response(
+            content='{"detail":"Rate limit exceeded. Too many requests. Please throttle."}',
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            media_type="application/json",
+        )
+    recent.append(now)
+    REQUEST_LOG[client_ip] = recent
+    return await call_next(request)
+
+
+# Strict Enterprise Security Headers Middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response: Response = await call_next(request)
@@ -32,7 +56,19 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["X-XSS-Protection"] = "1; mode=block"
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
     return response
+
+
+# Safe Global Exception Handler: Protects against internal traceback and server path leakage
+@app.exception_handler(Exception)
+async def safe_exception_handler(request: Request, exc: Exception):
+    logger.error("Unhandled error processing %s %s: %s", request.method, request.url.path, exc, exc_info=True)
+    return Response(
+        content='{"detail":"An internal processing anomaly occurred. Request could not be completed safely."}',
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        media_type="application/json",
+    )
 
 # CORS configuration
 app.add_middleware(

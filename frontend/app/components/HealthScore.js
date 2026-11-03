@@ -6,9 +6,9 @@ function getStatusDetails(score, changePct) {
   if (score >= 70) {
     return {
       label: "Optimal Reach",
-      badgeColor: "#10B981",
-      badgeBg: "rgba(16, 185, 129, 0.12)",
-      badgeBorder: "rgba(16, 185, 129, 0.25)",
+      badgeColor: "var(--status-good)",
+      badgeBg: "var(--status-good-bg)",
+      badgeBorder: "var(--status-good-border)",
       headline: "Account performance is in healthy equilibrium.",
       summary: "Your daily delivery matches or exceeds historical benchmarks. The distribution algorithm is actively showing your content to both followers and explore audiences.",
     };
@@ -16,18 +16,18 @@ function getStatusDetails(score, changePct) {
   if (score >= 40) {
     return {
       label: "Audience Fatigue",
-      badgeColor: "#F59E0B",
-      badgeBg: "rgba(245, 158, 11, 0.12)",
-      badgeBorder: "rgba(245, 158, 11, 0.25)",
+      badgeColor: "var(--status-warn)",
+      badgeBg: "var(--status-warn-bg)",
+      badgeBorder: "var(--status-warn-border)",
       headline: "Audience fatigue detected: Reach velocity is softening.",
       summary: "Delivery has decelerated compared to your 30-day baseline. Initial engagement velocity has slowed, causing fewer non-follower recommendations.",
     };
   }
   return {
     label: "Critical Reach Drop",
-    badgeColor: "#EF4444",
-    badgeBg: "rgba(239, 68, 68, 0.12)",
-    badgeBorder: "rgba(239, 68, 68, 0.25)",
+    badgeColor: "var(--status-alert)",
+    badgeBg: "var(--status-alert-bg)",
+    badgeBorder: "var(--status-alert-border)",
     headline: `Your reach is down ${Math.abs(changePct)}% below normal.`,
     summary: "Feed distribution dropped significantly below seasonal expectations. The algorithm has temporarily curtailed explore and non-follower recommendations due to early drop-off.",
   };
@@ -77,12 +77,12 @@ export default function HealthScore({ data }) {
         </div>
       </div>
 
-      {/* Horizontal Resonance Range Tracker (Mixture of 3) */}
+      {/* Horizontal Resonance Range Tracker */}
       <div className="range-tracker-wrap">
         <div className="range-tracker-labels">
-          <span style={{ color: "#EF4444" }}>Suppressed (0–40)</span>
-          <span style={{ color: "#F59E0B" }}>Average (40–70)</span>
-          <span style={{ color: "#10B981" }}>Optimal (70–100)</span>
+          <span style={{ color: "var(--status-alert)" }}>Suppressed (0–40)</span>
+          <span style={{ color: "var(--status-warn)" }}>Average (40–70)</span>
+          <span style={{ color: "var(--status-good)" }}>Optimal (70–100)</span>
         </div>
 
         <div className="range-tracker-bar">
@@ -116,7 +116,7 @@ export default function HealthScore({ data }) {
           <span className="quick-stat-label">Net Difference</span>
           <span
             className="quick-stat-value mono-num"
-            style={{ color: changePct < 0 ? "#EF4444" : "#10B981" }}
+            style={{ color: changePct < 0 ? "var(--status-alert)" : "var(--status-good)" }}
           >
             {changePct > 0 ? "+" : ""}{changePct}%
           </span>
@@ -127,7 +127,7 @@ export default function HealthScore({ data }) {
           <span className="quick-stat-label">Estimated Impact</span>
           <span
             className="quick-stat-value mono-num"
-            style={{ fontSize: "16px", color: changePct < 0 ? "#F59E0B" : "inherit" }}
+            style={{ fontSize: "16px", color: changePct < 0 ? "var(--status-warn)" : "inherit" }}
           >
             {metrics.projected_impact || "Nominal run-rate"}
           </span>

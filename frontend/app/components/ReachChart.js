@@ -28,7 +28,8 @@ export default function ReachChart({ data }) {
   const isRoas = data?.metric_type === "roas";
   const alertLevel = data?.alert_level || "green";
 
-  const chartColor = alertLevel === "red" ? "#EF4444" : alertLevel === "yellow" ? "#F59E0B" : "#10B981";
+  // Mature, non-neon editorial tones
+  const chartColor = alertLevel === "red" ? "#B91C1C" : alertLevel === "yellow" ? "#D97706" : "#15803D";
 
   const chartData = useMemo(() => {
     if (!rawData || rawData.length === 0) return [];
@@ -79,12 +80,12 @@ export default function ReachChart({ data }) {
                 width: "8px",
                 height: "8px",
                 borderRadius: "50%",
-                backgroundColor: "#EF4444",
+                backgroundColor: "#B91C1C",
                 display: "inline-block",
               }}
             />
-            <span style={{ color: "#EF4444" }}>
-              Anomaly Flags ({data.anomalies.length} days)
+            <span style={{ color: "#B91C1C" }}>
+              Decoupling Events ({data.anomalies.length} days)
             </span>
           </div>
         )}
@@ -95,12 +96,12 @@ export default function ReachChart({ data }) {
           <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
             <defs>
               <linearGradient id="actualFill" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={chartColor} stopOpacity={0.18} />
+                <stop offset="0%" stopColor={chartColor} stopOpacity={0.12} />
                 <stop offset="100%" stopColor={chartColor} stopOpacity={0.0} />
               </linearGradient>
             </defs>
 
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255, 255, 255, 0.05)" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--border-light)" vertical={false} />
 
             <XAxis
               dataKey="date"
@@ -108,12 +109,12 @@ export default function ReachChart({ data }) {
               interval="preserveStartEnd"
               minTickGap={32}
               stroke="transparent"
-              tick={{ fill: "#64748B", fontSize: 12, fontFamily: "var(--font-mono)" }}
+              tick={{ fill: "var(--text-dim)", fontSize: 12, fontFamily: "var(--font-mono)" }}
             />
 
             <YAxis
               stroke="transparent"
-              tick={{ fill: "#64748B", fontSize: 12, fontFamily: "var(--font-mono)" }}
+              tick={{ fill: "var(--text-dim)", fontSize: 12, fontFamily: "var(--font-mono)" }}
               tickFormatter={(v) => (isRoas ? `${v}x` : Number(v) >= 1000 ? `${(v / 1000).toFixed(0)}k` : v)}
               domain={["auto", "auto"]}
             />
@@ -130,25 +131,25 @@ export default function ReachChart({ data }) {
                     <div className="tooltip-date">{formatDate(pt.date)}</div>
                     <div className="tooltip-line">
                       <span style={{ color: chartColor }}>Actual:</span>
-                      <span style={{ color: "#FFFFFF", fontWeight: 600 }}>
+                      <span style={{ color: "var(--text-title)", fontWeight: 600 }}>
                         {isRoas ? `${pt.reach}x` : Number(pt.reach).toLocaleString()}
                       </span>
                     </div>
                     <div className="tooltip-line">
-                      <span style={{ color: "#94A3B8" }}>Expected:</span>
-                      <span style={{ color: "#E2E8F0" }}>
+                      <span style={{ color: "var(--text-muted)" }}>Expected:</span>
+                      <span style={{ color: "var(--text-body)" }}>
                         {isRoas ? `${pt.baseline}x` : Number(pt.baseline).toLocaleString()}
                       </span>
                     </div>
-                    <div className="tooltip-line" style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid rgba(255,255,255,0.08)" }}>
-                      <span style={{ color: "#64748B" }}>Variance:</span>
-                      <span style={{ color: Number(variance) < 0 ? "#EF4444" : "#10B981", fontWeight: 600 }}>
+                    <div className="tooltip-line" style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid var(--border-light)" }}>
+                      <span style={{ color: "var(--text-dim)" }}>Variance:</span>
+                      <span style={{ color: Number(variance) < 0 ? "#B91C1C" : "#15803D", fontWeight: 600 }}>
                         {Number(variance) > 0 ? "+" : ""}{variance}%
                       </span>
                     </div>
                     {isAnomaly && (
-                      <div style={{ marginTop: "6px", fontSize: "11px", color: "#EF4444", fontWeight: 600 }}>
-                        ● Statistical Anomaly
+                      <div style={{ marginTop: "6px", fontSize: "11px", color: "#B91C1C", fontWeight: 600 }}>
+                        ● Statistical Anomaly Flag
                       </div>
                     )}
                   </div>
@@ -159,7 +160,7 @@ export default function ReachChart({ data }) {
             <Area
               type="monotone"
               dataKey="baseline"
-              stroke="#64748B"
+              stroke="var(--text-dim)"
               strokeWidth={1.5}
               strokeDasharray="4 4"
               fill="transparent"
