@@ -4,7 +4,18 @@ import { useState } from "react";
 
 const TEMPLATES = [
   {
+    label: "Digital Marketing Agency",
+    sublabel: "BrandVitamin Style",
+    agency: "BrandVitamin",
+    auditor: "Bhagwan Das",
+    role: "Founder & Creative Director",
+    tagline: "Performance Marketing, Meta & Google Ads Lab",
+    contact: "growth@brandvitamin.com",
+    confidentiality: "CONFIDENTIAL & PROPRIETARY // CLIENT EYES ONLY",
+  },
+  {
     label: "Boutique Social Agency",
+    sublabel: "Social & Reels",
     agency: "Vanguard Social Media",
     auditor: "Lead Growth Strategist",
     role: "Head of Content & Distribution",
@@ -14,6 +25,7 @@ const TEMPLATES = [
   },
   {
     label: "D2C Performance Lab",
+    sublabel: "Paid Social & ROAS",
     agency: "Catalyst D2C Growth",
     auditor: "Principal Media Buyer",
     role: "VP of Performance Marketing",
@@ -23,6 +35,7 @@ const TEMPLATES = [
   },
   {
     label: "Founder Branding Firm",
+    sublabel: "Executive Distribution",
     agency: "Apex Executive Brand Studio",
     auditor: "Managing Director",
     role: "Lead Executive Ghostwriter",
@@ -43,8 +56,8 @@ export default function AgencyBrandingModal({
   currentConfidentiality,
   onSave,
 }) {
-  const [activeTab, setActiveTab] = useState("profile"); // "profile" | "letterhead"
   const [previewTab, setPreviewTab] = useState("memo"); // "memo" | "email"
+  const [savedSuccess, setSavedSuccess] = useState(false);
 
   const [agency, setAgency] = useState(currentAgencyName || "Your Agency");
   const [auditor, setAuditor] = useState(currentAuditorName || "Lead Strategist");
@@ -56,6 +69,15 @@ export default function AgencyBrandingModal({
   );
 
   if (!isOpen) return null;
+
+  const getInitials = (name) => {
+    if (!name || !name.trim()) return "YA";
+    const clean = name.trim().replace(/[^a-zA-Z0-9\s]/g, "");
+    const parts = clean.split(/\s+/).filter(Boolean);
+    if (parts.length === 0) return "YA";
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0][0] + parts[1][0]).toUpperCase();
+  };
 
   const handleApplyTemplate = (tpl) => {
     setAgency(tpl.agency);
@@ -85,215 +107,265 @@ export default function AgencyBrandingModal({
       agencyContact: contact.trim() || "audit@youragency.com",
       confidentiality: confidentiality.trim() || "CONFIDENTIAL",
     });
-    onClose();
+    setSavedSuccess(true);
+    setTimeout(() => {
+      setSavedSuccess(false);
+      onClose();
+    }, 350);
   };
+
+  const initials = getInitials(agency);
+  const auditorInitials = getInitials(auditor);
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box modal-box-large" onClick={(e) => e.stopPropagation()}>
+      <div className="modal-box modal-box-suite" onClick={(e) => e.stopPropagation()}>
         {/* MODAL HEADER */}
         <div className="modal-header">
           <div className="modal-title-wrap">
             <div className="modal-badge-row">
               <span className="agency-brand-dot" />
               <span className="modal-badge-text">WHITE-LABEL AGENCY SUITE</span>
+              <span className="modal-badge-sub">CLIENT PRESENTATION READY</span>
             </div>
-            <h2 className="modal-title">Agency Identity &amp; Letterhead Customizer</h2>
+            <h2 className="modal-title">Agency White-Label Customizer</h2>
             <p className="modal-subtitle">
-              Co-brand all client Boardroom PDF Memos and AI Analyst email communications under your agency&apos;s name.
+              Co-brand all client Boardroom PDF Memos, Audit Reports, and AI Analyst communications with your agency&apos;s identity.
             </p>
           </div>
           <button onClick={onClose} className="modal-close-btn" aria-label="Close modal">
-            ×
+            &times;
           </button>
         </div>
 
-        {/* 1-CLICK PRESET INSPIRATION CHIPS */}
+        {/* 1-CLICK PRESET TEMPLATES */}
         <div className="branding-template-bar">
-          <span className="branding-template-label">Quick 1-Click Agency Archetypes:</span>
+          <div className="branding-template-label-wrap">
+            <span className="branding-template-label">1-Click Agency Archetypes:</span>
+            <span className="branding-template-sub">Select to auto-populate production presets</span>
+          </div>
           <div className="branding-chips">
-            {TEMPLATES.map((tpl, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => handleApplyTemplate(tpl)}
-                className="branding-chip-btn"
-                title={`Load ${tpl.label} defaults`}
-              >
-                + {tpl.label}
-              </button>
-            ))}
+            {TEMPLATES.map((tpl, i) => {
+              const isActive = agency.toLowerCase() === tpl.agency.toLowerCase();
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  onClick={() => handleApplyTemplate(tpl)}
+                  className={`branding-chip-btn ${isActive ? "branding-chip-btn-active" : ""}`}
+                  title={`Load ${tpl.label} (${tpl.sublabel}) configuration`}
+                >
+                  <span className="chip-dot" />
+                  <span>{tpl.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        {/* TAB SWITCHER */}
-        <div className="branding-tab-nav">
-          <button
-            type="button"
-            onClick={() => setActiveTab("profile")}
-            className={`branding-nav-tab ${activeTab === "profile" ? "branding-nav-tab-active" : ""}`}
-          >
-            1. Agency &amp; Auditor Profile
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("letterhead")}
-            className={`branding-nav-tab ${activeTab === "letterhead" ? "branding-nav-tab-active" : ""}`}
-          >
-            2. Memo Letterhead &amp; Security Seal
-          </button>
-        </div>
+        {/* TWO-COLUMN WORKBENCH: FORM ON LEFT, REAL-TIME PREVIEW ON RIGHT */}
+        <form onSubmit={handleSubmit} className="branding-workbench-grid">
+          {/* LEFT COLUMN: EDITABLE INPUTS */}
+          <div className="branding-inputs-column">
+            <div className="branding-section-heading">
+              <span>1. FIRM &amp; AUDITOR PROFILE</span>
+            </div>
 
-        <form onSubmit={handleSubmit} className="branding-form">
-          {activeTab === "profile" ? (
-            <div className="branding-fields-grid">
-              <div className="form-group-full">
-                <label className="input-label">Agency / Firm Name</label>
-                <input
-                  type="text"
-                  value={agency}
-                  onChange={(e) => setAgency(e.target.value)}
-                  placeholder="e.g. Apex Growth Studio"
-                  className="text-input"
-                  required
-                />
-                <span className="input-hint">Renders prominently at the top of the Boardroom PDF Audit Memo.</span>
-              </div>
+            <div className="form-group">
+              <label className="input-label">Agency / Firm Name</label>
+              <input
+                type="text"
+                value={agency}
+                onChange={(e) => setAgency(e.target.value)}
+                placeholder="e.g. BrandVitamin or Apex Growth Studio"
+                className="text-input"
+                required
+              />
+              <span className="input-micro-hint">Displayed prominently in letterhead and client audit documents.</span>
+            </div>
 
-              <div>
-                <label className="input-label">Lead Auditor / Founder Name</label>
+            <div className="form-row-duo">
+              <div className="form-group">
+                <label className="input-label">Lead Auditor / Founder</label>
                 <input
                   type="text"
                   value={auditor}
                   onChange={(e) => setAuditor(e.target.value)}
-                  placeholder="e.g. Alex Morgan"
+                  placeholder="e.g. Bhagwan Das"
                   className="text-input"
                   required
                 />
               </div>
 
-              <div>
+              <div className="form-group">
                 <label className="input-label">Professional Role / Title</label>
                 <input
                   type="text"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  placeholder="e.g. VP of Performance &amp; Analytics"
-                  className="text-input"
-                />
-              </div>
-
-              <div className="form-group-full">
-                <label className="input-label">Agency Specialization / Tagline</label>
-                <input
-                  type="text"
-                  value={tagline}
-                  onChange={(e) => setTagline(e.target.value)}
-                  placeholder="e.g. Organic Reels &amp; Meta Ads Distribution Advisory"
+                  placeholder="e.g. Founder &amp; Creative Director"
                   className="text-input"
                 />
               </div>
             </div>
-          ) : (
-            <div className="branding-fields-grid">
-              <div className="form-group-full">
-                <label className="input-label">Confidentiality Watermark</label>
-                <select
-                  value={confidentiality}
-                  onChange={(e) => setConfidentiality(e.target.value)}
-                  className="text-input select-input"
-                >
-                  <option value="CONFIDENTIAL &amp; PROPRIETARY // CLIENT EYES ONLY">
-                    CONFIDENTIAL &amp; PROPRIETARY // CLIENT EYES ONLY
-                  </option>
-                  <option value="INTERNAL EXECUTIVE STRATEGY AUDIT // STRICT NON-ATTRIBUTION">
-                    INTERNAL EXECUTIVE STRATEGY AUDIT // STRICT NON-ATTRIBUTION
-                  </option>
-                  <option value="BOARDROOM DISTRIBUTION AUDIT // CERTIFIED SENTINEL PROTOCOL">
-                    BOARDROOM DISTRIBUTION AUDIT // CERTIFIED SENTINEL PROTOCOL
-                  </option>
-                  <option value="OFFICIAL 72-HOUR ALGORITHMIC TURNAROUND RUNBOOK">
-                    OFFICIAL 72-HOUR ALGORITHMIC TURNAROUND RUNBOOK
-                  </option>
-                </select>
-                <span className="input-hint">Printed as the formal sub-header in client exports.</span>
-              </div>
 
-              <div className="form-group-full">
-                <label className="input-label">Audit Inquiries / Direct Contact Email</label>
-                <input
-                  type="email"
-                  value={contact}
-                  onChange={(e) => setContact(e.target.value)}
-                  placeholder="audit@youragency.com"
-                  className="text-input"
-                />
-                <span className="input-hint">Included in the official verification block for client follow-ups.</span>
-              </div>
+            <div className="form-group">
+              <label className="input-label">Agency Specialization / Tagline</label>
+              <input
+                type="text"
+                value={tagline}
+                onChange={(e) => setTagline(e.target.value)}
+                placeholder="e.g. Performance Marketing, Meta &amp; Google Ads Lab"
+                className="text-input"
+              />
             </div>
-          )}
 
-          {/* INTERACTIVE DUAL PREVIEW SUITE */}
-          <div className="branding-preview-suite">
-            <div className="preview-suite-header">
-              <span className="preview-suite-title">Live White-Label Output Preview:</span>
+            <div className="branding-section-heading" style={{ marginTop: "14px" }}>
+              <span>2. LETTERHEAD &amp; SECURITY PROTOCOL</span>
+            </div>
+
+            <div className="form-group">
+              <label className="input-label">Confidentiality Classification</label>
+              <select
+                value={confidentiality}
+                onChange={(e) => setConfidentiality(e.target.value)}
+                className="text-input select-input"
+              >
+                <option value="CONFIDENTIAL &amp; PROPRIETARY // CLIENT EYES ONLY">
+                  CONFIDENTIAL &amp; PROPRIETARY // CLIENT EYES ONLY
+                </option>
+                <option value="INTERNAL EXECUTIVE STRATEGY AUDIT // STRICT NON-ATTRIBUTION">
+                  INTERNAL EXECUTIVE STRATEGY AUDIT // STRICT NON-ATTRIBUTION
+                </option>
+                <option value="BOARDROOM DISTRIBUTION AUDIT // CERTIFIED SENTINEL PROTOCOL">
+                  BOARDROOM DISTRIBUTION AUDIT // CERTIFIED SENTINEL PROTOCOL
+                </option>
+                <option value="OFFICIAL 72-HOUR ALGORITHMIC TURNAROUND RUNBOOK">
+                  OFFICIAL 72-HOUR ALGORITHMIC TURNAROUND RUNBOOK
+                </option>
+              </select>
+            </div>
+
+            <div className="form-group">
+              <label className="input-label">Audit Direct Inquiries Email</label>
+              <input
+                type="email"
+                value={contact}
+                onChange={(e) => setContact(e.target.value)}
+                placeholder="audit@brandvitamin.com"
+                className="text-input"
+              />
+            </div>
+          </div>
+
+          {/* RIGHT COLUMN: REAL-TIME DUAL PREVIEW */}
+          <div className="branding-preview-column">
+            <div className="preview-column-header">
+              <div className="preview-heading-wrap">
+                <span className="preview-column-title">Real-Time Client Preview</span>
+                <span className="preview-column-sub">Live simulation of client-facing deliverables</span>
+              </div>
               <div className="preview-mode-pills">
                 <button
                   type="button"
                   onClick={() => setPreviewTab("memo")}
                   className={`preview-pill-btn ${previewTab === "memo" ? "preview-pill-btn-active" : ""}`}
                 >
-                  📄 Boardroom PDF Letterhead
+                  📄 Boardroom PDF Memo
                 </button>
                 <button
                   type="button"
                   onClick={() => setPreviewTab("email")}
                   className={`preview-pill-btn ${previewTab === "email" ? "preview-pill-btn-active" : ""}`}
                 >
-                  ✉️ AI Copilot Email Draft
+                  ✉️ AI Analyst Email Draft
                 </button>
               </div>
             </div>
 
             {previewTab === "memo" ? (
               <div className="memo-letterhead-replica">
+                <div className="replica-watermark-tag">OFFICIAL AUDIT MEMO</div>
                 <div className="replica-topbar">
-                  <div>
-                    <div className="replica-brand">
-                      RELVNT × {agency.toUpperCase() || "YOUR AGENCY"}
+                  <div className="replica-brand-group">
+                    <div className="replica-monogram-box" title={`${agency} Identity Seal`}>
+                      <span>{initials}</span>
                     </div>
-                    <div className="replica-sub">
-                      {tagline} • Lead Auditor: <strong>{auditor}</strong> ({role})
+                    <div>
+                      <div className="replica-brand">
+                        RELVNT &times; {agency.toUpperCase() || "YOUR AGENCY"}
+                      </div>
+                      <div className="replica-sub">{tagline}</div>
+                      <div className="replica-auditor">
+                        Lead Auditor: <strong>{auditor}</strong> &bull; {role}
+                      </div>
                     </div>
                   </div>
                   <div className="replica-meta">
-                    <span className="replica-date">AUDIT REF: #{Math.floor(Math.random() * 8000 + 1000)}</span>
+                    <span className="replica-date">AUDIT REF: #8492</span>
                     <span className="replica-jurisdiction">ISO-STAT 5D PROTOCOL</span>
+                    <span className="replica-secure-tag">VERIFIED SENTINEL</span>
                   </div>
                 </div>
-                <div className="replica-confidentiality">
-                  {confidentiality}
+
+                <div className="replica-confidentiality-row">
+                  <span>{confidentiality}</span>
+                  <span>Inquiries: {contact}</span>
+                </div>
+
+                <div className="replica-sample-body">
+                  <div className="replica-body-title">EXECUTIVE INCIDENT TELEMETRY &bull; 72H AUDIT</div>
+                  <div className="replica-bar" />
+                  <div className="replica-bar" style={{ width: "92%" }} />
+                  <div className="replica-bar-short" />
+                  <div className="replica-stat-pills">
+                    <span className="replica-stat-pill">&bull; Distribution Health: 38/100 (Decoupled)</span>
+                    <span className="replica-stat-pill">&bull; Target Recovery: 72-Hour Runbook</span>
+                  </div>
                 </div>
               </div>
             ) : (
               <div className="email-signature-replica">
                 <div className="email-meta-line">
-                  <strong>Subject:</strong> Algorithmic Anomaly Diagnostic &amp; 72h Turnaround // @client_brand
+                  <div className="email-field-row">
+                    <span className="email-field-tag">To:</span>
+                    <span className="email-field-val">client-team@brandaccount.com</span>
+                  </div>
+                  <div className="email-field-row">
+                    <span className="email-field-tag">Subject:</span>
+                    <span className="email-field-val email-subject-val">
+                      Algorithmic Anomaly Diagnostic &amp; 72h Turnaround // @client_account
+                    </span>
+                  </div>
                 </div>
                 <div className="email-body-snippet">
-                  &ldquo;...Our Sentinel diagnostic radar detected Explore Feed Decoupling on Oct 28th. We have initiated our 72-hour turnaround protocol to re-index distribution...&rdquo;
+                  &ldquo;...Our Sentinel diagnostic radar detected an Explore Feed Decoupling pattern over the last 14 days. We have analyzed the variance against peer benchmark distributions and initiated our 72-hour turnaround protocol to reset content indexing...&rdquo;
                 </div>
                 <div className="email-signoff-block">
-                  <div className="signoff-name">{auditor || "Your Name"}</div>
-                  <div className="signoff-role">{role || "Strategist"} • {agency || "Your Agency"}</div>
-                  <div className="signoff-contact">{contact} • Forensic Incident Protocol v1.2.0</div>
+                  <div className="signoff-avatar-row">
+                    <div className="signoff-avatar" title={auditor}>
+                      {auditorInitials}
+                    </div>
+                    <div>
+                      <div className="signoff-name">{auditor || "Your Name"}</div>
+                      <div className="signoff-role">{role || "Strategist"} &bull; {agency || "Your Agency"}</div>
+                      <div className="signoff-contact">{contact} &bull; Forensic Incident Protocol v1.2.0</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
+
+            <div className="preview-explainer-box">
+              <span className="explainer-icon">🔒</span>
+              <p className="explainer-text">
+                <strong>Workspace Isolated:</strong> All co-branding persists securely in your local browser storage. When exporting client PDF memos or querying the AI Growth Analyst, Relvnt signs all output under your agency credentials.
+              </p>
+            </div>
           </div>
 
-          {/* ACTION BUTTONS */}
-          <div className="branding-modal-footer">
+          {/* FULL-WIDTH FOOTER ACTIONS */}
+          <div className="branding-modal-footer form-group-full">
             <button
               type="button"
               onClick={handleResetDefaults}
@@ -306,8 +378,11 @@ export default function AgencyBrandingModal({
               <button type="button" onClick={onClose} className="btn-secondary">
                 Cancel
               </button>
-              <button type="submit" className="btn-primary btn-save-branding">
-                ✓ Save &amp; Apply Agency Branding
+              <button
+                type="submit"
+                className={`btn-primary btn-save-branding ${savedSuccess ? "btn-save-success" : ""}`}
+              >
+                {savedSuccess ? "✓ Applied!" : "✓ Save & Apply Agency Branding"}
               </button>
             </div>
           </div>

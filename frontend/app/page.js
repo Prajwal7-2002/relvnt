@@ -521,13 +521,30 @@ export default function Page() {
 
       {/* PRINT-ONLY MEMO HEADER (Rendered exclusively when printing or exporting to PDF) */}
       <div className="print-memo-header">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", borderBottom: "2px solid #0F172A", paddingBottom: "12px", marginBottom: "8px" }}>
-          <div>
-            <div style={{ fontSize: "22px", fontWeight: 800, letterSpacing: "-0.03em", color: "#0F172A" }}>
-              RELVNT × {agencyName.toUpperCase()} // EXECUTIVE DISTRIBUTION AUDIT
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #0F172A", paddingBottom: "12px", marginBottom: "8px" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
+            <div style={{
+              width: "44px",
+              height: "44px",
+              borderRadius: "8px",
+              backgroundColor: "#0F172A",
+              color: "#FFFFFF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 800,
+              fontSize: "16px",
+              flexShrink: 0
+            }}>
+              {(agencyName || "YA").trim().replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "YA"}
             </div>
-            <div style={{ fontSize: "12px", color: "#64748B", marginTop: "3px" }}>
-              {agencyTagline} • Lead Auditor: <strong>{auditorName}</strong> ({agencyRole})
+            <div>
+              <div style={{ fontSize: "20px", fontWeight: 800, letterSpacing: "-0.03em", color: "#0F172A", lineHeight: 1.2 }}>
+                RELVNT × {agencyName.toUpperCase()} // EXECUTIVE DISTRIBUTION AUDIT
+              </div>
+              <div style={{ fontSize: "12px", color: "#64748B", marginTop: "3px" }}>
+                {agencyTagline} • Lead Auditor: <strong>{auditorName}</strong> ({agencyRole})
+              </div>
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: "12px", color: "#334155" }}>
