@@ -9,6 +9,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import HealthScore from "./components/HealthScore";
 import ReachChart from "./components/ReachChart";
 import AuthModal from "./components/AuthModal";
+import AuthGate from "./components/AuthGate";
 import { authService, isSupabaseConfigured } from "../lib/supabaseClient";
 
 const PRESETS = [
@@ -81,6 +82,7 @@ export default function Page() {
   const [currentUser, setCurrentUser] = useState(null);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
+  const [sessionLoaded, setSessionLoaded] = useState(false);
 
   // Agency branding & multi-client state
   const [activeView, setActiveView] = useState("audit"); // "audit" | "portfolio"
@@ -201,6 +203,9 @@ export default function Page() {
         if (meta.agency_name) setAgencyName(meta.agency_name);
         if (meta.auditor_name) setAuditorName(meta.auditor_name);
       }
+      setSessionLoaded(true);
+    }).catch(() => {
+      setSessionLoaded(true);
     });
     const saved = typeof window !== "undefined" ? localStorage.getItem("relvnt-theme") || "light" : "light";
     setTheme(saved);
@@ -544,6 +549,37 @@ export default function Page() {
       setCopilotLoading(false);
     }
   };
+
+  if (!sessionLoaded) {
+    return (
+      <div style={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "var(--bg-app)",
+        color: "var(--text-dim)",
+        fontSize: "13px",
+        fontFamily: "var(--font-sans, system-ui, sans-serif)",
+        fontWeight: 500,
+      }}>
+        Loading Relvnt Sentinel Engine...
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <AuthGate
+        onAuthSuccess={(user) => {
+          setCurrentUser(user);
+          const meta = user?.user_metadata || {};
+          if (meta.agency_name) setAgencyName(meta.agency_name);
+          if (meta.auditor_name) setAuditorName(meta.auditor_name);
+        }}
+      />
+    );
+  }
 
   return (
     <main className="app-container">

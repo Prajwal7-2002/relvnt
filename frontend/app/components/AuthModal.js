@@ -54,7 +54,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   const handleSignUp = async (e) => {
     e?.preventDefault();
     if (!email.trim() || !password.trim()) {
-      setErrorMsg("Email and password are required.");
+      setErrorMsg("Work email and password are required.");
       return;
     }
     setLoading(true);
@@ -80,19 +80,6 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
     }
   };
 
-  const handleDemoSignIn = (presetAgency, presetAuditor) => {
-    const user = authService.demoLogin({
-      agencyName: presetAgency,
-      auditorName: presetAuditor,
-      email: `${presetAuditor.toLowerCase().replace(/\s+/g, ".")}@${presetAgency.toLowerCase().replace(/[^a-z]/g, "")}.com`,
-    });
-    setSuccessMsg(`Logged in as ${presetAuditor} (${presetAgency})`);
-    setTimeout(() => {
-      onAuthSuccess(user);
-      onClose();
-    }, 350);
-  };
-
   return (
     <>
       <div
@@ -111,14 +98,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
 
       <div
         className="modal-box"
-        style={{ maxWidth: "480px" }}
+        style={{ maxWidth: "440px" }}
         onMouseDown={(e) => e.stopPropagation()}
         onMouseUp={(e) => e.stopPropagation()}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
           <div>
             <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.08em", color: "#64748B", textTransform: "uppercase" }}>
-              RELVNT AUTH // MULTI-TENANT ACCESS
+              RELVNT AUTH // AGENCY ACCESS
             </div>
             <h2 style={{ fontSize: "19px", fontWeight: 700, margin: "2px 0 0 0", color: "var(--text-title)" }}>
               {tab === "signin" ? "Agency Sign In" : "Create Agency Workspace"}
@@ -146,7 +133,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           color: isSupabaseConfigured ? "#10B981" : "#64748B",
           marginBottom: "14px",
         }}>
-          <span>{isSupabaseConfigured ? "● Supabase PostgreSQL Auth Active" : "○ Local Demo Sandbox Mode"}</span>
+          <span>{isSupabaseConfigured ? "● Supabase PostgreSQL Auth Active" : "○ Local Workspace Sandbox Mode"}</span>
           <span style={{ fontSize: "10px", opacity: 0.8 }}>Tenant Isolation</span>
         </div>
 
@@ -198,7 +185,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           </div>
         )}
 
-        {/* FORM */}
+        {/* TAB 1: SIGN IN */}
         {tab === "signin" ? (
           <form onSubmit={handleSignIn}>
             <div style={{ marginBottom: "10px" }}>
@@ -207,7 +194,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
               </label>
               <input
                 type="email"
-                placeholder="strategist@agency.com"
+                placeholder="strategist@youragency.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="input-text-field"
@@ -237,8 +224,19 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             >
               {loading ? "Authenticating..." : "Sign In to Workspace"}
             </button>
+
+            <div style={{ textAlign: "center", marginTop: "14px" }}>
+              <button
+                type="button"
+                onClick={() => { setTab("signup"); setErrorMsg(null); setSuccessMsg(null); }}
+                style={{ background: "transparent", border: "none", color: "#0284C7", fontSize: "12px", cursor: "pointer" }}
+              >
+                Don&apos;t have an agency account? Register here
+              </button>
+            </div>
           </form>
         ) : (
+          /* TAB 2: REGISTER AGENCY */
           <form onSubmit={handleSignUp}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
               <div>
@@ -247,7 +245,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. BrandVitamin"
+                  placeholder="e.g. Acme Media"
                   value={agencyName}
                   onChange={(e) => setAgencyName(e.target.value)}
                   className="input-text-field"
@@ -259,7 +257,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Bhagwan Das"
+                  placeholder="e.g. Alex Morgan"
                   value={auditorName}
                   onChange={(e) => setAuditorName(e.target.value)}
                   className="input-text-field"
@@ -303,36 +301,18 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             >
               {loading ? "Registering Workspace..." : "Create Agency Workspace"}
             </button>
+
+            <div style={{ textAlign: "center", marginTop: "14px" }}>
+              <button
+                type="button"
+                onClick={() => { setTab("signin"); setErrorMsg(null); setSuccessMsg(null); }}
+                style={{ background: "transparent", border: "none", color: "#0284C7", fontSize: "12px", cursor: "pointer" }}
+              >
+                Already have an account? Sign In here
+              </button>
+            </div>
           </form>
         )}
-
-        {/* 1-CLICK DEMO LOGIN PROFILES */}
-        <div style={{ marginTop: "20px", paddingTop: "14px", borderTop: "1px dashed var(--border-medium)" }}>
-          <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.04em", marginBottom: "8px" }}>
-            ⚡ 1-Click Prospect &amp; Founder Profiles:
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px" }}>
-            <button
-              type="button"
-              onClick={() => handleDemoSignIn("BrandVitamin Advisory", "Bhagwan Das")}
-              className="btn-secondary"
-              style={{ fontSize: "11px", padding: "6px 8px", textAlign: "left" }}
-            >
-              <div style={{ fontWeight: 700, color: "var(--text-title)" }}>Bhagwan Das</div>
-              <div style={{ fontSize: "10px", color: "var(--text-dim)" }}>BrandVitamin Advisory</div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleDemoSignIn("K.R Digital Media", "Vashu Singhal")}
-              className="btn-secondary"
-              style={{ fontSize: "11px", padding: "6px 8px", textAlign: "left" }}
-            >
-              <div style={{ fontWeight: 700, color: "var(--text-title)" }}>Vashu Singhal</div>
-              <div style={{ fontSize: "10px", color: "var(--text-dim)" }}>K.R Digital Media</div>
-            </button>
-          </div>
-        </div>
       </div>
     </>
   );
