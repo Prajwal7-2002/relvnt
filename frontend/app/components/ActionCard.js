@@ -45,6 +45,17 @@ ${metrics.projected_impact ? `- 7-Day Estimated Impact: ${metrics.projected_impa
     setTimeout(() => setCopied(false), 2400);
   };
 
+  const handleDownloadMarkdown = () => {
+    const text = generateCleanTextBrief();
+    const blob = new Blob([text], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `relvnt_audit_${targetAccount.replace(/[^a-zA-Z0-9_\-]/g, "_")}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <section className="action-plan-card">
       <div className="plan-header">
@@ -55,9 +66,12 @@ ${metrics.projected_impact ? `- 7-Day Estimated Impact: ${metrics.projected_impa
           </p>
         </div>
 
-        <div>
+        <div style={{ display: "flex", gap: "8px" }}>
           <button onClick={handleCopy} className="btn-secondary">
             {copied ? "✓ Copied to Clipboard" : "Copy Brief"}
+          </button>
+          <button onClick={handleDownloadMarkdown} className="btn-secondary" title="Download clean Markdown brief">
+            Download Brief (.md)
           </button>
         </div>
       </div>
