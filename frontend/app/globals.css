@@ -1448,28 +1448,338 @@ html, body {
    AGENCY BRANDING MODAL PREVIEW
    ========================================================================== */
 
-.branding-preview-card {
-  background: var(--bg-card-subtle);
-  border: 1px dashed var(--border-light);
-  border-radius: var(--radius-sm);
-  padding: 12px 16px;
+/* ==========================================================================
+   AGENCY WHITE-LABEL BRANDING SUITE MODAL
+   ========================================================================== */
+
+.modal-box-large {
+  width: 700px !important;
+  max-width: 95vw !important;
 }
 
-.branding-preview-label {
+.modal-title-wrap {
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.modal-badge-text {
   font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--accent-coral);
+  text-transform: uppercase;
+}
+
+.branding-template-bar {
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.branding-template-label {
+  font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-dim);
-  display: block;
-  margin-bottom: 6px;
 }
 
-.branding-preview-content {
+.branding-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.branding-chip-btn {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-body);
   background: var(--bg-card);
   border: 1px solid var(--border-light);
+  padding: 4px 10px;
   border-radius: 4px;
-  padding: 10px 14px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.branding-chip-btn:hover {
+  background: var(--bg-surface);
+  color: var(--text-title);
+  border-color: var(--text-dim);
+}
+
+.branding-tab-nav {
+  display: flex;
+  border-bottom: 1px solid var(--border-light);
+  margin-bottom: 18px;
+  gap: 8px;
+}
+
+.branding-nav-tab {
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.branding-nav-tab:hover {
+  color: var(--text-title);
+}
+
+.branding-nav-tab-active {
+  color: var(--text-title);
+  border-bottom-color: var(--accent-coral);
+}
+
+.branding-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.branding-fields-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.form-group-full {
+  grid-column: 1 / -1;
+}
+
+.input-hint {
+  display: block;
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+
+.select-input {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 14px;
+  padding-right: 36px;
+  cursor: pointer;
+}
+
+/* ==========================================================================
+   LIVE PREVIEW SUITE REPLICA
+   ========================================================================== */
+
+.branding-preview-suite {
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-top: 6px;
+}
+
+.preview-suite-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.preview-suite-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-dim);
+}
+
+.preview-mode-pills {
+  display: flex;
+  gap: 4px;
+  background: var(--bg-card);
+  padding: 2px;
+  border-radius: 4px;
+  border: 1px solid var(--border-light);
+}
+
+.preview-pill-btn {
+  padding: 4px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.preview-pill-btn-active {
+  background: var(--bg-card-subtle);
+  color: var(--text-title);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Boardroom Memo Header Replica */
+.memo-letterhead-replica {
+  background: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  padding: 16px 20px;
+  color: #0F172A;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.replica-topbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 2px solid #0F172A;
+  padding-bottom: 10px;
+  margin-bottom: 8px;
+}
+
+.replica-brand {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0F172A;
+}
+
+.replica-sub {
+  font-size: 11.5px;
+  color: #475569;
+  margin-top: 3px;
+}
+
+.replica-meta {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
+  gap: 2px;
+}
+
+.replica-date {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #64748B;
+  font-family: var(--font-mono), monospace;
+}
+
+.replica-jurisdiction {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: var(--status-critical);
+  text-transform: uppercase;
+}
+
+.replica-confidentiality {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #64748B;
+  text-transform: uppercase;
+}
+
+/* Email Draft Replica */
+.email-signature-replica {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  padding: 14px 18px;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.email-meta-line {
+  font-size: 11.5px;
+  color: var(--text-dim);
+  border-bottom: 1px solid var(--border-light);
+  padding-bottom: 8px;
+  margin-bottom: 10px;
+}
+
+.email-body-snippet {
+  font-style: italic;
+  color: var(--text-body);
+  margin-bottom: 12px;
+  padding-left: 10px;
+  border-left: 2px solid var(--border-light);
+}
+
+.email-signoff-block {
+  padding-top: 8px;
+  border-top: 1px dashed var(--border-light);
+}
+
+.signoff-name {
+  font-weight: 700;
+  color: var(--text-title);
+  font-size: 13px;
+}
+
+.signoff-role {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  margin-top: 1px;
+}
+
+.signoff-contact {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 3px;
+  font-family: var(--font-mono), monospace;
+}
+
+/* Footer Actions */
+.branding-modal-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-light);
+}
+
+.btn-reset-defaults {
+  font-size: 12px;
+  padding: 7px 12px;
+  color: var(--text-dim);
+}
+
+.btn-reset-defaults:hover {
+  color: var(--status-critical);
+}
+
+.branding-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn-save-branding {
+  font-weight: 700;
+  padding: 9px 18px;
 }
 
 .text-critical {
