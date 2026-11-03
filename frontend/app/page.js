@@ -36,8 +36,18 @@ export default function Page() {
   const [copilotMessages, setCopilotMessages] = useState([]);
   const [copilotLoading, setCopilotLoading] = useState(false);
   const fileInputRef = useRef(null);
+  const channelCache = useRef({});
 
-  const fetchAnalysis = async (presetKey = "instagram_drop") => {
+  const fetchAnalysis = async (presetKey = "instagram_drop", skipCache = false) => {
+    setActivePreset(presetKey);
+
+    // Instant zero-latency switch if already in memory cache
+    if (!skipCache && channelCache.current[presetKey]) {
+      setData(channelCache.current[presetKey]);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -49,8 +59,8 @@ export default function Page() {
         throw new Error(`Analysis engine returned status ${res.status}`);
       }
       const json = await res.json();
+      channelCache.current[presetKey] = json;
       setData(json);
-      setActivePreset(presetKey);
     } catch (err) {
       setError(err.message || "Failed to connect to local anomaly engine");
     } finally {
@@ -63,6 +73,23 @@ export default function Page() {
     const saved = typeof window !== "undefined" ? localStorage.getItem("relvnt-theme") || "light" : "light";
     setTheme(saved);
     document.documentElement.setAttribute("data-theme", saved);
+
+    // Silently pre-warm other channels in background so channel tabs switch in 0ms
+    const timer = setTimeout(() => {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      PRESETS.forEach((p) => {
+        if (p.id !== "instagram_drop" && !channelCache.current[p.id]) {
+          fetch(`${apiUrl}/analyze?preset=${p.id}`)
+            .then((r) => (r.ok ? r.json() : null))
+            .then((json) => {
+              if (json) channelCache.current[p.id] = json;
+            })
+            .catch(() => {});
+        }
+      });
+    }, 1200);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const toggleTheme = () => {
