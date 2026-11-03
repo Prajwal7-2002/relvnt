@@ -2,15 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import ActionCard from "./components/ActionCard";
-import AgencyBrandingModal from "./components/AgencyBrandingModal";
 import AnomalyTable from "./components/AnomalyTable";
 import ClientPortfolio from "./components/ClientPortfolio";
 import ErrorBoundary from "./components/ErrorBoundary";
 import HealthScore from "./components/HealthScore";
 import ReachChart from "./components/ReachChart";
-import AuthModal from "./components/AuthModal";
 import AuthGate from "./components/AuthGate";
-import { authService, isSupabaseConfigured } from "../lib/supabaseClient";
+import SettingsView from "./components/SettingsView";
+import { authService } from "../lib/supabaseClient";
 
 const PRESETS = [
   { id: "instagram_drop", label: "Instagram Drop", account: "@tech_founder" },
@@ -77,22 +76,20 @@ export default function Page() {
   const [activePreset, setActivePreset] = useState("instagram_drop");
   const [showBenchmarkDropdown, setShowBenchmarkDropdown] = useState(false);
   const [theme, setTheme] = useState("light");
-  const [showConnectModal, setShowConnectModal] = useState(false);
-  const [connectTab, setConnectTab] = useState("sheet"); // "sheet" | "csv" | "instagram" | "slack" | "api"
   const [currentUser, setCurrentUser] = useState(null);
-  const [showAuthModal, setShowAuthModal] = useState(false);
   const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [sessionLoaded, setSessionLoaded] = useState(false);
 
+  // Active View: "radar" (Roster) | "audit" (Deep-Dive) | "settings" (Workspace & Webhooks)
+  const [activeView, setActiveView] = useState("radar");
+
   // Agency branding & multi-client state
-  const [activeView, setActiveView] = useState("audit"); // "audit" | "portfolio"
-  const [showAgencyModal, setShowAgencyModal] = useState(false);
   const [agencyName, setAgencyName] = useState("Your Agency");
   const [auditorName, setAuditorName] = useState("Lead Strategist");
   const [agencyRole, setAgencyRole] = useState("Growth & Retention Director");
   const [agencyTagline, setAgencyTagline] = useState("Social Media & Distribution Advisory");
   const [agencyContact, setAgencyContact] = useState("audit@youragency.com");
-  const [confidentiality, setConfidentiality] = useState("CONFIDENTIAL & PROPRIETARY // CLIENT EYES ONLY");
+  const [confidentiality, setConfidentiality] = useState("CONFIDENTIAL & PROPRIETARY · PREPARED FOR CLIENT REVIEW");
   const [portfolioList, setPortfolioList] = useState(DEFAULT_PORTFOLIO);
 
   // Integration inputs
@@ -101,74 +98,41 @@ export default function Page() {
   const [igToken, setIgToken] = useState("");
   const [igBusinessId, setIgBusinessId] = useState("");
   const [slackWebhook, setSlackWebhook] = useState("");
-  const [radarThreshold, setRadarThreshold] = useState("critical");
+  const [radarThreshold, setRadarThreshold] = useState("critical"); // "critical" | "warning"
+
   const [integrationLoading, setIntegrationLoading] = useState(false);
   const [integrationNotice, setIntegrationNotice] = useState(null);
 
-  // Copilot state
+  // Copilot drawer state
   const [showCopilot, setShowCopilot] = useState(false);
   const [copilotInput, setCopilotInput] = useState("");
   const [copilotMessages, setCopilotMessages] = useState([]);
   const [copilotLoading, setCopilotLoading] = useState(false);
-  const fileInputRef = useRef(null);
+
   const channelCache = useRef({});
 
-  const handleDownloadSampleCsv = () => {
-    const today = new Date();
-    const rows = ["Date,Reach"];
-    for (let i = 89; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const dateStr = d.toISOString().split("T")[0];
-      const base = 12500 + Math.sin((i / 7) * Math.PI * 2) * 1600;
-      const drop = i < 12 ? 0.46 : 1.0;
-      rows.push(`${dateStr},${Math.round(base * drop)}`);
+  // 1. Initial Auth Session Check
+  useEffect(() => {
+    async function initSession() {
+      try {
+        const session = await authService.getSession();
+        if (session?.user) {
+          setCurrentUser(session.user);
+          const meta = session.user.user_metadata || {};
+          if (meta.agency_name) setAgencyName(meta.agency_name);
+          if (meta.auditor_name) setAuditorName(meta.auditor_name);
+        }
+      } catch (_) {}
+      setSessionLoaded(true);
     }
-    const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "sample_reach_data.csv";
-    a.click();
-    URL.revokeObjectURL(a);
-  };
+    initSession();
+  }, []);
 
-  const recordToPortfolio = (analysisJson, presetId = "custom_upload", customTag = "Client Audit") => {
-    if (!analysisJson) return;
-    const accountName = analysisJson.account_name || (presetId === "custom_upload" ? "Client CSV Audit" : "@account");
-    const newEntry = {
-      id: presetId,
-      account: accountName,
-      platform: analysisJson.platform ? analysisJson.platform.toUpperCase() : "INSTAGRAM",
-      health_score: analysisJson.health_score || 50,
-      status: analysisJson.protocol_phases?.[0]?.title || analysisJson.diagnosis?.slice(0, 32) || "Analyzing",
-      last_audited: "Just now",
-      baseline: analysisJson.metrics_summary?.baseline_avg || 10000,
-      current: analysisJson.metrics_summary?.current_value || 5000,
-      change_pct: analysisJson.metrics_summary?.change_pct ?? -50.0,
-      tag: customTag,
-    };
-
-    setPortfolioList((prev) => {
-      const filtered = prev.filter((item) => item.account !== accountName && item.id !== presetId);
-      const updated = [newEntry, ...filtered];
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.setItem("relvnt-portfolio", JSON.stringify(updated.slice(0, 25)));
-        } catch (_) {}
-      }
-      return updated;
-    });
-  };
-
-  const fetchAnalysis = async (presetKey = "instagram_drop", skipCache = false) => {
-    setActivePreset(presetKey);
-
-    // Instant zero-latency switch if already in memory cache
-    if (!skipCache && channelCache.current[presetKey]) {
-      const cached = channelCache.current[presetKey];
-      setData(cached);
-      recordToPortfolio(cached, presetKey, "Benchmark");
+  // 2. Fetch Target Audit Data
+  const fetchAnalysis = async (presetKey = "instagram_drop") => {
+    if (channelCache.current[presetKey]) {
+      setData(channelCache.current[presetKey]);
+      setActivePreset(presetKey);
       setLoading(false);
       return;
     }
@@ -177,94 +141,73 @@ export default function Page() {
     setError(null);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${apiUrl}/analyze?preset=${presetKey}`, {
-        cache: "no-store",
-      });
+      const res = await fetch(`${apiUrl}/analyze?preset=${presetKey}`);
       if (!res.ok) {
-        throw new Error(`Analysis engine returned status ${res.status}`);
+        throw new Error(`API error: ${res.status}`);
       }
       const json = await res.json();
       channelCache.current[presetKey] = json;
       setData(json);
-      recordToPortfolio(json, presetKey, "Benchmark");
+      setActivePreset(presetKey);
+      recordToPortfolio(json, presetKey, "Preset Benchmark");
     } catch (err) {
-      setError(err.message || "Failed to connect to local anomaly engine");
+      setError(err.message || "Failed to load anomaly detection data.");
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchAnalysis("instagram_drop");
-    authService.getSession().then((sessionData) => {
-      if (sessionData?.user) {
-        setCurrentUser(sessionData.user);
-        const meta = sessionData.user.user_metadata || {};
-        if (meta.agency_name) setAgencyName(meta.agency_name);
-        if (meta.auditor_name) setAuditorName(meta.auditor_name);
+  const recordToPortfolio = (analysisData, id, tag = "Audited Target") => {
+    if (!analysisData) return;
+    const item = {
+      id: id || analysisData.account_name,
+      account: analysisData.account_name || "@target",
+      platform: (analysisData.platform || "Instagram").toUpperCase(),
+      health_score: analysisData.health_score || 50,
+      status: analysisData.prediction || analysisData.severity || "Decoupled",
+      last_audited: "Just now",
+      baseline: analysisData.metrics_summary?.baseline_avg || 10000,
+      current: analysisData.metrics_summary?.current_value || 5000,
+      change_pct: analysisData.metrics_summary?.change_pct || -50.0,
+      tag: tag,
+    };
+
+    setPortfolioList((prev) => {
+      const idx = prev.findIndex((p) => p.account === item.account || p.id === item.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = item;
+        return copy;
       }
-      setSessionLoaded(true);
-    }).catch(() => {
-      setSessionLoaded(true);
+      return [item, ...prev];
     });
-    const saved = typeof window !== "undefined" ? localStorage.getItem("relvnt-theme") || "light" : "light";
-    setTheme(saved);
-    document.documentElement.setAttribute("data-theme", saved);
+  };
 
-    if (typeof window !== "undefined") {
-      const sAgency = localStorage.getItem("relvnt-agency-name");
-      if (sAgency && sAgency !== "K.R Digital Media") {
-        setAgencyName(sAgency);
-      } else if (sAgency === "K.R Digital Media") {
-        localStorage.removeItem("relvnt-agency-name");
-        setAgencyName("Your Agency");
-      }
-
-      const sAuditor = localStorage.getItem("relvnt-auditor-name");
-      if (sAuditor && sAuditor !== "Vashu Singhal") {
-        setAuditorName(sAuditor);
-      } else if (sAuditor === "Vashu Singhal") {
-        localStorage.removeItem("relvnt-auditor-name");
-        setAuditorName("Lead Strategist");
-      }
-
-      const sRole = localStorage.getItem("relvnt-agency-role");
-      if (sRole) setAgencyRole(sRole);
-      const sTagline = localStorage.getItem("relvnt-agency-tagline");
-      if (sTagline) setAgencyTagline(sTagline);
-      const sContact = localStorage.getItem("relvnt-agency-contact");
-      if (sContact) setAgencyContact(sContact);
-      const sConf = localStorage.getItem("relvnt-confidentiality");
-      if (sConf) setConfidentiality(sConf);
-      const sPortfolio = localStorage.getItem("relvnt-portfolio");
-      if (sPortfolio) {
-        try {
-          const parsed = JSON.parse(sPortfolio);
-          if (Array.isArray(parsed) && parsed.length > 0) setPortfolioList(parsed);
-        } catch (_) {}
-      }
-      const sRadarWebhook = localStorage.getItem("relvnt-radar-webhook");
-      if (sRadarWebhook) setSlackWebhook(sRadarWebhook);
-      const sRadarThresh = localStorage.getItem("relvnt-radar-threshold");
-      if (sRadarThresh) setRadarThreshold(sRadarThresh);
+  // 3. Theme & Saved Settings Hydration
+  useEffect(() => {
+    const savedTheme = typeof window !== "undefined" ? localStorage.getItem("relvnt-theme") : null;
+    if (savedTheme) {
+      setTheme(savedTheme);
+      document.documentElement.setAttribute("data-theme", savedTheme);
     }
 
-    // Silently pre-warm other channels in background so channel tabs switch in 0ms
-    const timer = setTimeout(() => {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      PRESETS.forEach((p) => {
-        if (p.id !== "instagram_drop" && !channelCache.current[p.id]) {
-          fetch(`${apiUrl}/analyze?preset=${p.id}`)
-            .then((r) => (r.ok ? r.json() : null))
-            .then((json) => {
-              if (json) channelCache.current[p.id] = json;
-            })
-            .catch(() => {});
-        }
-      });
-    }, 1200);
+    const savedAgency = typeof window !== "undefined" ? localStorage.getItem("relvnt-agency-name") : null;
+    const savedAuditor = typeof window !== "undefined" ? localStorage.getItem("relvnt-auditor-name") : null;
+    const savedRole = typeof window !== "undefined" ? localStorage.getItem("relvnt-agency-role") : null;
+    const savedTagline = typeof window !== "undefined" ? localStorage.getItem("relvnt-agency-tagline") : null;
+    const savedContact = typeof window !== "undefined" ? localStorage.getItem("relvnt-agency-contact") : null;
+    const savedConf = typeof window !== "undefined" ? localStorage.getItem("relvnt-confidentiality") : null;
+    const savedWebhook = typeof window !== "undefined" ? localStorage.getItem("relvnt-radar-webhook") : null;
 
-    return () => clearTimeout(timer);
+    if (savedAgency) setAgencyName(savedAgency);
+    if (savedAuditor) setAuditorName(savedAuditor);
+    if (savedRole) setAgencyRole(savedRole);
+    if (savedTagline) setAgencyTagline(savedTagline);
+    if (savedContact) setAgencyContact(savedContact);
+    if (savedConf) setConfidentiality(savedConf);
+    if (savedWebhook) setSlackWebhook(savedWebhook);
+
+    fetchAnalysis("instagram_drop");
   }, []);
 
   const toggleTheme = () => {
@@ -307,7 +250,7 @@ export default function Page() {
       setActivePreset("custom_upload");
       recordToPortfolio(json, "custom_upload", "CSV Audit");
       setActiveView("audit");
-      setShowConnectModal(false);
+      setIntegrationNotice({ type: "success", text: `✓ CSV parsed successfully: ${json.account_name} analyzed.` });
     } catch (err) {
       setIntegrationNotice({ type: "error", text: err.message || "Failed to process CSV file." });
     } finally {
@@ -345,7 +288,7 @@ export default function Page() {
       setActivePreset("google_sheet");
       recordToPortfolio(json, "google_sheet", "Google Sheet");
       setActiveView("audit");
-      setShowConnectModal(false);
+      setIntegrationNotice({ type: "success", text: `✓ Google Sheet synchronized: ${json.account_name} analyzed.` });
     } catch (err) {
       setIntegrationNotice({ type: "error", text: err.message || "Could not sync Google Sheet. Verify sharing permissions." });
     } finally {
@@ -353,43 +296,7 @@ export default function Page() {
     }
   };
 
-  // Meta Graph API Sync
-  const handleInstagramConnect = async (e) => {
-    e?.preventDefault();
-    setIntegrationLoading(true);
-    setIntegrationNotice(null);
-
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${apiUrl}/analyze/instagram`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          access_token: igToken.trim() || null,
-          business_id: igBusinessId.trim() || null,
-          account_name: "Connected Instagram Account",
-        }),
-      });
-
-      if (!res.ok) {
-        const errPayload = await res.json().catch(() => ({}));
-        throw new Error(errPayload.detail || `Instagram connection failed with status ${res.status}`);
-      }
-
-      const json = await res.json();
-      setData(json);
-      setActivePreset("instagram_live");
-      recordToPortfolio(json, "instagram_live", "Meta API");
-      setActiveView("audit");
-      setShowConnectModal(false);
-    } catch (err) {
-      setIntegrationNotice({ type: "error", text: err.message || "Meta API connection failed." });
-    } finally {
-      setIntegrationLoading(false);
-    }
-  };
-
-  // Webhook Test, Instant Dispatch & Radar Scanning
+  // Webhook Test & Radar Scan
   const handleTestWebhook = async () => {
     if (!slackWebhook.trim()) return;
     setIntegrationLoading(true);
@@ -410,9 +317,8 @@ export default function Page() {
       }
       if (typeof window !== "undefined") {
         localStorage.setItem("relvnt-radar-webhook", slackWebhook.trim());
-        localStorage.setItem("relvnt-radar-threshold", radarThreshold);
       }
-      setIntegrationNotice({ type: "success", text: "✓ Webhook connectivity verified! Live test ping received." });
+      setIntegrationNotice({ type: "success", text: "✓ Webhook connectivity confirmed! Verification alert delivered." });
     } catch (err) {
       setIntegrationNotice({ type: "error", text: err.message || "Failed to deliver test ping to webhook." });
     } finally {
@@ -420,50 +326,18 @@ export default function Page() {
     }
   };
 
-  const handleSlackDispatch = async (e) => {
-    e?.preventDefault();
-    if (!slackWebhook.trim()) return;
-
+  const handleRunRadarScan = async () => {
     setIntegrationLoading(true);
     setIntegrationNotice(null);
 
-    try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-      const res = await fetch(`${apiUrl}/alerts/slack`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          webhook_url: slackWebhook.trim(),
-          account_name: data?.account_name || "Client Account",
-          health_score: data?.health_score || 50,
-          alert_level: data?.alert_level || "yellow",
-          diagnosis: data?.diagnosis || "Algorithmic distribution shift detected.",
-          action_plan: data?.protocol_phases?.[0]?.action || "Halt underperforming formats for 24h to reset feed indexing.",
-        }),
-      });
+    const accountsToScan = portfolioList.map((p) => ({
+      account_name: p.account,
+      platform: p.platform?.toLowerCase() || "instagram",
+      health_score: p.health_score || 50,
+      diagnosis: p.status || "Distribution anomaly detected.",
+      action_plan: "Execute 72-Hour Turnaround Protocol.",
+    }));
 
-      if (!res.ok) {
-        const errPayload = await res.json().catch(() => ({}));
-        throw new Error(errPayload.detail || `Alert dispatch failed with status ${res.status}`);
-      }
-
-      if (typeof window !== "undefined") {
-        localStorage.setItem("relvnt-radar-webhook", slackWebhook.trim());
-        localStorage.setItem("relvnt-radar-threshold", radarThreshold);
-      }
-
-      setIntegrationNotice({ type: "success", text: "✓ Sentinel executive alert card dispatched to webhook channel successfully!" });
-    } catch (err) {
-      setIntegrationNotice({ type: "error", text: err.message || "Failed to dispatch alert to webhook." });
-    } finally {
-      setIntegrationLoading(false);
-    }
-  };
-
-  const handleRadarScan = async () => {
-    if (!slackWebhook.trim()) return;
-    setIntegrationLoading(true);
-    setIntegrationNotice(null);
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
       const res = await fetch(`${apiUrl}/radar/scan`, {
@@ -471,30 +345,20 @@ export default function Page() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           agency_name: agencyName || "Your Agency",
-          webhook_url: slackWebhook.trim(),
+          webhook_url: slackWebhook.trim() || null,
           threshold: radarThreshold,
-          accounts: portfolioList.map((p) => ({
-            account_name: p.account,
-            platform: p.platform?.toLowerCase() || "instagram",
-            metric_type: "reach",
-            health_score: p.health_score || 50,
-            diagnosis: p.status || "Decoupling detected",
-            action_plan: "Execute 72-hour turnaround protocol to re-index distribution.",
-          })),
+          accounts: accountsToScan,
         }),
       });
+
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `Radar scan failed with status ${res.status}`);
+        throw new Error(`Radar scan failed with status ${res.status}`);
       }
+
       const json = await res.json();
-      if (typeof window !== "undefined") {
-        localStorage.setItem("relvnt-radar-webhook", slackWebhook.trim());
-        localStorage.setItem("relvnt-radar-threshold", radarThreshold);
-      }
       setIntegrationNotice({
         type: "success",
-        text: `✓ Radar Scan Complete: Evaluated ${json.total_scanned} accounts. Flagged ${json.total_flagged} anomalies. Dispatched ${json.dispatched_count} alerts.`,
+        text: `✓ Decoupling Radar completed: ${json.total_scanned} scanned, ${json.total_flagged} at risk, ${json.dispatched_count} alerts dispatched.`,
       });
     } catch (err) {
       setIntegrationNotice({ type: "error", text: err.message || "Radar scan execution failed." });
@@ -503,6 +367,7 @@ export default function Page() {
     }
   };
 
+  // AI Copilot Handler
   const handleCopilotSend = async (customText = null) => {
     const queryText = (customText || copilotInput).trim();
     if (!queryText || copilotLoading) return;
@@ -550,6 +415,7 @@ export default function Page() {
     }
   };
 
+  // Auth Guard
   if (!sessionLoaded) {
     return (
       <div style={{
@@ -557,13 +423,11 @@ export default function Page() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "var(--bg-app)",
-        color: "var(--text-dim)",
+        background: "var(--bg-canvas)",
+        color: "var(--text-muted)",
         fontSize: "13px",
-        fontFamily: "var(--font-sans, system-ui, sans-serif)",
-        fontWeight: 500,
       }}>
-        Loading Relvnt Sentinel Engine...
+        Initializing Relvnt Intelligence Enclave...
       </div>
     );
   }
@@ -581,18 +445,27 @@ export default function Page() {
     );
   }
 
+  const monogram = (agencyName || "YA").trim().replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "YA";
+
   return (
     <main className="app-container">
-      {/* CLEAN TOP NAVIGATION */}
+      {/* 1. TOP CORPORATE SAAS NAVIGATION */}
       <header className="top-nav">
         <div className="brand-group">
           <h1 className="brand-text">
             relvnt<span>.</span>
           </h1>
-          <span className="brand-subtext">Distribution &amp; reach early-warning radar</span>
+          <span className="brand-subtext">Distribution Decoupling &amp; Ad Fatigue Sentinel</span>
         </div>
 
+        {/* THREE SEGMENTED NAVIGATION PILLARS */}
         <div className="view-mode-tabs">
+          <button
+            onClick={() => setActiveView("radar")}
+            className={`view-mode-btn ${activeView === "radar" ? "view-mode-btn-active" : ""}`}
+          >
+            Radar Roster ({portfolioList.length})
+          </button>
           <button
             onClick={() => setActiveView("audit")}
             className={`view-mode-btn ${activeView === "audit" ? "view-mode-btn-active" : ""}`}
@@ -600,143 +473,115 @@ export default function Page() {
             Diagnostic Audit
           </button>
           <button
-            onClick={() => setActiveView("portfolio")}
-            className={`view-mode-btn ${activeView === "portfolio" ? "view-mode-btn-active" : ""}`}
+            onClick={() => setActiveView("settings")}
+            className={`view-mode-btn ${activeView === "settings" ? "view-mode-btn-active" : ""}`}
           >
-            Client Portfolio ({portfolioList.length})
+            Settings &amp; Integrations
           </button>
         </div>
 
+        {/* TOP ACTIONS */}
         <div className="nav-actions">
-          {currentUser ? (
-            <div style={{ position: "relative" }}>
-              <button
-                onClick={() => setShowUserDropdown(!showUserDropdown)}
-                className="btn-secondary"
-                style={{ display: "flex", alignItems: "center", gap: "8px", padding: "5px 12px" }}
-                title="User Account & Agency Session"
-              >
-                <span style={{
-                  width: "22px",
-                  height: "22px",
-                  borderRadius: "4px",
-                  backgroundColor: "#0F172A",
-                  color: "#FFFFFF",
-                  fontSize: "10px",
-                  fontWeight: 800,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center"
-                }}>
-                  {(agencyName || "YA").trim().replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "YA"}
-                </span>
-                <span style={{ fontSize: "12px", fontWeight: 600 }}>{auditorName}</span>
-                <span style={{ fontSize: "9px", color: "var(--text-dim)" }}>{showUserDropdown ? "▴" : "▾"}</span>
-              </button>
-
-              {showUserDropdown && (
-                <>
-                  <div className="dropdown-backdrop-transparent" onClick={() => setShowUserDropdown(false)} />
-                  <div style={{
-                    position: "absolute",
-                    top: "calc(100% + 6px)",
-                    right: 0,
-                    background: "var(--bg-card)",
-                    border: "1px solid var(--border-medium)",
-                    borderRadius: "8px",
-                    boxShadow: "0 10px 25px -5px rgba(0,0,0,0.2)",
-                    minWidth: "220px",
-                    zIndex: 90,
-                    overflow: "hidden"
-                  }}>
-                    <div style={{ padding: "10px 14px", borderBottom: "1px solid var(--border-light)", background: "var(--bg-card-subtle)" }}>
-                      <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-title)" }}>{agencyName}</div>
-                      <div style={{ fontSize: "11px", color: "var(--text-dim)", marginTop: "2px" }}>{currentUser.email}</div>
-                    </div>
-                    <button
-                      onClick={() => { setShowAgencyModal(true); setShowUserDropdown(false); }}
-                      className="dropdown-item"
-                      style={{ width: "100%", textAlign: "left", padding: "9px 14px", fontSize: "12px" }}
-                    >
-                      Agency Customizer
-                    </button>
-                    <button
-                      onClick={async () => {
-                        await authService.signOut();
-                        setCurrentUser(null);
-                        setShowUserDropdown(false);
-                      }}
-                      className="dropdown-item"
-                      style={{ width: "100%", textAlign: "left", padding: "9px 14px", fontSize: "12px", color: "#EF4444" }}
-                    >
-                      Sign Out
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={() => setShowAuthModal(true)}
-              className="btn-secondary"
-              style={{ borderColor: "rgba(2, 132, 199, 0.4)", color: "#0284C7", fontWeight: 600 }}
-              title="Sign in with your agency credentials"
-            >
-              Agency Sign In
-            </button>
-          )}
-
           <button
-            onClick={() => setShowAgencyModal(true)}
-            className="btn-agency-brand"
-            title="Configure Agency White-Label Branding"
+            onClick={() => window.print()}
+            className="btn-secondary"
+            title="Export 1-Click Boardroom PDF Memo"
           >
-            <span className="agency-brand-dot" />
-            <span>{agencyName}</span>
-          </button>
-
-          <div className="privacy-pill">
-            <span
-              className="privacy-dot"
-              style={{
-                backgroundColor: data?.ai_engine?.toLowerCase().includes("gemini")
-                  ? "var(--status-good)"
-                  : "var(--status-warn)",
-              }}
-            />
-            <span>
-              {data?.ai_engine
-                ? `${data.ai_engine} Active`
-                : "Local Sentinel (Zero-Data-Leak)"}
-            </span>
-          </div>
-
-          <button onClick={toggleTheme} className="theme-toggle-btn" title="Switch between Executive Paper and Titanium Dark mode">
-            <span>{theme === "light" ? "🌙 Dark" : "☀️ Light"}</span>
-          </button>
-
-          <button onClick={() => window.print()} className="btn-secondary" title="Export 1-Click Boardroom PDF Memo">
             Export Memo (PDF)
           </button>
 
-          <button onClick={() => setShowConnectModal(true)} className="btn-secondary" title="Automate with Meta Graph API, Google Sheets, or Slack Webhooks">
-            Integrations &amp; Webhooks
+          <button
+            onClick={() => setShowCopilot(true)}
+            className="btn-secondary"
+            title="Launch AI Growth Analyst Drawer"
+          >
+            AI Copilot
           </button>
 
-          <button onClick={() => setShowCopilot(true)} className="btn-secondary">
-            AI Analyst
+          <button
+            onClick={toggleTheme}
+            className="theme-toggle-btn"
+            title="Switch theme"
+          >
+            {theme === "light" ? "🌙" : "☀️"}
           </button>
+
+          {/* USER & AGENCY DROPDOWN */}
+          <div style={{ position: "relative" }}>
+            <button
+              onClick={() => setShowUserDropdown(!showUserDropdown)}
+              className="btn-secondary"
+              style={{ padding: "5px 10px" }}
+            >
+              <span style={{
+                width: "22px",
+                height: "22px",
+                borderRadius: "4px",
+                backgroundColor: "var(--btn-primary-bg)",
+                color: "var(--btn-primary-text)",
+                fontSize: "10px",
+                fontWeight: 800,
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}>
+                {monogram}
+              </span>
+              <span style={{ fontSize: "12px", fontWeight: 600 }}>{auditorName}</span>
+              <span style={{ fontSize: "9px", color: "var(--text-muted)" }}>{showUserDropdown ? "▴" : "▾"}</span>
+            </button>
+
+            {showUserDropdown && (
+              <>
+                <div className="dropdown-backdrop-transparent" onClick={() => setShowUserDropdown(false)} />
+                <div style={{
+                  position: "absolute",
+                  top: "calc(100% + 6px)",
+                  right: 0,
+                  background: "var(--bg-surface)",
+                  border: "1px solid var(--border-medium)",
+                  borderRadius: "8px",
+                  boxShadow: "var(--shadow-lg)",
+                  minWidth: "220px",
+                  zIndex: 90,
+                  overflow: "hidden",
+                }}>
+                  <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-surface-subtle)" }}>
+                    <div style={{ fontSize: "12px", fontWeight: 700, color: "var(--text-primary)" }}>{agencyName}</div>
+                    <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px" }}>{currentUser.email}</div>
+                  </div>
+                  <button
+                    onClick={() => { setActiveView("settings"); setShowUserDropdown(false); }}
+                    className="dropdown-item"
+                  >
+                    Agency &amp; Webhooks Settings
+                  </button>
+                  <button
+                    onClick={async () => {
+                      await authService.signOut();
+                      setCurrentUser(null);
+                      setShowUserDropdown(false);
+                    }}
+                    className="dropdown-item"
+                    style={{ color: "#EF4444" }}
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* PRINT-ONLY MEMO HEADER (Rendered exclusively when printing or exporting to PDF) */}
+      {/* 2. PRINT-ONLY BOARDROOM MEMO HEADER */}
       <div className="print-memo-header">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #0F172A", paddingBottom: "12px", marginBottom: "8px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #0F172A", paddingBottom: "14px", marginBottom: "10px" }}>
           <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
             <div style={{
               width: "44px",
               height: "44px",
-              borderRadius: "8px",
+              borderRadius: "6px",
               backgroundColor: "#0F172A",
               color: "#FFFFFF",
               display: "flex",
@@ -744,54 +589,52 @@ export default function Page() {
               justifyContent: "center",
               fontWeight: 800,
               fontSize: "16px",
-              flexShrink: 0
             }}>
-              {(agencyName || "YA").trim().replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "YA"}
+              {monogram}
             </div>
             <div>
-              <div style={{ fontSize: "20px", fontWeight: 800, letterSpacing: "-0.03em", color: "#0F172A", lineHeight: 1.2 }}>
-                RELVNT × {agencyName.toUpperCase()} // EXECUTIVE DISTRIBUTION AUDIT
+              <div style={{ fontSize: "18px", fontWeight: 800, letterSpacing: "-0.03em", color: "#0F172A" }}>
+                RELVNT × {agencyName.toUpperCase()} · EXECUTIVE DISTRIBUTION AUDIT
               </div>
-              <div style={{ fontSize: "12px", color: "#64748B", marginTop: "3px" }}>
-                {agencyTagline} • Lead Auditor: <strong>{auditorName}</strong> ({agencyRole})
+              <div style={{ fontSize: "12px", color: "#475569", marginTop: "3px" }}>
+                {agencyTagline} • Certified Lead Auditor: <strong>{auditorName}</strong> ({agencyRole})
               </div>
             </div>
           </div>
           <div style={{ textAlign: "right", fontSize: "12px", color: "#334155" }}>
-            <div><strong>Target Account:</strong> {data?.account_name || "Client Account"}</div>
+            <div><strong>Audit Target:</strong> {data?.account_name || "Client Account"}</div>
             <div style={{ color: "#64748B", marginTop: "2px" }}>
-              Audit Date: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+              Date: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
             </div>
           </div>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "10px", fontWeight: 700, letterSpacing: "0.06em", color: "#94A3B8", textTransform: "uppercase", paddingBottom: "14px", borderBottom: "1px dashed #CBD5E1", marginBottom: "16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9.5px", fontWeight: 700, letterSpacing: "0.05em", color: "#64748B", textTransform: "uppercase", paddingBottom: "12px", borderBottom: "1px dashed #CBD5E1", marginBottom: "16px" }}>
           <span>{confidentiality}</span>
-          <span>Official Inquiries: {agencyContact} • Protocol v1.2.0</span>
+          <span>Official Inquiries: {agencyContact} · Protocol v2.0.0</span>
         </div>
       </div>
 
-      {activeView === "portfolio" ? (
+      {/* 3. VIEW MODE: RADAR ROSTER */}
+      {activeView === "radar" && (
         <ClientPortfolio
           portfolioList={portfolioList}
           onSelectClient={(presetOrId) => {
             fetchAnalysis(presetOrId);
             setActiveView("audit");
           }}
-          onOpenConnectModal={() => setShowConnectModal(true)}
-          onOpenAgencyModal={() => setShowAgencyModal(true)}
+          onOpenConnectModal={() => setActiveView("settings")}
+          onOpenAgencyModal={() => setActiveView("settings")}
           agencyName={agencyName}
           auditorName={auditorName}
         />
-      ) : (
+      )}
+
+      {/* 4. VIEW MODE: DIAGNOSTIC AUDIT */}
+      {activeView === "audit" && (
         <>
-          {/* EXECUTIVE ACCOUNT & AUDIT WORKSPACE BAR */}
+          {/* TARGET ACCOUNT HEADER */}
           <div className="account-bar-card">
             <div className="account-bar-left">
-              <div className="account-badge">
-                <span className="account-badge-indicator" />
-                <span className="account-badge-label">Active Audit Target</span>
-              </div>
-
               <div className="account-profile-main">
                 <span className="account-name-text">
                   {data?.account_name || "@tech_founder"}
@@ -805,28 +648,25 @@ export default function Page() {
                   {activePreset === "custom_upload"
                     ? "CSV Ingestion"
                     : activePreset === "google_sheet"
-                    ? "Live Sheet Sync"
-                    : activePreset === "instagram_live"
-                    ? "Meta Graph API"
+                    ? "Google Sheet Sync"
                     : "Industry Benchmark"}
                 </span>
 
                 <span className="account-period-tag mono-num">
-                  90-Day Telemetry Window
+                  90-Day Rolling Observation Window
                 </span>
               </div>
             </div>
 
             <div className="account-bar-actions">
-              {/* Executive Reference Scenarios Dropdown */}
+              {/* Benchmark Dropdown */}
               <div className="benchmark-dropdown-wrapper">
                 <button
                   onClick={() => setShowBenchmarkDropdown(!showBenchmarkDropdown)}
                   className="btn-dropdown-trigger"
-                  title="Load pre-calibrated industry anomaly scenarios"
                 >
                   <span>Benchmark Scenarios</span>
-                  <span className="dropdown-arrow">{showBenchmarkDropdown ? "▴" : "▾"}</span>
+                  <span>{showBenchmarkDropdown ? "▴" : "▾"}</span>
                 </button>
 
                 {showBenchmarkDropdown && (
@@ -836,7 +676,7 @@ export default function Page() {
                       onClick={() => setShowBenchmarkDropdown(false)}
                     />
                     <div className="benchmark-dropdown-menu">
-                      <div className="dropdown-header">Pre-Calibrated Reference Scenarios</div>
+                      <div className="dropdown-header">Pre-Calibrated Reference Datasets</div>
                       {PRESETS.map((p) => (
                         <button
                           key={p.id}
@@ -844,13 +684,13 @@ export default function Page() {
                             fetchAnalysis(p.id);
                             setShowBenchmarkDropdown(false);
                           }}
-                          className={`dropdown-item ${activePreset === p.id ? "dropdown-item-active" : ""}`}
+                          className="dropdown-item"
                         >
                           <div className="dropdown-item-title">
                             <span>{p.label}</span>
-                            {activePreset === p.id && <span className="dropdown-item-check">✓</span>}
+                            {activePreset === p.id && <span>✓</span>}
                           </div>
-                          <div className="dropdown-item-sub mono-num">{p.account} • Reference Baseline</div>
+                          <div className="dropdown-item-sub mono-num">{p.account}</div>
                         </button>
                       ))}
                     </div>
@@ -859,78 +699,106 @@ export default function Page() {
               </div>
 
               <button
-                onClick={() => setShowConnectModal(true)}
-                className="btn-audit-ingest"
+                onClick={() => setActiveView("settings")}
+                className="btn-primary"
               >
-                <span>+ Ingest Client Audit Data</span>
+                + Connect New Data
               </button>
             </div>
           </div>
 
-          {/* ERROR NOTICE */}
           {error && (
-            <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "10px", padding: "14px 18px", marginBottom: "20px" }}>
-              <span style={{ color: "#EF4444", fontWeight: 600, fontSize: "13px" }}>Connection Notice:</span>
-              <p style={{ margin: "4px 0 0 0", color: "var(--text-muted)", fontSize: "13px" }}>{error}</p>
+            <div style={{ background: "rgba(239, 68, 68, 0.1)", border: "1px solid rgba(239, 68, 68, 0.25)", borderRadius: "8px", padding: "14px 18px", marginBottom: "20px", color: "#EF4444", fontSize: "13px" }}>
+              {error}
             </div>
           )}
 
           <ErrorBoundary onReset={() => fetchAnalysis(activePreset)}>
-            {/* 1. EXECUTIVE STORY & HORIZONTAL RESONANCE RANGE BAR */}
+            {/* Story & Resonance Range Bar */}
             {data && <HealthScore data={data} />}
 
-            {/* 2. DAILY REACH VS EXPECTED BASELINE CHART */}
+            {/* Reach vs Baseline Chart */}
             {data && <ReachChart data={data} />}
 
-            {/* 3. FORENSIC ALGORITHMIC INCIDENT LOG TABLE */}
+            {/* Forensic Incident Log */}
             {data && <AnomalyTable data={data} />}
 
-            {/* 4. 72-HOUR TURNAROUND ACTION PLAN */}
+            {/* 72-Hour Turnaround Action Plan */}
             {data && <ActionCard data={data} />}
 
-            {/* PRINT-ONLY MEMO FOOTER (Rendered exclusively when printing or exporting to PDF) */}
+            {/* PRINT-ONLY BOARDROOM MEMO FOOTER */}
             <div className="print-memo-footer">
-              <div className="print-footer-grid">
-                <div className="print-signoff-block">
-                  <div className="print-signoff-label">Executive Audit Attestation</div>
-                  <div className="print-signature-line" />
-                  <div className="print-signoff-name">{auditorName}</div>
-                  <div className="print-signoff-role">{agencyRole} • {agencyName}</div>
-                  <div className="print-signoff-date">
-                    Certified on: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "16px" }}>
+                <div style={{ fontSize: "11px" }}>
+                  <div style={{ fontWeight: 800, textTransform: "uppercase", color: "#475569", marginBottom: "20px" }}>
+                    Executive Audit Attestation
+                  </div>
+                  <div style={{ borderBottom: "1.5px solid #0F172A", marginBottom: "6px" }} />
+                  <div style={{ fontWeight: 700, color: "#0F172A" }}>{auditorName}</div>
+                  <div style={{ color: "#64748B", fontSize: "10px" }}>{agencyRole} • {agencyName}</div>
+                  <div style={{ color: "#94A3B8", fontSize: "9px", marginTop: "2px" }}>
+                    Certified: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
                   </div>
                 </div>
 
-                <div className="print-signoff-block">
-                  <div className="print-signoff-label">Client Acknowledgement &amp; Receipt</div>
-                  <div className="print-signature-line" />
-                  <div className="print-signoff-name">Authorized Client Representative</div>
-                  <div className="print-signoff-role">{data?.account_name || "Client Enterprise"}</div>
-                  <div className="print-signoff-date">Date Received: ____________________</div>
-                </div>
-
-                <div className="print-seal-block">
-                  <div className="print-seal-badge">
-                    <div className="print-seal-title">ISO-STAT / SENTINEL</div>
-                    <div className="print-seal-cert">VERIFIED PROTOCOL</div>
-                    <div className="print-seal-score">CONFIDENCE: 99.4%</div>
+                <div style={{ fontSize: "11px" }}>
+                  <div style={{ fontWeight: 800, textTransform: "uppercase", color: "#475569", marginBottom: "20px" }}>
+                    Client Acknowledgement &amp; Receipt
                   </div>
-                  <div className="print-seal-caption">
-                    Zero-Retention Enclave · Algorithmic Decoupling Forensic Engine v1.2.0
-                  </div>
+                  <div style={{ borderBottom: "1.5px solid #0F172A", marginBottom: "6px" }} />
+                  <div style={{ fontWeight: 700, color: "#0F172A" }}>Authorized Client Representative</div>
+                  <div style={{ color: "#64748B", fontSize: "10px" }}>{data?.account_name || "Client Enterprise"}</div>
+                  <div style={{ color: "#94A3B8", fontSize: "9px", marginTop: "2px" }}>Date Received: ____________________</div>
                 </div>
               </div>
 
-              <div className="print-legal-notice">
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#94A3B8", borderTop: "1px dashed #CBD5E1", paddingTop: "8px", textTransform: "uppercase" }}>
                 <span>{confidentiality}</span>
-                <span>Official Registry: {agencyContact} • Relvnt Algorithmic Intelligence</span>
+                <span>Relvnt Algorithmic Intelligence · Zero-Data-Leak Enclave</span>
               </div>
             </div>
           </ErrorBoundary>
         </>
       )}
 
-      {/* SLIDE-OVER AI ANALYST DRAWER */}
+      {/* 5. VIEW MODE: SETTINGS & INTEGRATIONS */}
+      {activeView === "settings" && (
+        <SettingsView
+          agencyName={agencyName}
+          setAgencyName={setAgencyName}
+          auditorName={auditorName}
+          setAuditorName={setAuditorName}
+          agencyRole={agencyRole}
+          setAgencyRole={setAgencyRole}
+          agencyTagline={agencyTagline}
+          setAgencyTagline={setAgencyTagline}
+          agencyContact={agencyContact}
+          setAgencyContact={setAgencyContact}
+          confidentiality={confidentiality}
+          setConfidentiality={setConfidentiality}
+          slackWebhook={slackWebhook}
+          setSlackWebhook={setSlackWebhook}
+          radarThreshold={radarThreshold}
+          setRadarThreshold={setRadarThreshold}
+          onTestWebhook={handleTestWebhook}
+          onRunRadarScan={handleRunRadarScan}
+          onGoogleSheetSync={handleGoogleSheetSync}
+          onFileUpload={handleFileUpload}
+          onInstagramSync={() => {}}
+          sheetUrl={sheetUrl}
+          setSheetUrl={setSheetUrl}
+          clientHandle={clientHandle}
+          setClientHandle={setClientHandle}
+          igToken={igToken}
+          setIgToken={setIgToken}
+          igBusinessId={igBusinessId}
+          setIgBusinessId={setIgBusinessId}
+          loading={integrationLoading}
+          notice={integrationNotice}
+        />
+      )}
+
+      {/* 6. AI COPILOT SLIDE-OVER DRAWER */}
       {showCopilot && (
         <>
           <div className="drawer-backdrop" onClick={() => setShowCopilot(false)} />
@@ -944,8 +812,8 @@ export default function Page() {
 
             <div className="drawer-body">
               <div className="drawer-suggestions">
-                <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-dim)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                  Suggested Questions:
+                <span style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-dim)", textTransform: "uppercase" }}>
+                  Suggested Inquiries:
                 </span>
                 <button
                   onClick={() => handleCopilotSend("What specific algorithmic signal triggered this drop in delivery?")}
@@ -954,13 +822,13 @@ export default function Page() {
                   What caused this drop in feed recommendations?
                 </button>
                 <button
-                  onClick={() => handleCopilotSend("Draft a concise email for my client or brand sponsor explaining this temporary drop without alarm.")}
+                  onClick={() => handleCopilotSend("Draft a concise email for my client explaining this temporary drop without alarm.")}
                   className="drawer-suggestion-btn"
                 >
-                  Draft an email to client/sponsor explaining the variance
+                  Draft an email to client explaining the variance
                 </button>
                 <button
-                  onClick={() => handleCopilotSend("What video length, format, and posting cadence should I publish this week to reset the algorithm?")}
+                  onClick={() => handleCopilotSend("Recommend turnaround format and hook length to reset feed indexing.")}
                   className="drawer-suggestion-btn"
                 >
                   Recommend turnaround format and hook length
@@ -968,7 +836,7 @@ export default function Page() {
               </div>
 
               {copilotMessages.length === 0 && (
-                <div style={{ textAlign: "center", padding: "28px 20px", color: "var(--text-dim)", fontSize: "13px" }}>
+                <div style={{ textAlign: "center", padding: "28px 20px", color: "var(--text-muted)", fontSize: "13px" }}>
                   Ask any question about @{data?.account_name || "target"}&apos;s reach drift, viewer drop-off, or recovery steps.
                 </div>
               )}
@@ -979,15 +847,15 @@ export default function Page() {
                   className={msg.role === "user" ? "chat-bubble-user" : "chat-bubble-ai"}
                 >
                   {msg.role === "ai" && msg.engine && (
-                    <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-dim)", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    <div style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-muted)", marginBottom: "6px", display: "flex", alignItems: "center", gap: "6px" }}>
                       <span
                         style={{
                           width: "6px",
                           height: "6px",
                           borderRadius: "50%",
                           backgroundColor: msg.engine.toLowerCase().includes("gemini")
-                            ? "var(--status-good)"
-                            : "var(--text-dim)",
+                            ? "var(--status-nominal)"
+                            : "var(--text-muted)",
                         }}
                       />
                       <span>{msg.engine}</span>
@@ -998,7 +866,7 @@ export default function Page() {
               ))}
 
               {copilotLoading && (
-                <div style={{ textAlign: "center", padding: "14px 0", color: "var(--text-dim)", fontSize: "12px" }}>
+                <div style={{ textAlign: "center", padding: "14px 0", color: "var(--text-muted)", fontSize: "12px" }}>
                   Analyzing account data...
                 </div>
               )}
@@ -1024,353 +892,6 @@ export default function Page() {
           </aside>
         </>
       )}
-
-      {/* PLUG-IN & AUTOMATE DATA MODAL */}
-      {showConnectModal && (
-        <>
-          <div className="modal-overlay" onClick={() => setShowConnectModal(false)} />
-          <div className="modal-box">
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-              <h2 style={{ fontSize: "18px", fontWeight: 700, margin: 0, color: "var(--text-title)" }}>
-                Plug In &amp; Automate Client Data
-              </h2>
-              <button
-                onClick={() => setShowConnectModal(false)}
-                style={{ background: "transparent", border: "none", color: "var(--text-dim)", fontSize: "20px", cursor: "pointer" }}
-              >
-                ×
-              </button>
-            </div>
-
-            <p style={{ fontSize: "13px", color: "var(--text-muted)", lineHeight: 1.5, margin: "0 0 16px 0" }}>
-              Connect your data source with zero friction. Choose the easiest method for your agency or client.
-            </p>
-
-            {/* TAB SELECTOR */}
-            <div className="modal-tab-bar">
-              <button
-                onClick={() => { setConnectTab("sheet"); setIntegrationNotice(null); }}
-                className={`modal-tab-btn ${connectTab === "sheet" ? "modal-tab-btn-active" : ""}`}
-              >
-                Google Sheet
-              </button>
-              <button
-                onClick={() => { setConnectTab("csv"); setIntegrationNotice(null); }}
-                className={`modal-tab-btn ${connectTab === "csv" ? "modal-tab-btn-active" : ""}`}
-              >
-                Drop CSV
-              </button>
-              <button
-                onClick={() => { setConnectTab("instagram"); setIntegrationNotice(null); }}
-                className={`modal-tab-btn ${connectTab === "instagram" ? "modal-tab-btn-active" : ""}`}
-              >
-                Meta API
-              </button>
-              <button
-                onClick={() => { setConnectTab("slack"); setIntegrationNotice(null); }}
-                className={`modal-tab-btn ${connectTab === "slack" ? "modal-tab-btn-active" : ""}`}
-              >
-                Radar &amp; Alerts
-              </button>
-              <button
-                onClick={() => { setConnectTab("api"); setIntegrationNotice(null); }}
-                className={`modal-tab-btn ${connectTab === "api" ? "modal-tab-btn-active" : ""}`}
-              >
-                Webhook / API
-              </button>
-            </div>
-
-            {/* NOTICE BANNER */}
-            {integrationNotice && (
-              <div
-                style={{
-                  padding: "10px 14px",
-                  borderRadius: "8px",
-                  fontSize: "12.5px",
-                  marginBottom: "14px",
-                  background: integrationNotice.type === "success" ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
-                  color: integrationNotice.type === "success" ? "#10B981" : "#EF4444",
-                  border: `1px solid ${integrationNotice.type === "success" ? "rgba(16, 185, 129, 0.25)" : "rgba(239, 68, 68, 0.25)"}`,
-                }}
-              >
-                {integrationNotice.text}
-              </div>
-            )}
-
-            {/* TAB 1: GOOGLE SHEETS */}
-            {connectTab === "sheet" && (
-              <form onSubmit={handleGoogleSheetSync}>
-                <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
-                  Client / Brand Handle (Optional):
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. @client_brand or Acme Retargeting"
-                  value={clientHandle}
-                  onChange={(e) => setClientHandle(e.target.value)}
-                  className="input-text-field"
-                />
-
-                <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
-                  Google Sheets Sharing URL:
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://docs.google.com/spreadsheets/d/.../edit"
-                  value={sheetUrl}
-                  onChange={(e) => setSheetUrl(e.target.value)}
-                  className="input-text-field"
-                  required
-                />
-                <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
-                  💡 Ensure sheet is set to &ldquo;Anyone with link can view&rdquo;. Expected columns: <code>Date</code> and <code>Reach</code> or <code>ROAS</code>.
-                </p>
-                <button
-                  type="submit"
-                  disabled={integrationLoading || !sheetUrl.trim()}
-                  className="btn-primary"
-                  style={{ width: "100%", padding: "10px" }}
-                >
-                  {integrationLoading ? "Connecting & Evaluating..." : "Live Sync Google Sheet"}
-                </button>
-              </form>
-            )}
-
-            {/* TAB 2: CSV DROP */}
-            {connectTab === "csv" && (
-              <div>
-                <div style={{ marginBottom: "14px" }}>
-                  <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
-                    Client / Brand Handle (Optional):
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. @client_brand or Acme DTC"
-                    value={clientHandle}
-                    onChange={(e) => setClientHandle(e.target.value)}
-                    className="input-text-field"
-                  />
-                  <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "-4px" }}>
-                    <button
-                      type="button"
-                      onClick={handleDownloadSampleCsv}
-                      className="btn-secondary"
-                      style={{ fontSize: "11px", padding: "4px 10px" }}
-                    >
-                      ⬇ Download Sample CSV Template
-                    </button>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    border: "2px dashed var(--border-medium)",
-                    borderRadius: "10px",
-                    padding: "28px 20px",
-                    textAlign: "center",
-                    cursor: "pointer",
-                    background: "var(--bg-card-subtle)",
-                  }}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    onChange={handleFileUpload}
-                    accept=".csv"
-                    style={{ display: "none" }}
-                  />
-                  <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-title)", marginBottom: "4px" }}>
-                    {integrationLoading ? "Evaluating Dataset..." : "Click to select CSV file"}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "var(--text-dim)" }}>
-                    Drop any Meta Ads Manager, Instagram Insights, or TikTok CSV
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 3: INSTAGRAM META GRAPH API */}
-            {connectTab === "instagram" && (
-              <form onSubmit={handleInstagramConnect}>
-                <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
-                  Instagram User / System User Token:
-                </label>
-                <input
-                  type="password"
-                  placeholder="EAA..."
-                  value={igToken}
-                  onChange={(e) => setIgToken(e.target.value)}
-                  className="input-text-field"
-                />
-
-                <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
-                  Instagram Business Account ID:
-                </label>
-                <input
-                  type="text"
-                  placeholder="178414..."
-                  value={igBusinessId}
-                  onChange={(e) => setIgBusinessId(e.target.value)}
-                  className="input-text-field"
-                />
-
-                <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "16px" }}>
-                  Pulls 90-day daily reach directly from Meta Graph API endpoints. If omitted, uses server environment credentials.
-                </p>
-
-                <button
-                  type="submit"
-                  disabled={integrationLoading}
-                  className="btn-primary"
-                  style={{ width: "100%", padding: "10px" }}
-                >
-                  {integrationLoading ? "Pulling 90-Day Meta Insights..." : "Connect Instagram Live"}
-                </button>
-              </form>
-            )}
-
-            {/* TAB 4: PROACTIVE RADAR & ALERT DISPATCHER */}
-            {connectTab === "slack" && (
-              <div>
-                <label style={{ display: "block", fontSize: "12px", color: "var(--text-dim)", marginBottom: "6px" }}>
-                  Agency Webhook URL (Slack, Discord, Zapier, Make, n8n):
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://hooks.slack.com/... or https://discord.com/api/webhooks/..."
-                  value={slackWebhook}
-                  onChange={(e) => setSlackWebhook(e.target.value)}
-                  className="input-text-field"
-                />
-
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginTop: "10px", marginBottom: "14px" }}>
-                  <div>
-                    <label style={{ display: "block", fontSize: "11px", color: "var(--text-dim)", marginBottom: "4px" }}>
-                      Radar Alert Sensitivity:
-                    </label>
-                    <select
-                      value={radarThreshold}
-                      onChange={(e) => setRadarThreshold(e.target.value)}
-                      className="input-text-field"
-                      style={{ fontSize: "12px", padding: "8px 10px" }}
-                    >
-                      <option value="critical">Critical Only (Score &le; 40)</option>
-                      <option value="warning">Warning &amp; Critical (Score &le; 70)</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label style={{ display: "block", fontSize: "11px", color: "var(--text-dim)", marginBottom: "4px" }}>
-                      Connection Health:
-                    </label>
-                    <div style={{ display: "flex", alignItems: "center", height: "36px", padding: "0 10px", background: "var(--bg-card-subtle)", borderRadius: "6px", fontSize: "11px", color: slackWebhook.trim() ? "#10B981" : "var(--text-dim)" }}>
-                      <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: slackWebhook.trim() ? "#10B981" : "#94A3B8", marginRight: "6px" }} />
-                      {slackWebhook.trim() ? "Destination Configured" : "Awaiting Webhook URL"}
-                    </div>
-                  </div>
-                </div>
-
-                <p style={{ fontSize: "11.5px", color: "var(--text-muted)", marginBottom: "16px", lineHeight: 1.45 }}>
-                  Radar continuously evaluates active accounts against 7-day baselines. When decoupling occurs, structured diagnostic cards and 72-hour recovery runbooks are dispatched automatically.
-                </p>
-
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  <button
-                    type="button"
-                    onClick={handleTestWebhook}
-                    disabled={integrationLoading || !slackWebhook.trim()}
-                    className="btn-secondary"
-                    style={{ flex: "1 1 120px", fontSize: "12px", padding: "8px 12px" }}
-                  >
-                    {integrationLoading ? "Pinging..." : "Test Webhook"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleSlackDispatch}
-                    disabled={integrationLoading || !slackWebhook.trim()}
-                    className="btn-primary"
-                    style={{ flex: "1 1 180px", fontSize: "12px", padding: "8px 12px" }}
-                  >
-                    {integrationLoading ? "Dispatching..." : "Send Audit Alert Card"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleRadarScan}
-                    disabled={integrationLoading || !slackWebhook.trim()}
-                    className="btn-secondary"
-                    style={{ flex: "1 1 100%", fontSize: "12px", padding: "9px 12px", background: "rgba(15, 23, 42, 0.05)", fontWeight: 600 }}
-                  >
-                    {integrationLoading ? "Scanning Portfolio..." : `Run Radar Portfolio Scan (${portfolioList.length} Accounts)`}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* TAB 5: ZAPIER / WEBHOOK API */}
-            {connectTab === "api" && (
-              <div>
-                <p style={{ fontSize: "12px", color: "var(--text-muted)", marginBottom: "10px" }}>
-                  Pipe daily numbers automatically from Zapier, Make, or a cron script:
-                </p>
-                <pre className="code-block-preview">
-{`curl -X POST http://localhost:8000/analyze \\
-  -H "Content-Type: application/json" \\
-  -d '{
-    "account_name": "@client_brand",
-    "platform": "instagram",
-    "metric_type": "reach",
-    "series": [
-      {"date": "2026-10-01", "value": 14200},
-      {"date": "2026-10-02", "value": 13900},
-      ...
-    ]
-  }'`}
-                </pre>
-              </div>
-            )}
-          </div>
-        </>
-      )}
-
-      {/* AGENCY WHITE-LABEL BRANDING MODAL */}
-      <AgencyBrandingModal
-        isOpen={showAgencyModal}
-        onClose={() => setShowAgencyModal(false)}
-        currentAgencyName={agencyName}
-        currentAuditorName={auditorName}
-        currentAgencyRole={agencyRole}
-        currentAgencyTagline={agencyTagline}
-        currentAgencyContact={agencyContact}
-        currentConfidentiality={confidentiality}
-        onSave={({ agencyName: newAgency, auditorName: newAuditor, agencyRole: newRole, agencyTagline: newTag, agencyContact: newContact, confidentiality: newConf }) => {
-          setAgencyName(newAgency);
-          setAuditorName(newAuditor);
-          setAgencyRole(newRole);
-          setAgencyTagline(newTag);
-          setAgencyContact(newContact);
-          setConfidentiality(newConf);
-          if (typeof window !== "undefined") {
-            localStorage.setItem("relvnt-agency-name", newAgency);
-            localStorage.setItem("relvnt-auditor-name", newAuditor);
-            localStorage.setItem("relvnt-agency-role", newRole);
-            localStorage.setItem("relvnt-agency-tagline", newTag);
-            localStorage.setItem("relvnt-agency-contact", newContact);
-            localStorage.setItem("relvnt-confidentiality", newConf);
-          }
-        }}
-      />
-
-      {/* SUPABASE AGENCY AUTH MODAL */}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        onAuthSuccess={(user) => {
-          setCurrentUser(user);
-          const meta = user?.user_metadata || {};
-          if (meta.agency_name) setAgencyName(meta.agency_name);
-          if (meta.auditor_name) setAuditorName(meta.auditor_name);
-        }}
-      />
     </main>
   );
 }
