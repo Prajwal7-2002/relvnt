@@ -223,6 +223,9 @@ def list_presets():
     }
 
 
+PRESET_CACHE: Dict[str, Dict] = {}
+
+
 @app.get("/analyze", response_model=AnalysisResponse, tags=["Analytics Engine"], status_code=status.HTTP_200_OK)
 def analyze(preset: Optional[str] = Query(default=None), source: Optional[str] = Query(default=None)):
     presets = get_preset_datasets()
@@ -247,6 +250,9 @@ def analyze(preset: Optional[str] = Query(default=None), source: Optional[str] =
             logger.warning("Live Instagram request failed: %s", exc)
 
     selected_key = preset if (preset and preset in presets) else "instagram_drop"
+    if selected_key in PRESET_CACHE:
+        return PRESET_CACHE[selected_key]
+
     selected = presets[selected_key]
     res = engine.analyze_series(
         dates=selected["dates"],
@@ -257,6 +263,7 @@ def analyze(preset: Optional[str] = Query(default=None), source: Optional[str] =
     )
     res["username"] = selected["account_name"]
     res["data_source"] = "demo" if selected_key == "instagram_drop" else f"preset_{selected_key}"
+    PRESET_CACHE[selected_key] = res
     return res
 
 

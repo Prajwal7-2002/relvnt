@@ -228,8 +228,9 @@ class LocalDiagnosticEngine:
 class HybridAIAgent:
     """
     Hybrid Compound AI Agent:
-    - If GEMINI_API_KEY is available: calls Google Gemini (1.5 Flash by default) for live generative reasoning.
-    - If offline / no key: seamlessly falls back to LocalDiagnosticEngine (Zero-Data-Leak).
+    - If GEMINI_API_KEY is available: calls Google Gemini (gemini-flash-lite-latest or gemini-3.5-flash)
+      for live generative reasoning.
+    - If offline / no key / timeout: seamlessly falls back to LocalDiagnosticEngine (Zero-Data-Leak).
     """
 
     def __init__(self):
@@ -241,7 +242,16 @@ class HybridAIAgent:
         load_dotenv(base_dir.parent / ".env")
 
         self.api_key = (os.getenv("GEMINI_API_KEY") or "").strip() or None
-        self.model = (os.getenv("GEMINI_MODEL") or "gemini-1.5-flash").strip()
+        self.model = (os.getenv("GEMINI_MODEL") or "gemini-flash-lite-latest").strip()
+
+    def _get_candidate_models(self) -> List[str]:
+        candidates = []
+        if self.model:
+            candidates.append(self.model)
+        for fb in ["gemini-flash-lite-latest", "gemini-3.5-flash", "gemini-3.1-flash-lite"]:
+            if fb not in candidates:
+                candidates.append(fb)
+        return candidates
 
     def generate_briefing(
         self,
@@ -254,43 +264,46 @@ class HybridAIAgent:
         anomalies: List[Dict],
     ) -> Dict:
         if self.api_key:
-            try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
-                prompt = (
-                    f"You are the Relvnt Enterprise Algorithmic Incident Sentinel. "
-                    f"Analyze this performance anomaly report and generate a clinical, quantified Root-Cause Analysis (RCA) "
-                    f"and a structured 3-phase chronological 72-hour tactical recovery runbook.\n\n"
-                    f"Account: {account_name}\n"
-                    f"Platform: {platform}\n"
-                    f"Metric: {metric_type}\n"
-                    f"Health Score: {health_score}/100\n"
-                    f"Current Run-Rate: {metrics.get('current_value')}\n"
-                    f"Baseline Expected: {metrics.get('baseline_avg')}\n"
-                    f"Velocity Change: {metrics.get('change_pct')}%\n"
-                    f"Z-Score: {metrics.get('z_score_deviation')} std dev\n"
-                    f"IsolationForest ML Score: {metrics.get('ml_anomaly_score')}\n"
-                    f"Anomalies: {anomalies}\n\n"
-                    f"Format output as JSON with keys:\n"
-                    f"- 'severity': 'CRITICAL_DRIFT' | 'ELEVATED_RISK' | 'NOMINAL_EQUILIBRIUM'\n"
-                    f"- 'diagnosis': 2-3 clinical sentences detailing exact inflection points and causes\n"
-                    f"- 'recommended_action': Numbered overview of recovery actions\n"
-                    f"- 'phases': list of 3 objects with 'phase' (e.g. 'PHASE 01 (00:00 - 24:00)'), 'title', and 'action'\n"
-                )
-                payload = {
-                    "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {"response_mime_type": "application/json"},
-                }
-                res = requests.post(url, json=payload, timeout=10)
-                if res.status_code == 200:
-                    resp_json = res.json()
-                    text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
-                    data = json.loads(text)
-                    data["ai_engine"] = f"Gemini ({self.model}) (Live Generative AI)"
-                    return data
-                else:
-                    logger.warning("Gemini briefing returned HTTP %s: %s", res.status_code, res.text[:200])
-            except Exception as exc:
-                logger.warning("Gemini live briefing failed, using local engine: %s", exc)
+            prompt = (
+                f"You are the Relvnt Enterprise Algorithmic Incident Sentinel. "
+                f"Analyze this performance anomaly report and generate a clinical, quantified Root-Cause Analysis (RCA) "
+                f"and a structured 3-phase chronological 72-hour tactical recovery runbook.\n\n"
+                f"Account: {account_name}\n"
+                f"Platform: {platform}\n"
+                f"Metric: {metric_type}\n"
+                f"Health Score: {health_score}/100\n"
+                f"Current Run-Rate: {metrics.get('current_value')}\n"
+                f"Baseline Expected: {metrics.get('baseline_avg')}\n"
+                f"Velocity Change: {metrics.get('change_pct')}%\n"
+                f"Z-Score: {metrics.get('z_score_deviation')} std dev\n"
+                f"IsolationForest ML Score: {metrics.get('ml_anomaly_score')}\n"
+                f"Anomalies: {anomalies}\n\n"
+                f"Format output as JSON with keys:\n"
+                f"- 'severity': 'CRITICAL_DRIFT' | 'ELEVATED_RISK' | 'NOMINAL_EQUILIBRIUM'\n"
+                f"- 'diagnosis': 2-3 clinical sentences detailing exact inflection points and causes\n"
+                f"- 'recommended_action': Numbered overview of recovery actions\n"
+                f"- 'phases': list of 3 objects with 'phase' (e.g. 'PHASE 01 (00:00 - 24:00)'), 'title', and 'action'\n"
+            )
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {"response_mime_type": "application/json"},
+            }
+
+            for model_name in self._get_candidate_models():
+                try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
+                    res = requests.post(url, json=payload, timeout=4.0)
+                    if res.status_code == 200:
+                        resp_json = res.json()
+                        text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
+                        data = json.loads(text)
+                        data["ai_engine"] = f"Gemini ({model_name}) (Live AI)"
+                        return data
+                    else:
+                        logger.warning("Gemini briefing (%s) returned HTTP %s: %s", model_name, res.status_code, res.text[:120])
+                except Exception as exc:
+                    logger.warning("Gemini model %s briefing timed out or failed: %s", model_name, exc)
+                    continue
 
         return LocalDiagnosticEngine.generate_briefing(
             account_name, platform, metric_type, prediction, health_score, metrics, anomalies
@@ -308,39 +321,42 @@ class HybridAIAgent:
         diagnosis: str,
     ) -> Dict:
         if self.api_key:
-            try:
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model}:generateContent?key={self.api_key}"
-                prompt = (
-                    f"You are the Relvnt AI Growth & Incident Copilot. "
-                    f"The user is asking a question about their account performance.\n\n"
-                    f"ACCOUNT CONTEXT:\n"
-                    f"- Account: {account_name}\n"
-                    f"- Platform: {platform}\n"
-                    f"- Metric: {metric_type}\n"
-                    f"- Health Score: {health_score}/100\n"
-                    f"- Current Run-Rate: {metrics.get('current_value')}\n"
-                    f"- Baseline: {metrics.get('baseline_avg')}\n"
-                    f"- Net Drift: {metrics.get('change_pct')}%\n"
-                    f"- Active Diagnosis: {diagnosis}\n\n"
-                    f"USER QUESTION: {question}\n\n"
-                    f"INSTRUCTIONS:\n"
-                    f"Provide an authoritative, direct, and actionable answer citing their specific data. "
-                    f"If they ask for an email, write a polished ready-to-send draft. "
-                    f"Do not use generic buzzwords or emojis. Keep it professional and clear."
-                )
-                payload = {"contents": [{"parts": [{"text": prompt}]}]}
-                res = requests.post(url, json=payload, timeout=10)
-                if res.status_code == 200:
-                    resp_json = res.json()
-                    text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
-                    return {
-                        "answer": text.strip(),
-                        "engine": f"Gemini ({self.model}) (Live AI Copilot)",
-                    }
-                else:
-                    logger.warning("Gemini copilot query returned HTTP %s: %s", res.status_code, res.text[:200])
-            except Exception as exc:
-                logger.warning("Gemini live copilot query failed, using local engine: %s", exc)
+            prompt = (
+                f"You are the Relvnt AI Growth & Incident Copilot. "
+                f"The user is asking a question about their account performance.\n\n"
+                f"ACCOUNT CONTEXT:\n"
+                f"- Account: {account_name}\n"
+                f"- Platform: {platform}\n"
+                f"- Metric: {metric_type}\n"
+                f"- Health Score: {health_score}/100\n"
+                f"- Current Run-Rate: {metrics.get('current_value')}\n"
+                f"- Baseline: {metrics.get('baseline_avg')}\n"
+                f"- Net Drift: {metrics.get('change_pct')}%\n"
+                f"- Active Diagnosis: {diagnosis}\n\n"
+                f"USER QUESTION: {question}\n\n"
+                f"INSTRUCTIONS:\n"
+                f"Provide an authoritative, direct, and actionable answer citing their specific data. "
+                f"If they ask for an email, write a polished ready-to-send draft. "
+                f"Do not use generic buzzwords or emojis. Keep it professional and clear."
+            )
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
+
+            for model_name in self._get_candidate_models():
+                try:
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
+                    res = requests.post(url, json=payload, timeout=8.0)
+                    if res.status_code == 200:
+                        resp_json = res.json()
+                        text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
+                        return {
+                            "answer": text.strip(),
+                            "engine": f"Gemini ({model_name}) (Live AI Copilot)",
+                        }
+                    else:
+                        logger.warning("Gemini copilot (%s) returned HTTP %s: %s", model_name, res.status_code, res.text[:120])
+                except Exception as exc:
+                    logger.warning("Gemini model %s copilot failed: %s", model_name, exc)
+                    continue
 
         return LocalDiagnosticEngine.answer_copilot(
             question, account_name, platform, metric_type, health_score, metrics, anomalies, diagnosis
