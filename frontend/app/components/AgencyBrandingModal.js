@@ -1,11 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const TEMPLATES = [
   {
-    label: "Digital Marketing Agency",
-    sublabel: "BrandVitamin Style",
+    label: "Multi-Channel Ads (Adsfellow / Raturi)",
+    sublabel: "Paid Ads & ROI Radar",
+    agency: "Adsfellow Digital Media",
+    auditor: "Sandeep Raturi",
+    role: "Founder & Digital Marketing Head",
+    tagline: "Performance Ads, SEO & Client ROI Turnaround",
+    contact: "sandeep@adsfellow.com",
+    confidentiality: "CONFIDENTIAL & PROPRIETARY // CLIENT EYES ONLY",
+  },
+  {
+    label: "Digital Marketing Agency (BrandVitamin)",
+    sublabel: "Meta & Google Ads",
     agency: "BrandVitamin",
     auditor: "Bhagwan Das",
     role: "Founder & Creative Director",
@@ -68,6 +78,20 @@ export default function AgencyBrandingModal({
     currentConfidentiality || "CONFIDENTIAL & PROPRIETARY // CLIENT EYES ONLY"
   );
 
+  const overlayMouseDownRef = useRef(false);
+
+  // Close with Escape key
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   const getInitials = (name) => {
@@ -100,12 +124,12 @@ export default function AgencyBrandingModal({
   const handleSubmit = (e) => {
     e.preventDefault();
     onSave({
-      agencyName: agency.trim() || "Your Agency",
-      auditorName: auditor.trim() || "Lead Strategist",
-      agencyRole: role.trim() || "Growth Director",
-      agencyTagline: tagline.trim() || "Distribution Advisory",
-      agencyContact: contact.trim() || "audit@youragency.com",
-      confidentiality: confidentiality.trim() || "CONFIDENTIAL",
+      agencyName: (agency || "").trim() || "Your Agency",
+      auditorName: (auditor || "").trim() || "Lead Strategist",
+      agencyRole: (role || "").trim() || "Growth Director",
+      agencyTagline: (tagline || "").trim() || "Distribution Advisory",
+      agencyContact: (contact || "").trim() || "audit@youragency.com",
+      confidentiality: (confidentiality || "").trim() || "CONFIDENTIAL",
     });
     setSavedSuccess(true);
     setTimeout(() => {
@@ -114,12 +138,49 @@ export default function AgencyBrandingModal({
     }, 350);
   };
 
+  // Safe backdrop click handling that NEVER closes when dragging / selecting text
+  const handleOverlayMouseDown = (e) => {
+    if (e.target === e.currentTarget) {
+      overlayMouseDownRef.current = true;
+    }
+  };
+
+  const handleOverlayMouseUp = (e) => {
+    const hasSelection =
+      typeof window !== "undefined" &&
+      window.getSelection &&
+      window.getSelection().toString().trim().length > 0;
+
+    // Only close if mousedown was strictly on the backdrop AND mouseup was on backdrop AND no text was selected
+    if (overlayMouseDownRef.current && e.target === e.currentTarget && !hasSelection) {
+      onClose();
+    }
+    overlayMouseDownRef.current = false;
+  };
+
+  // Prevent Enter key in inputs from prematurely submitting the form and closing the modal
+  const handleFormKeyDown = (e) => {
+    if (e.key === "Enter" && e.target.tagName === "INPUT") {
+      e.preventDefault();
+    }
+  };
+
   const initials = getInitials(agency);
   const auditorInitials = getInitials(auditor);
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box modal-box-suite" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="modal-overlay"
+      onMouseDown={handleOverlayMouseDown}
+      onMouseUp={handleOverlayMouseUp}
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div
+        className="modal-box modal-box-suite"
+        onClick={(e) => e.stopPropagation()}
+        onMouseDown={(e) => e.stopPropagation()}
+        onMouseUp={(e) => e.stopPropagation()}
+      >
         {/* MODAL HEADER */}
         <div className="modal-header">
           <div className="modal-title-wrap">
@@ -146,7 +207,7 @@ export default function AgencyBrandingModal({
           </div>
           <div className="branding-chips">
             {TEMPLATES.map((tpl, i) => {
-              const isActive = agency.toLowerCase() === tpl.agency.toLowerCase();
+              const isActive = (agency || "").toLowerCase().trim() === tpl.agency.toLowerCase().trim();
               return (
                 <button
                   key={i}
@@ -164,7 +225,7 @@ export default function AgencyBrandingModal({
         </div>
 
         {/* TWO-COLUMN WORKBENCH: FORM ON LEFT, REAL-TIME PREVIEW ON RIGHT */}
-        <form onSubmit={handleSubmit} className="branding-workbench-grid">
+        <form onSubmit={handleSubmit} onKeyDown={handleFormKeyDown} className="branding-workbench-grid">
           {/* LEFT COLUMN: EDITABLE INPUTS */}
           <div className="branding-inputs-column">
             <div className="branding-section-heading">
@@ -177,9 +238,8 @@ export default function AgencyBrandingModal({
                 type="text"
                 value={agency}
                 onChange={(e) => setAgency(e.target.value)}
-                placeholder="e.g. BrandVitamin or Apex Growth Studio"
+                placeholder="e.g. Adsfellow Digital or BrandVitamin"
                 className="text-input"
-                required
               />
               <span className="input-micro-hint">Displayed prominently in letterhead and client audit documents.</span>
             </div>
@@ -191,9 +251,8 @@ export default function AgencyBrandingModal({
                   type="text"
                   value={auditor}
                   onChange={(e) => setAuditor(e.target.value)}
-                  placeholder="e.g. Bhagwan Das"
+                  placeholder="e.g. Sandeep Raturi"
                   className="text-input"
-                  required
                 />
               </div>
 
@@ -203,7 +262,7 @@ export default function AgencyBrandingModal({
                   type="text"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  placeholder="e.g. Founder &amp; Creative Director"
+                  placeholder="e.g. Founder &amp; Digital Marketing Head"
                   className="text-input"
                 />
               </div>
@@ -215,7 +274,7 @@ export default function AgencyBrandingModal({
                 type="text"
                 value={tagline}
                 onChange={(e) => setTagline(e.target.value)}
-                placeholder="e.g. Performance Marketing, Meta &amp; Google Ads Lab"
+                placeholder="e.g. Multi-Channel Performance Ads &amp; ROI Turnaround"
                 className="text-input"
               />
             </div>
@@ -252,7 +311,7 @@ export default function AgencyBrandingModal({
                 type="email"
                 value={contact}
                 onChange={(e) => setContact(e.target.value)}
-                placeholder="audit@brandvitamin.com"
+                placeholder="growth@adsfellow.com"
                 className="text-input"
               />
             </div>
@@ -288,16 +347,16 @@ export default function AgencyBrandingModal({
                 <div className="replica-watermark-tag">OFFICIAL AUDIT MEMO</div>
                 <div className="replica-topbar">
                   <div className="replica-brand-group">
-                    <div className="replica-monogram-box" title={`${agency} Identity Seal`}>
+                    <div className="replica-monogram-box" title={`${agency || "Agency"} Identity Seal`}>
                       <span>{initials}</span>
                     </div>
                     <div>
                       <div className="replica-brand">
-                        RELVNT &times; {agency.toUpperCase() || "YOUR AGENCY"}
+                        RELVNT &times; {(agency || "YOUR AGENCY").toUpperCase()}
                       </div>
-                      <div className="replica-sub">{tagline}</div>
+                      <div className="replica-sub">{tagline || "Social Media & Distribution Advisory"}</div>
                       <div className="replica-auditor">
-                        Lead Auditor: <strong>{auditor}</strong> &bull; {role}
+                        Lead Auditor: <strong>{auditor || "Lead Strategist"}</strong> &bull; {role || "Growth Director"}
                       </div>
                     </div>
                   </div>
@@ -309,8 +368,8 @@ export default function AgencyBrandingModal({
                 </div>
 
                 <div className="replica-confidentiality-row">
-                  <span>{confidentiality}</span>
-                  <span>Inquiries: {contact}</span>
+                  <span>{confidentiality || "CONFIDENTIAL & PROPRIETARY"}</span>
+                  <span>Inquiries: {contact || "audit@youragency.com"}</span>
                 </div>
 
                 <div className="replica-sample-body">
@@ -343,13 +402,13 @@ export default function AgencyBrandingModal({
                 </div>
                 <div className="email-signoff-block">
                   <div className="signoff-avatar-row">
-                    <div className="signoff-avatar" title={auditor}>
+                    <div className="signoff-avatar" title={auditor || "Auditor"}>
                       {auditorInitials}
                     </div>
                     <div>
                       <div className="signoff-name">{auditor || "Your Name"}</div>
                       <div className="signoff-role">{role || "Strategist"} &bull; {agency || "Your Agency"}</div>
-                      <div className="signoff-contact">{contact} &bull; Forensic Incident Protocol v1.2.0</div>
+                      <div className="signoff-contact">{contact || "audit@youragency.com"} &bull; Forensic Incident Protocol v1.2.0</div>
                     </div>
                   </div>
                 </div>
