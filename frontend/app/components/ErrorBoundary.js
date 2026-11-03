@@ -49,7 +49,7 @@ export default class ErrorBoundary extends React.Component {
               background: "var(--status-warn-bg)",
               border: "1px solid var(--status-warn-border)",
               color: "var(--status-warn)",
-              fontSize: "12px",
+              fontSize: "var(--font-size-sm)",
               fontWeight: 600,
               textTransform: "uppercase",
               letterSpacing: "0.05em",
@@ -62,7 +62,7 @@ export default class ErrorBoundary extends React.Component {
 
           <h2
             style={{
-              fontSize: "18px",
+              fontSize: "var(--font-size-xl)",
               fontWeight: 700,
               color: "var(--text-title)",
               margin: "0 0 8px 0",
@@ -73,7 +73,7 @@ export default class ErrorBoundary extends React.Component {
 
           <p
             style={{
-              fontSize: "13.5px",
+              fontSize: "var(--font-size-md)",
               color: "var(--text-muted)",
               maxWidth: "520px",
               margin: "0 auto 20px auto",

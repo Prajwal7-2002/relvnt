@@ -125,11 +125,11 @@ export default function SettingsView({
           style={{
             padding: "12px 16px",
             borderRadius: "8px",
-            fontSize: "13px",
+            fontSize: "var(--font-size-md)",
             marginBottom: "20px",
-            background: notice.type === "success" ? "rgba(16, 185, 129, 0.12)" : "rgba(239, 68, 68, 0.12)",
-            color: notice.type === "success" ? "#10B981" : "#EF4444",
-            border: `1px solid ${notice.type === "success" ? "rgba(16, 185, 129, 0.25)" : "rgba(239, 68, 68, 0.25)"}`,
+            background: notice.type === "success" ? "var(--status-nominal-bg)" : "var(--status-drift-bg)",
+            color: notice.type === "success" ? "var(--status-nominal)" : "var(--status-drift)",
+            border: `1px solid ${notice.type === "success" ? "var(--status-nominal-border)" : "var(--status-drift-border)"}`,
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -247,10 +247,10 @@ export default function SettingsView({
               </div>
 
               <div className="memo-preview-body">
-                <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
+                <div style={{ fontSize: "var(--font-size-xs)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
                   Sample Executive Signoff:
                 </div>
-                <div style={{ fontSize: "12.5px", color: "var(--text-primary)", fontStyle: "italic", borderLeft: "2px solid var(--border-medium)", paddingLeft: "10px" }}>
+                <div style={{ fontSize: "var(--font-size-sm)", color: "var(--text-primary)", fontStyle: "italic", borderLeft: "2px solid var(--border-medium)", paddingLeft: "10px" }}>
                   &ldquo;Certified algorithmic anomaly baseline audit completed under confidential retainer engagement.&rdquo;
                 </div>
               </div>
@@ -276,7 +276,7 @@ export default function SettingsView({
               className="input-text-field"
               placeholder="https://hooks.slack.com/services/... or https://discord.com/api/webhooks/..."
             />
-            <span style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>
+            <span style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>
               Alert cards are formatted automatically for both Slack Block Kit and Discord Embeds. Guarded by SSRF filter.
             </span>
           </div>
@@ -288,8 +288,8 @@ export default function SettingsView({
                 flex: 1,
                 padding: "12px 14px",
                 borderRadius: "8px",
-                border: radarThreshold === "critical" ? "2px solid #EF4444" : "1px solid var(--border-subtle)",
-                background: radarThreshold === "critical" ? "rgba(239, 68, 68, 0.08)" : "var(--bg-surface-subtle)",
+                border: radarThreshold === "critical" ? "2px solid var(--status-drift)" : "1px solid var(--border-subtle)",
+                background: radarThreshold === "critical" ? "var(--status-drift-bg)" : "var(--bg-surface-subtle)",
                 cursor: "pointer",
               }}>
                 <input
@@ -300,8 +300,8 @@ export default function SettingsView({
                   onChange={() => setRadarThreshold("critical")}
                   style={{ marginRight: "8px" }}
                 />
-                <strong style={{ color: "#EF4444" }}>Critical Incidents Only (&lt; 40 Health)</strong>
-                <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "4px" }}>
+                <strong style={{ color: "var(--status-drift)" }}>Critical Incidents Only (&lt; 40 Health)</strong>
+                <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)", marginTop: "4px" }}>
                   Triggers only when algorithmic suppression or acute distribution failure is detected (-50% or worse).
                 </div>
               </label>
@@ -310,8 +310,8 @@ export default function SettingsView({
                 flex: 1,
                 padding: "12px 14px",
                 borderRadius: "8px",
-                border: radarThreshold === "warning" ? "2px solid #F59E0B" : "1px solid var(--border-subtle)",
-                background: radarThreshold === "warning" ? "rgba(245, 158, 11, 0.08)" : "var(--bg-surface-subtle)",
+                border: radarThreshold === "warning" ? "2px solid var(--status-warning)" : "1px solid var(--border-subtle)",
+                background: radarThreshold === "warning" ? "var(--status-warning-bg)" : "var(--bg-surface-subtle)",
                 cursor: "pointer",
               }}>
                 <input
@@ -322,8 +322,8 @@ export default function SettingsView({
                   onChange={() => setRadarThreshold("warning")}
                   style={{ marginRight: "8px" }}
                 />
-                <strong style={{ color: "#F59E0B" }}>Early Warning (&lt; 70 Health)</strong>
-                <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "4px" }}>
+                <strong style={{ color: "var(--status-warning)" }}>Early Warning (&lt; 70 Health)</strong>
+                <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)", marginTop: "4px" }}>
                   Triggers on subtle distribution drift, ad creative fatigue, or mild baseline decoupling.
                 </div>
               </label>
@@ -379,7 +379,7 @@ export default function SettingsView({
                   placeholder="https://docs.google.com/spreadsheets/d/.../edit"
                   required
                 />
-                <span style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>
+                <span style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)", marginTop: "4px", display: "block" }}>
                   Must be set to &ldquo;Anyone with link can view&rdquo;. Expected columns: Date and Reach (or ROAS).
                 </span>
               </div>
@@ -419,11 +419,11 @@ export default function SettingsView({
                   onChange={onFileUpload}
                   style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
                 />
-                <div style={{ fontSize: "28px", marginBottom: "8px" }}>📄</div>
-                <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>
+                <div style={{ fontSize: "var(--font-size-2xl)", marginBottom: "8px" }}>📄</div>
+                <div style={{ fontSize: "var(--font-size-md)", fontWeight: 600, color: "var(--text-primary)" }}>
                   Click or drag CSV file to upload
                 </div>
-                <div style={{ fontSize: "11.5px", color: "var(--text-muted)", marginTop: "4px" }}>
+                <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)", marginTop: "4px" }}>
                   Protected by automated formula injection neutralization and MIME check
                 </div>
               </div>
@@ -446,7 +446,7 @@ export default function SettingsView({
                     className="input-text-field"
                     placeholder="EAA..."
                   />
-                  <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "3px" }}>
+                  <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)", marginTop: "3px" }}>
                     Leave blank to use server environment credentials (INSTAGRAM_ACCESS_TOKEN).
                   </span>
                 </div>
@@ -460,7 +460,7 @@ export default function SettingsView({
                     className="input-text-field"
                     placeholder="1784..."
                   />
-                  <span style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "3px" }}>
+                  <span style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)", marginTop: "3px" }}>
                     Leave blank to use server environment credentials (INSTAGRAM_BUSINESS_ID).
                   </span>
                 </div>
@@ -489,41 +489,41 @@ export default function SettingsView({
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", marginTop: "20px" }}>
             <div style={{ padding: "16px", borderRadius: "8px", background: "var(--bg-surface-subtle)", border: "1px solid var(--border-subtle)" }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--status-nominal)", textTransform: "uppercase" }}>● Active Enforcement</div>
-              <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
+              <div style={{ fontSize: "var(--font-size-xs)", fontWeight: 700, color: "var(--status-nominal)", textTransform: "uppercase" }}>● Active Enforcement</div>
+              <div style={{ fontSize: "var(--font-size-base)", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
                 Tiered Rate Limiter (RFC 6585)
               </div>
-              <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "6px 0 0 0", lineHeight: 1.45 }}>
+              <p style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)", margin: "6px 0 0 0", lineHeight: 1.45 }}>
                 Compute endpoints capped at 45 req/min; metadata endpoints capped at 180 req/min. Emits <code>X-RateLimit-*</code> and <code>Retry-After</code> headers.
               </p>
             </div>
 
             <div style={{ padding: "16px", borderRadius: "8px", background: "var(--bg-surface-subtle)", border: "1px solid var(--border-subtle)" }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--status-nominal)", textTransform: "uppercase" }}>● Active Enforcement</div>
-              <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
+              <div style={{ fontSize: "var(--font-size-xs)", fontWeight: 700, color: "var(--status-nominal)", textTransform: "uppercase" }}>● Active Enforcement</div>
+              <div style={{ fontSize: "var(--font-size-base)", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
                 Network SSRF Protection
               </div>
-              <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "6px 0 0 0", lineHeight: 1.45 }}>
+              <p style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)", margin: "6px 0 0 0", lineHeight: 1.45 }}>
                 Destination URLs resolved through strict DNS validation; private ranges (RFC 1918) and cloud metadata services (169.254.169.254) are rejected.
               </p>
             </div>
 
             <div style={{ padding: "16px", borderRadius: "8px", background: "var(--bg-surface-subtle)", border: "1px solid var(--border-subtle)" }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--status-nominal)", textTransform: "uppercase" }}>● Active Enforcement</div>
-              <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
+              <div style={{ fontSize: "var(--font-size-xs)", fontWeight: 700, color: "var(--status-nominal)", textTransform: "uppercase" }}>● Active Enforcement</div>
+              <div style={{ fontSize: "var(--font-size-base)", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
                 CSV Formula Sanitization (CWE-1236)
               </div>
-              <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "6px 0 0 0", lineHeight: 1.45 }}>
+              <p style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)", margin: "6px 0 0 0", lineHeight: 1.45 }}>
                 Uploaded files are scanned for formula triggers (<code>=</code>, <code>+</code>, <code>-</code>, <code>@</code>) and sanitized before entering computation pipelines.
               </p>
             </div>
 
             <div style={{ padding: "16px", borderRadius: "8px", background: "var(--bg-surface-subtle)", border: "1px solid var(--border-subtle)" }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, color: "var(--status-nominal)", textTransform: "uppercase" }}>● Active Enforcement</div>
-              <div style={{ fontSize: "14.5px", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
+              <div style={{ fontSize: "var(--font-size-xs)", fontWeight: 700, color: "var(--status-nominal)", textTransform: "uppercase" }}>● Active Enforcement</div>
+              <div style={{ fontSize: "var(--font-size-base)", fontWeight: 700, color: "var(--text-primary)", marginTop: "4px" }}>
                 Zero-Retention Enclave &amp; CSP
               </div>
-              <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: "6px 0 0 0", lineHeight: 1.45 }}>
+              <p style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)", margin: "6px 0 0 0", lineHeight: 1.45 }}>
                 Strict Content-Security-Policy disallows frame embedding (clickjacking defense). Machine learning executes locally with zero persistent telemetry leakage.
               </p>
             </div>

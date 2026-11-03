@@ -96,10 +96,10 @@ export default function AnomalyTable({ data }) {
                       style={{
                         backgroundColor:
                           row.variancePct <= -40
-                            ? "rgba(185, 28, 28, 0.12)"
+                            ? "var(--status-drift-bg)"
                             : row.variancePct < 0
-                            ? "rgba(217, 119, 6, 0.12)"
-                            : "rgba(21, 128, 61, 0.12)",
+                            ? "var(--status-warning-bg)"
+                            : "var(--status-nominal-bg)",
                         color:
                           row.variancePct <= -40
                             ? "var(--status-critical)"
@@ -108,10 +108,10 @@ export default function AnomalyTable({ data }) {
                             : "var(--status-good)",
                         borderColor:
                           row.variancePct <= -40
-                            ? "rgba(185, 28, 28, 0.3)"
+                            ? "var(--status-drift-border)"
                             : row.variancePct < 0
-                            ? "rgba(217, 119, 6, 0.3)"
-                            : "rgba(21, 128, 61, 0.3)",
+                            ? "var(--status-warning-border)"
+                            : "var(--status-nominal-border)",
                       }}
                     >
                       {row.classification}

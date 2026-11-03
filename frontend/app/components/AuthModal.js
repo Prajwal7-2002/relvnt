@@ -104,17 +104,17 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
           <div>
-            <div style={{ fontSize: "10px", fontWeight: 800, letterSpacing: "0.08em", color: "#64748B", textTransform: "uppercase" }}>
+            <div style={{ fontSize: "var(--font-size-2xs)", fontWeight: 800, letterSpacing: "0.08em", color: "var(--text-muted)", textTransform: "uppercase" }}>
               RELVNT AUTH // AGENCY ACCESS
             </div>
-            <h2 style={{ fontSize: "19px", fontWeight: 700, margin: "2px 0 0 0", color: "var(--text-title)" }}>
+            <h2 style={{ fontSize: "var(--font-size-xl)", fontWeight: 700, margin: "2px 0 0 0", color: "var(--text-title)" }}>
               {tab === "signin" ? "Agency Sign In" : "Create Agency Workspace"}
             </h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            style={{ background: "transparent", border: "none", color: "var(--text-dim)", fontSize: "22px", cursor: "pointer", lineHeight: 1 }}
+            style={{ background: "transparent", border: "none", color: "var(--text-dim)", fontSize: "var(--font-size-xl)", cursor: "pointer", lineHeight: 1 }}
           >
             ×
           </button>
@@ -127,14 +127,14 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           justifyContent: "space-between",
           padding: "7px 12px",
           borderRadius: "6px",
-          background: isSupabaseConfigured ? "rgba(16, 185, 129, 0.08)" : "rgba(100, 116, 139, 0.08)",
-          border: `1px solid ${isSupabaseConfigured ? "rgba(16, 185, 129, 0.25)" : "rgba(100, 116, 139, 0.2)"}`,
-          fontSize: "11px",
-          color: isSupabaseConfigured ? "#10B981" : "#64748B",
+          background: isSupabaseConfigured ? "var(--status-nominal-bg)" : "var(--bg-surface-subtle)",
+          border: `1px solid ${isSupabaseConfigured ? "var(--status-nominal-border)" : "var(--border-subtle)"}`,
+          fontSize: "var(--font-size-xs)",
+          color: isSupabaseConfigured ? "var(--status-nominal)" : "var(--text-muted)",
           marginBottom: "14px",
         }}>
           <span>{isSupabaseConfigured ? "● Supabase PostgreSQL Auth Active" : "○ Local Workspace Sandbox Mode"}</span>
-          <span style={{ fontSize: "10px", opacity: 0.8 }}>Tenant Isolation</span>
+          <span style={{ fontSize: "var(--font-size-2xs)", opacity: 0.8 }}>Tenant Isolation</span>
         </div>
 
         {/* TAB SELECTOR */}
@@ -162,11 +162,11 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           <div style={{
             padding: "9px 12px",
             borderRadius: "6px",
-            fontSize: "12px",
+            fontSize: "var(--font-size-sm)",
             marginBottom: "12px",
-            background: "rgba(239, 68, 68, 0.12)",
-            color: "#EF4444",
-            border: "1px solid rgba(239, 68, 68, 0.25)"
+            background: "var(--status-drift-bg)",
+            color: "var(--status-drift)",
+            border: "1px solid var(--status-drift-border)"
           }}>
             {errorMsg}
           </div>
@@ -175,11 +175,11 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           <div style={{
             padding: "9px 12px",
             borderRadius: "6px",
-            fontSize: "12px",
+            fontSize: "var(--font-size-sm)",
             marginBottom: "12px",
-            background: "rgba(16, 185, 129, 0.12)",
-            color: "#10B981",
-            border: "1px solid rgba(16, 185, 129, 0.25)"
+            background: "var(--status-nominal-bg)",
+            color: "var(--status-nominal)",
+            border: "1px solid var(--status-nominal-border)"
           }}>
             {successMsg}
           </div>
@@ -189,7 +189,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
         {tab === "signin" ? (
           <form onSubmit={handleSignIn}>
             <div style={{ marginBottom: "10px" }}>
-              <label style={{ display: "block", fontSize: "11.5px", color: "var(--text-dim)", marginBottom: "4px" }}>
+              <label style={{ display: "block", fontSize: "var(--font-size-xs)", color: "var(--text-dim)", marginBottom: "4px" }}>
                 Work Email:
               </label>
               <input
@@ -203,7 +203,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             </div>
 
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "11.5px", color: "var(--text-dim)", marginBottom: "4px" }}>
+              <label style={{ display: "block", fontSize: "var(--font-size-xs)", color: "var(--text-dim)", marginBottom: "4px" }}>
                 Password:
               </label>
               <input
@@ -229,7 +229,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
               <button
                 type="button"
                 onClick={() => { setTab("signup"); setErrorMsg(null); setSuccessMsg(null); }}
-                style={{ background: "transparent", border: "none", color: "#0284C7", fontSize: "12px", cursor: "pointer" }}
+                style={{ background: "transparent", border: "none", color: "var(--accent-primary)", fontSize: "var(--font-size-sm)", cursor: "pointer" }}
               >
                 Don&apos;t have an agency account? Register here
               </button>
@@ -240,7 +240,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
           <form onSubmit={handleSignUp}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px", marginBottom: "10px" }}>
               <div>
-                <label style={{ display: "block", fontSize: "11.5px", color: "var(--text-dim)", marginBottom: "4px" }}>
+                <label style={{ display: "block", fontSize: "var(--font-size-xs)", color: "var(--text-dim)", marginBottom: "4px" }}>
                   Agency Name:
                 </label>
                 <input
@@ -252,7 +252,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                 />
               </div>
               <div>
-                <label style={{ display: "block", fontSize: "11.5px", color: "var(--text-dim)", marginBottom: "4px" }}>
+                <label style={{ display: "block", fontSize: "var(--font-size-xs)", color: "var(--text-dim)", marginBottom: "4px" }}>
                   Lead Auditor Name:
                 </label>
                 <input
@@ -266,7 +266,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             </div>
 
             <div style={{ marginBottom: "10px" }}>
-              <label style={{ display: "block", fontSize: "11.5px", color: "var(--text-dim)", marginBottom: "4px" }}>
+              <label style={{ display: "block", fontSize: "var(--font-size-xs)", color: "var(--text-dim)", marginBottom: "4px" }}>
                 Work Email:
               </label>
               <input
@@ -280,7 +280,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
             </div>
 
             <div style={{ marginBottom: "16px" }}>
-              <label style={{ display: "block", fontSize: "11.5px", color: "var(--text-dim)", marginBottom: "4px" }}>
+              <label style={{ display: "block", fontSize: "var(--font-size-xs)", color: "var(--text-dim)", marginBottom: "4px" }}>
                 Secure Password:
               </label>
               <input
@@ -306,7 +306,7 @@ export default function AuthModal({ isOpen, onClose, onAuthSuccess }) {
               <button
                 type="button"
                 onClick={() => { setTab("signin"); setErrorMsg(null); setSuccessMsg(null); }}
-                style={{ background: "transparent", border: "none", color: "#0284C7", fontSize: "12px", cursor: "pointer" }}
+                style={{ background: "transparent", border: "none", color: "var(--accent-primary)", fontSize: "var(--font-size-sm)", cursor: "pointer" }}
               >
                 Already have an account? Sign In here
               </button>

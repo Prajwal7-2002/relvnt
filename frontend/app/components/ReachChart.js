@@ -80,11 +80,11 @@ export default function ReachChart({ data }) {
                 width: "8px",
                 height: "8px",
                 borderRadius: "50%",
-                backgroundColor: "#B91C1C",
+                backgroundColor: "var(--status-drift)",
                 display: "inline-block",
               }}
             />
-            <span style={{ color: "#B91C1C" }}>
+            <span style={{ color: "var(--status-drift)" }}>
               Decoupling Events ({data.anomalies.length} days)
             </span>
           </div>
@@ -143,12 +143,12 @@ export default function ReachChart({ data }) {
                     </div>
                     <div className="tooltip-line" style={{ marginTop: "4px", paddingTop: "4px", borderTop: "1px solid var(--border-light)" }}>
                       <span style={{ color: "var(--text-dim)" }}>Variance:</span>
-                      <span style={{ color: Number(variance) < 0 ? "#B91C1C" : "#15803D", fontWeight: 600 }}>
+                      <span style={{ color: Number(variance) < 0 ? "var(--status-drift)" : "var(--status-nominal)", fontWeight: 600 }}>
                         {Number(variance) > 0 ? "+" : ""}{variance}%
                       </span>
                     </div>
                     {isAnomaly && (
-                      <div style={{ marginTop: "6px", fontSize: "11px", color: "#B91C1C", fontWeight: 600 }}>
+                      <div style={{ marginTop: "6px", fontSize: "var(--font-size-xs)", color: "var(--status-drift)", fontWeight: 600 }}>
                         ● Statistical Anomaly Flag
                       </div>
                     )}
