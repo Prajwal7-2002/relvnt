@@ -14,6 +14,16 @@ export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
+function setSessionCookie(active) {
+  if (typeof document !== "undefined") {
+    if (active) {
+      document.cookie = "relvnt_session=1; path=/; max-age=604800; SameSite=Lax";
+    } else {
+      document.cookie = "relvnt_session=; path=/; max-age=0; SameSite=Lax";
+    }
+  }
+}
+
 /**
  * Enterprise Auth Client wrapper with Zero-Lockout Graceful Fallback.
  * If live Supabase credentials are configured, delegates directly to Supabase Auth.
@@ -38,6 +48,7 @@ export const authService = {
         },
       });
       if (error) throw error;
+      setSessionCookie(true);
       return { user: data.user, session: data.session, mode: "live" };
     }
 
@@ -55,6 +66,7 @@ export const authService = {
       localStorage.setItem("relvnt-agency-name", finalAgency);
       localStorage.setItem("relvnt-auditor-name", finalAuditor);
     }
+    setSessionCookie(true);
     return { user: mockUser, session: null, mode: "local_sandbox" };
   },
 
@@ -65,6 +77,7 @@ export const authService = {
         password,
       });
       if (error) throw error;
+      setSessionCookie(true);
       return { user: data.user, session: data.session, mode: "live" };
     }
 
@@ -87,10 +100,12 @@ export const authService = {
     if (typeof window !== "undefined") {
       localStorage.setItem("relvnt-auth-session", JSON.stringify(mockUser));
     }
+    setSessionCookie(true);
     return { user: mockUser, session: null, mode: "local_sandbox" };
   },
 
   async signOut() {
+    setSessionCookie(false);
     if (isSupabaseConfigured && supabase) {
       await supabase.auth.signOut();
     }
@@ -102,16 +117,22 @@ export const authService = {
   async getSession() {
     if (isSupabaseConfigured && supabase) {
       const { data } = await supabase.auth.getSession();
-      if (data?.session) return { user: data.session.user, session: data.session, mode: "live" };
+      if (data?.session) {
+        setSessionCookie(true);
+        return { user: data.session.user, session: data.session, mode: "live" };
+      }
     }
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("relvnt-auth-session");
       if (saved) {
         try {
-          return { user: JSON.parse(saved), session: null, mode: "local_sandbox" };
+          const user = JSON.parse(saved);
+          setSessionCookie(true);
+          return { user, session: null, mode: "local_sandbox" };
         } catch (_) {}
       }
     }
+    setSessionCookie(false);
     return null;
   },
 };

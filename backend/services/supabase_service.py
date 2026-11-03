@@ -52,15 +52,17 @@ class SupabaseService:
 
     def save_agency(self, agency_data: Dict[str, Any]) -> Dict[str, Any]:
         """Upserts an agency white-label profile."""
+        agency_id = agency_data.get("agency_id") or "default-agency"
         slug = agency_data.get("slug") or agency_data.get("name", "agency").lower().replace(" ", "-")
         record = {
+            "id": agency_id,
             "name": agency_data.get("name", "Your Agency"),
             "slug": slug,
             "tagline": agency_data.get("tagline", "Social Media & Distribution Advisory"),
             "auditor_name": agency_data.get("auditor_name", "Lead Strategist"),
             "auditor_role": agency_data.get("auditor_role", "Growth & Retention Director"),
             "contact_email": agency_data.get("contact_email", "audit@youragency.com"),
-            "confidentiality_seal": agency_data.get("confidentiality", "CONFIDENTIAL & PROPRIETARY // CLIENT EYES ONLY"),
+            "confidentiality_seal": agency_data.get("confidentiality", "CONFIDENTIAL & PROPRIETARY · PREPARED FOR CLIENT"),
             "monogram": agency_data.get("monogram", "YA"),
         }
 
@@ -73,6 +75,8 @@ class SupabaseService:
                 logger.warning("Supabase agency upsert error: %s. Falling back to local store.", exc)
 
         self._memory_agencies[slug] = record
+        self._memory_agencies[agency_id] = record
+        self._memory_agencies["default-agency"] = record
         return record
 
     def get_agency(self, slug_or_id: str) -> Optional[Dict[str, Any]]:
@@ -85,7 +89,11 @@ class SupabaseService:
             except Exception as exc:
                 logger.warning("Supabase agency lookup error: %s", exc)
 
-        return self._memory_agencies.get(slug_or_id)
+        if slug_or_id in self._memory_agencies:
+            return self._memory_agencies[slug_or_id]
+        if slug_or_id == "default-agency" and self._memory_agencies:
+            return next(iter(self._memory_agencies.values()))
+        return None
 
     def save_client(self, agency_id: str, client_data: Dict[str, Any]) -> Dict[str, Any]:
         """Saves a client account under an agency."""
@@ -102,7 +110,7 @@ class SupabaseService:
 
         if self.client:
             try:
-                res = self.client.table("client_accounts").upsert(record, on_conflict="agency_id,account_handle,platform").execute()
+                res = self.client.table("clients").upsert(record, on_conflict="agency_id,account_handle").execute()
                 if res.data and len(res.data) > 0:
                     return res.data[0]
             except Exception as exc:
@@ -110,40 +118,39 @@ class SupabaseService:
 
         if agency_id not in self._memory_clients:
             self._memory_clients[agency_id] = []
-        # Update or append
+        # Update if exists, else append
         existing = [c for c in self._memory_clients[agency_id] if c["account_handle"] == handle]
         if existing:
             existing[0].update(record)
-            return existing[0]
         else:
             self._memory_clients[agency_id].append(record)
-            return record
+        return record
 
     def get_portfolio(self, agency_id: str) -> List[Dict[str, Any]]:
-        """Returns all client accounts for an agency."""
+        """Lists all clients for an agency."""
         if self.client:
             try:
-                res = self.client.table("client_accounts").select("*").eq("agency_id", agency_id).execute()
-                if res.data is not None:
+                res = self.client.table("clients").select("*").eq("agency_id", agency_id).execute()
+                if res.data:
                     return res.data
             except Exception as exc:
-                logger.warning("Supabase portfolio lookup error: %s", exc)
+                logger.warning("Supabase portfolio query error: %s", exc)
 
         return self._memory_clients.get(agency_id, [])
 
     def log_incident(self, incident_data: Dict[str, Any]) -> Dict[str, Any]:
-        """Logs an anomalous incident."""
+        """Logs an algorithmic distribution decoupling incident."""
         if self.client:
             try:
-                res = self.client.table("forensic_incidents").insert(incident_data).execute()
+                res = self.client.table("incidents").insert(incident_data).execute()
                 if res.data and len(res.data) > 0:
                     return res.data[0]
             except Exception as exc:
-                logger.warning("Supabase incident log error: %s", exc)
+                logger.warning("Supabase incident insert error: %s", exc)
 
         self._memory_incidents.append(incident_data)
         return incident_data
 
 
+# Singleton instance
 supabase_service = SupabaseService()
-
