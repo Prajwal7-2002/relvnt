@@ -269,66 +269,217 @@ html, body {
 }
 
 /* ==========================================================================
-   SEGMENTED ACCOUNT & BENCHMARK BAR
+   EXECUTIVE ACCOUNT & AUDIT WORKSPACE BAR
    ========================================================================== */
 
-.benchmark-strip {
+.account-bar-card {
   display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  flex-wrap: wrap;
+  gap: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 14px 20px;
   margin-bottom: 24px;
-  overflow-x: auto;
+  box-shadow: var(--shadow-sm);
+  transition: background-color var(--transition-normal), border-color var(--transition-normal);
 }
 
-.benchmark-strip-label {
-  font-size: 12px;
-  font-weight: 600;
+.account-bar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.account-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.account-badge-indicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: var(--status-good);
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.account-badge-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
   color: var(--text-dim);
+}
+
+.account-profile-main {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.account-name-text {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-title);
+  letter-spacing: -0.02em;
+}
+
+.account-platform-tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-light);
+  color: var(--text-body);
 }
 
-.benchmark-buttons {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background: var(--bg-card);
-  padding: 4px;
-  border-radius: 8px;
+.account-mode-tag {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  background: var(--bg-surface);
+  padding: 2px 8px;
+  border-radius: 4px;
   border: 1px solid var(--border-light);
 }
 
-.benchmark-tab {
+.account-period-tag {
+  font-size: 11.5px;
+  color: var(--text-dim);
+}
+
+.account-bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.benchmark-dropdown-wrapper {
+  position: relative;
+}
+
+.btn-dropdown-trigger {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 6px 14px;
-  border-radius: 5px;
+  padding: 8px 14px;
   font-size: 13px;
-  font-weight: 500;
-  color: var(--text-muted);
-  background: transparent;
-  border: none;
+  font-weight: 600;
+  color: var(--text-body);
+  background: var(--bg-card-subtle);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--transition-fast);
-  white-space: nowrap;
 }
 
-.benchmark-tab:hover {
-  color: var(--text-title);
+.btn-dropdown-trigger:hover {
+  background: var(--bg-surface);
+  border-color: var(--text-dim);
 }
 
-.benchmark-tab-active {
-  background: var(--bg-card-subtle);
-  color: var(--text-title);
-  font-weight: 600;
-  border: 1px solid var(--border-light);
-}
-
-.benchmark-tab-handle {
+.dropdown-arrow {
   font-size: 11px;
   color: var(--text-dim);
+}
+
+.dropdown-backdrop-transparent {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.benchmark-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 290px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  padding: 6px;
+  z-index: 50;
+  animation: fadeIn 150ms ease-out;
+}
+
+.dropdown-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+  padding: 8px 10px 4px 10px;
+}
+
+.dropdown-item {
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.dropdown-item:hover {
+  background: var(--bg-card-subtle);
+}
+
+.dropdown-item-active {
+  background: var(--bg-card-subtle);
+}
+
+.dropdown-item-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-title);
+}
+
+.dropdown-item-check {
+  font-size: 12px;
+  color: var(--accent-coral);
+  font-weight: 700;
+}
+
+.dropdown-item-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
+
+.btn-audit-ingest {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #FFFFFF;
+  background: var(--accent-coral);
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: opacity var(--transition-fast), transform var(--transition-fast);
+}
+
+.btn-audit-ingest:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
 }
 
 /* ==========================================================================
@@ -955,9 +1106,11 @@ html, body {
   }
 
   .top-nav,
+  .account-bar-card,
   .benchmark-strip,
   .btn-primary,
   .btn-secondary,
+  .btn-audit-ingest,
   .theme-toggle-btn,
   .drawer-content,
   .drawer-backdrop,
