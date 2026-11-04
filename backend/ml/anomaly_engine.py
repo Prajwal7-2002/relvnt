@@ -109,6 +109,7 @@ class AnomalyEngine:
         account_name: Optional[str] = None,
         platform: str = "instagram",
         findings: Optional[List[Dict]] = None,
+        series_unit: str = "days",
     ) -> Dict:
         """Analyse a daily series. `findings` are optional evidence-backed
         observations (e.g. from per-post analysis) passed to the briefing."""
@@ -206,16 +207,17 @@ class AnomalyEngine:
 
         # 6. Measured shortfall over the recent window (what actually happened, no projection)
         recent_values = raw_series[-short_window:]
+        window_label = f"last {short_window} {series_unit}"
         if metric_type.lower() == "roas":
             projected_impact = (
-                f"ROAS averaged {recent_avg:.2f}x over the last {short_window} days vs a usual {baseline_avg:.2f}x"
+                f"ROAS averaged {recent_avg:.2f}x over the {window_label} vs a usual {baseline_avg:.2f}x"
             )
         else:
             shortfall = int(round(sum(max(0.0, baseline_avg - v) for v in recent_values)))
             projected_impact = (
-                f"About {shortfall:,} fewer {metric_type.lower()} than usual over the last {short_window} days"
+                f"About {shortfall:,} fewer {metric_type.lower()} than usual over the {window_label}"
                 if shortfall > 0
-                else f"No shortfall vs usual over the last {short_window} days"
+                else f"No shortfall vs usual over the {window_label}"
             )
 
         metrics_summary = {
@@ -228,6 +230,7 @@ class AnomalyEngine:
             "anomaly_count": len(anomaly_points),
             "projected_impact": projected_impact,
             "recent_window_days": short_window,
+            "recent_window_label": window_label,
             "ml_model": "Scikit-Learn IsolationForest (100 Decision Trees)",
             "ml_anomaly_score": ml_anomaly_score,
             "ml_flagged": is_ml_outlier,

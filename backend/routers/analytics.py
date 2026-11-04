@@ -7,9 +7,11 @@ import requests
 
 from core.network_security import validate_public_url
 from ml.anomaly_engine import AnomalyEngine
+from ml.post_insights import analyze_posts
 from ml.presets import get_preset_datasets
 from services.csv_parser import DefensiveCSVParser
 from services.instagram_api import get_90_days_reach
+from services.post_parser import PostExportParser
 from services.supabase_service import supabase_service
 
 logger = logging.getLogger("relvnt.routers.analytics")
@@ -84,6 +86,7 @@ class AnalysisResponse(BaseModel):
     data_source: str
     username: str
     detected_columns: Optional[Dict[str, str]] = None
+    post_insights: Optional[Dict[str, Any]] = None
 
 
 class CopilotResponse(BaseModel):
@@ -235,6 +238,9 @@ async def analyze_csv(
 
         safe_filename = re.sub(r"[^\w\s\-_.]", "", file.filename or "upload.csv")
 
+        if PostExportParser.looks_like_post_export(content):
+            return _analyze_post_export(content, safe_filename, account_name)
+
         clean_df, date_col, val_col = DefensiveCSVParser.parse(
             file_bytes=content,
             filename=safe_filename,
@@ -266,6 +272,34 @@ async def analyze_csv(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred during dataset evaluation. Please verify file format.",
         )
+
+
+def _analyze_post_export(content: bytes, safe_filename: str, account_name: Optional[str]) -> Dict[str, Any]:
+    """Per-post export: findings explain the change, the engine scores reach per post over time."""
+    posts = PostExportParser.parse(content)
+    insights = analyze_posts(posts)
+    series = insights.pop("daily_series")
+    if len(series["dates"]) < 7:
+        raise ValueError("Posts were found on fewer than 7 different days. Please export a longer date range (90 days works best).")
+
+    acc = account_name or posts.attrs.get("account") or safe_filename.rsplit(".", 1)[0].replace("_", " ").title()
+    acc = re.sub(r"[^\w\s\-@.]", "", acc).strip()
+
+    res = engine.analyze_series(
+        dates=series["dates"],
+        values=series["values"],
+        metric_type=posts.attrs.get("metric", "reach"),
+        account_name=acc,
+        platform="instagram",
+        findings=insights["findings"],
+        series_unit="posting days",
+    )
+    res["username"] = acc
+    res["data_source"] = "post_export"
+    res["post_insights"] = insights
+    res["detected_columns"] = {"date": "per-post publish time", "metric": posts.attrs.get("metric", "reach")}
+    record_analysis_telemetry(res)
+    return res
 
 
 @router.post("/copilot", response_model=CopilotResponse, status_code=status.HTTP_200_OK)

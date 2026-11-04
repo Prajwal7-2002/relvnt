@@ -77,8 +77,9 @@ class LocalDiagnosticEngine:
             )
         since = _readable_date(flagged_dates[0]) if flagged_dates else "the last few weeks"
 
+        window_label = metrics.get("recent_window_label") or f"last {window} days"
         facts = (
-            f"Over the last {window} days, {word} averaged {_fmt(recent, metric_type)}, "
+            f"Over the {window_label}, {word} averaged {_fmt(recent, metric_type)}, "
             f"{abs(change):.1f}% {'below' if change < 0 else 'above'} the usual {_fmt(baseline, metric_type)}."
         )
 
@@ -252,21 +253,24 @@ class HybridAIAgent:
     ) -> Dict:
         findings = findings or []
         if self.api_key:
-            flagged = sorted(a["date"] for a in anomalies)
+            flagged = [_readable_date(d) for d in sorted(a["date"] for a in anomalies)]
+            recent = metrics.get("recent_avg", metrics.get("current_value")) or 0
             prompt = (
                 "You write short performance summaries for a social media monitoring tool used by small "
                 "businesses and agencies.\n\n"
                 f"{HONESTY_RULES}\n"
                 f"Account: {account_name}\nPlatform: {platform}\nMetric: {_metric_word(metric_type)}\n"
                 f"Health score: {health_score}/100 (under 40 critical, under 70 watch)\n"
-                f"Recent {metrics.get('recent_window_days', 7)}-day average: {metrics.get('recent_avg')}\n"
-                f"Usual level: {metrics.get('baseline_avg')}\n"
-                f"Change vs usual: {metrics.get('change_pct')}%\n"
-                f"Flagged days ({len(flagged)}): {', '.join(flagged[-10:]) or 'none'}\n"
+                f"Average over the {metrics.get('recent_window_label', 'last 7 days')}: {_fmt(float(recent), metric_type)}\n"
+                f"Usual level: {_fmt(float(metrics.get('baseline_avg') or 0), metric_type)}\n"
+                f"Change vs usual: {abs(float(metrics.get('change_pct') or 0)):.1f}% "
+                f"{'below' if float(metrics.get('change_pct') or 0) < 0 else 'above'} usual\n"
+                f"Flagged days ({len(flagged)}, most recent last): {', '.join(flagged[-6:]) or 'none'}\n"
                 f"Per-post findings: {json.dumps(findings) if findings else 'none (only daily totals available)'}\n\n"
                 "Return JSON with keys:\n"
                 "- 'severity': 'CRITICAL_DRIFT' | 'ELEVATED_RISK' | 'RECOVERY_PHASE' | 'NOMINAL_EQUILIBRIUM'\n"
-                "- 'diagnosis': 2-3 sentences stating what changed and when, quoting the numbers\n"
+                "- 'diagnosis': 2-3 sentences stating what changed and when, quoting the numbers exactly as given "
+                "(do not add decimals, do not restate the health score)\n"
                 "- 'recommended_action': the three steps as a numbered list\n"
                 "- 'phases': exactly 3 objects with 'phase' ('Day 1', 'Day 2', 'Day 3'), 'title' (max 6 words), "
                 "and 'action' (1-2 sentences). Base them on the per-post findings when available.\n"
