@@ -181,6 +181,45 @@ def _post_summary(row) -> Dict:
     }
 
 
+def _comparison(posts, recent, prior, recent_weeks, prior_weeks) -> Optional[Dict]:
+    """Before/after numbers for the latest period vs the one before, always reported when both have posts."""
+    if not len(recent) or not len(prior):
+        return None
+    stats = posts.groupby("post_type")["reach"].agg(["median", "count"])
+    stats = stats[(stats["count"] >= MIN_POSTS_PER_GROUP) & (stats.index != "Other")]
+    best = stats["median"].idxmax() if len(stats) else None
+
+    def side(group, weeks):
+        return {
+            "posts": int(len(group)),
+            "posts_per_week": round(len(group) / weeks, 1),
+            "median_reach": float(group["reach"].median()),
+            "best_format_share": round(float((group["post_type"] == best).mean()), 2) if best else None,
+        }
+
+    return {
+        "recent_label": "Latest 4 weeks" if recent_weeks == RECENT_DAYS / 7 else "Second half",
+        "prior_label": "Before" if recent_weeks == RECENT_DAYS / 7 else "First half",
+        "best_format": best,
+        "recent": side(recent, recent_weeks),
+        "prior": side(prior, prior_weeks),
+    }
+
+
+def _calendar(posts) -> List[Dict]:
+    """Every day in the period: number of posts and their average reach (0 posts = gap)."""
+    days = pd.date_range(posts["published"].min().normalize(), posts["published"].max().normalize(), freq="D")
+    by_day = posts.assign(day=posts["published"].dt.normalize()).groupby("day")["reach"].agg(["count", "mean"])
+    return [
+        {
+            "date": d.strftime("%Y-%m-%d"),
+            "posts": int(by_day.loc[d, "count"]) if d in by_day.index else 0,
+            "reach": float(by_day.loc[d, "mean"]) if d in by_day.index else None,
+        }
+        for d in days
+    ]
+
+
 def analyze_posts(posts: pd.DataFrame) -> Dict:
     """Return evidence-backed findings plus a per-day series for the anomaly engine."""
     recent, prior, recent_weeks, prior_weeks = _periods(posts)
@@ -214,5 +253,7 @@ def analyze_posts(posts: pd.DataFrame) -> Dict:
         ],
         "top_posts": [_post_summary(r) for _, r in by_reach.head(3).iterrows()],
         "bottom_posts": [_post_summary(r) for _, r in by_reach.tail(3).iloc[::-1].iterrows()],
+        "comparison": _comparison(posts, recent, prior, recent_weeks, prior_weeks),
+        "calendar": _calendar(posts),
         "daily_series": {"dates": list(daily.index), "values": [float(v) for v in daily.values]},
     }

@@ -115,3 +115,13 @@ def test_csv_formula_injection_sanitization():
     assert not date_col.startswith("=")
     assert not val_col.startswith("+")
     assert len(df) == 7
+
+
+def test_cached_sample_reads_are_not_heavy_but_uploads_are():
+    from core.rate_limiter import TieredRateLimiter
+
+    limiter = TieredRateLimiter()
+    assert limiter._get_tier("/api/v1/analyze", "GET", "preset=instagram_drop") == "standard"
+    assert limiter._get_tier("/api/v1/analyze", "GET", "source=live") == "heavy"
+    assert limiter._get_tier("/api/v1/analyze/upload", "POST", "") == "heavy"
+    assert limiter._get_tier("/api/v1/copilot", "POST", "") == "heavy"
