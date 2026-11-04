@@ -3,6 +3,8 @@
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { useReportDetails } from "../../lib/branding";
 import { displayName, formatMetric, healthLevel, platformLabel } from "../../lib/health";
+import ComparisonCards from "./ComparisonCards";
+import PostingCalendar from "./PostingCalendar";
 
 // One-page A4 report, shown only when printing ("Export report" -> Save as PDF).
 // Uses a fixed-size chart because a hidden container can't be measured.
@@ -50,7 +52,8 @@ export default function ClientReport({ data, agency }) {
   const changePct = Number(metrics.change_pct || 0);
   const series = data.reach_data || [];
   const insights = data.post_insights;
-  const findings = (insights?.findings || []).slice(0, 4);
+  // The reach trend is already shown by the summary and before/after cards
+  const findings = (insights?.findings || []).filter((f) => !(insights?.comparison && f.id === "trend")).slice(0, 4);
   const steps = (data.protocol_phases || []).slice(0, 3);
   const periodStart = insights?.period_start || series[0]?.date;
   const periodEnd = insights?.period_end || series[series.length - 1]?.date;
@@ -139,7 +142,7 @@ export default function ClientReport({ data, agency }) {
 
         {series.length > 1 && (
           <figure className="report-chart">
-            <AreaChart width={680} height={140} data={series} margin={{ top: 6, right: 8, left: -14, bottom: 0 }}>
+            <AreaChart width={680} height={100} data={series} margin={{ top: 6, right: 8, left: -14, bottom: 0 }}>
               <CartesianGrid stroke="#E3DED1" vertical={false} />
               <XAxis dataKey="date" tickFormatter={(v) => formatDay(v)} minTickGap={48} axisLine={false} tickLine={false} tick={{ fill: "#6F7770", fontSize: 9 }} />
               <YAxis width={44} axisLine={false} tickLine={false} tick={{ fill: "#6F7770", fontSize: 9 }} tickFormatter={(v) => (metricType === "roas" ? `${v}x` : v >= 1000 ? `${Math.round(v / 1000)}k` : v)} />
@@ -151,6 +154,18 @@ export default function ClientReport({ data, agency }) {
               week (dashed).
             </figcaption>
           </figure>
+        )}
+
+        {insights && (insights.comparison || insights.calendar?.length > 0) && (
+          <div className="report-visuals">
+            {insights.comparison && <ComparisonCards comparison={insights.comparison} compact />}
+            {insights.calendar?.length > 0 && (
+              <div>
+                <div className="report-visual-title">Posting calendar</div>
+                <PostingCalendar calendar={insights.calendar} compact />
+              </div>
+            )}
+          </div>
         )}
       </section>
 

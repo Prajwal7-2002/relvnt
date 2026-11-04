@@ -671,3 +671,16 @@
     font-size: var(--font-size-md);
   }
 }
+
+.sparkline polyline { stroke: var(--chart-line); }
+.sparkline circle { fill: var(--chart-line); }
+.sparkline-critical polyline { stroke: var(--status-drift); }
+.sparkline-critical circle { fill: var(--status-drift); }
+.sparkline-watch polyline { stroke: var(--status-warning); }
+.sparkline-watch circle { fill: var(--status-warning); }
+
+/* Notifications sit bottom-right so they never cover page actions */
+.toast-container {
+  top: auto;
+  bottom: 24px;
+}

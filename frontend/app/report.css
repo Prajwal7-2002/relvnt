@@ -304,7 +304,7 @@
 .report-signoff {
   display: flex;
   justify-content: flex-end;
-  margin-top: 14px;
+  margin-top: 8px;
 }
 
 .report-signature {
@@ -316,7 +316,7 @@
 }
 
 .report-signature-line {
-  height: 26px;
+  height: 20px;
   margin-bottom: 4px;
   border-bottom: 1px solid #1A1F1B;
 }
@@ -349,4 +349,76 @@
 .report-signoff,
 .report-footer {
   break-inside: avoid;
+}
+
+/* Shared components inside the report always use the light palette */
+.client-report {
+  --bg-surface: #FFFFFF;
+  --bg-surface-subtle: #F6F3EC;
+  --border-subtle: #E3DED1;
+  --border-medium: #CFC8B7;
+  --text-primary: #1A1F1B;
+  --text-secondary: #424A44;
+  --text-muted: #6F7770;
+  --text-dim: #A3A79F;
+  --chart-line: #1F4A3A;
+  --status-drift: #C8402F;
+  --status-nominal: #3A8F5C;
+  --status-warning: #C27B12;
+}
+
+.report-visuals {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+.report-visual-title {
+  margin-bottom: 4px;
+  color: #424A44;
+  font-size: 7.5pt;
+  font-weight: 600;
+}
+
+.client-report .compare-row-compact {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 0;
+}
+
+.client-report .compare-row-compact .compare-card {
+  gap: 1px;
+  padding: 6px 8px;
+  border-radius: 5px;
+}
+
+.client-report .compare-row-compact .compare-label,
+.client-report .compare-row-compact .compare-foot {
+  font-size: 6.5pt;
+}
+
+.client-report .compare-row-compact .compare-before {
+  font-size: 8pt;
+}
+
+.client-report .compare-row-compact .compare-after {
+  font-size: 11pt;
+}
+
+.client-report .calendar-compact {
+  font-size: 6pt;
+}
+
+.client-report .calendar-compact .calendar-months {
+  margin-left: 22px;
+}
+
+.client-report .calendar-compact .calendar-weekdays {
+  width: 18px;
+}
+
+.client-report .calendar-compact .calendar-legend {
+  margin-top: 4px;
 }
