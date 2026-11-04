@@ -87,6 +87,7 @@ class AnalysisResponse(BaseModel):
     username: str
     detected_columns: Optional[Dict[str, str]] = None
     post_insights: Optional[Dict[str, Any]] = None
+    findings: Optional[List[Dict[str, Any]]] = None
 
 
 class CopilotResponse(BaseModel):
@@ -296,6 +297,8 @@ def _analyze_post_export(content: bytes, safe_filename: str, account_name: Optio
     )
     res["username"] = acc
     res["data_source"] = "post_export"
+    # Use the findings exactly as the engine used them (possibly AI-worded and number-checked)
+    insights["findings"] = res.get("findings", insights["findings"])
     res["post_insights"] = insights
     res["detected_columns"] = {"date": "per-post publish time", "metric": posts.attrs.get("metric", "reach")}
     record_analysis_telemetry(res)
