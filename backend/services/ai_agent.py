@@ -27,6 +27,12 @@ def _metric_word(metric_type: str) -> str:
     )
 
 
+def _platform_name(platform: str) -> str:
+    return {"instagram": "Instagram", "meta_ads": "Meta Ads", "google_sheets": "Google Sheets"}.get(
+        (platform or "").lower(), platform or "Instagram"
+    )
+
+
 def _fmt(value: float, metric_type: str) -> str:
     if (metric_type or "").lower() == "roas":
         return f"{value:.2f}x"
@@ -259,7 +265,7 @@ class HybridAIAgent:
                 "You write short performance summaries for a social media monitoring tool used by small "
                 "businesses and agencies.\n\n"
                 f"{HONESTY_RULES}\n"
-                f"Account: {account_name}\nPlatform: {platform}\nMetric: {_metric_word(metric_type)}\n"
+                f"Account: {account_name}\nPlatform: {_platform_name(platform)}\nMetric: {_metric_word(metric_type)}\n"
                 f"Health score: {health_score}/100 (under 40 critical, under 70 watch)\n"
                 f"Average over the {metrics.get('recent_window_label', 'last 7 days')}: {_fmt(float(recent), metric_type)}\n"
                 f"Usual level: {_fmt(float(metrics.get('baseline_avg') or 0), metric_type)}\n"
@@ -289,6 +295,15 @@ class HybridAIAgent:
                         data = json.loads(text)
                         if not isinstance(data.get("phases"), list) or len(data["phases"]) != 3:
                             raise ValueError("Gemini returned an unexpected phase structure")
+                        # Evidence-backed actions are more specific than generated ones; use them as the steps
+                        finding_actions = [f for f in findings if f.get("action")]
+                        if finding_actions:
+                            data["phases"] = LocalDiagnosticEngine._build_steps(
+                                prediction, (metric_type or "").lower() == "roas", "", float(metrics.get("baseline_avg") or 0), metric_type, finding_actions
+                            )
+                            data["recommended_action"] = "\n".join(
+                                f"{i + 1}. {p['title']}: {p['action']}" for i, p in enumerate(data["phases"])
+                            )
                         data["ai_engine"] = f"Gemini ({model_name})"
                         return data
                     logger.warning("Gemini briefing (%s) returned HTTP %s: %s", model_name, res.status_code, res.text[:120])
@@ -317,7 +332,7 @@ class HybridAIAgent:
             prompt = (
                 f"You are an assistant for the agency '{agency_name}', answering questions about one client account.\n\n"
                 f"{HONESTY_RULES}\n"
-                f"Account: {account_name}\nPlatform: {platform}\nMetric: {_metric_word(metric_type)}\n"
+                f"Account: {account_name}\nPlatform: {_platform_name(platform)}\nMetric: {_metric_word(metric_type)}\n"
                 f"Health score: {health_score}/100\n"
                 f"Recent average: {metrics.get('recent_avg', metrics.get('current_value'))}\n"
                 f"Usual level: {metrics.get('baseline_avg')}\n"
