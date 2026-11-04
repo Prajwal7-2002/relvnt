@@ -1186,3 +1186,81 @@
     --cal-gap: 2px;
   }
 }
+
+.wording-note {
+  margin: 10px 0 0;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+/* ---- Report review dialog ---- */
+
+.dialog-wide {
+  max-width: 720px;
+}
+
+.editor-textarea {
+  height: auto;
+  min-height: 64px;
+  padding: 8px 12px;
+  line-height: 1.5;
+  resize: vertical;
+}
+
+.editor-section {
+  margin-top: 18px;
+}
+
+.editor-section-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.editor-section-head .field-label {
+  margin: 0;
+}
+
+.editor-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-subtle);
+}
+
+.editor-item .text-input {
+  background: var(--bg-surface);
+}
+
+.editor-remove {
+  align-self: flex-end;
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.editor-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.editor-footer-spacer {
+  flex: 1;
+}
+
+#rv-note {
+  margin-top: 0;
+}
+
+.dialog .field-label + .text-input,
+.dialog .field-label + .editor-textarea {
+  margin-bottom: 2px;
+}

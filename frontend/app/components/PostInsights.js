@@ -3,6 +3,7 @@
 import { formatMetric } from "../../lib/health";
 import ComparisonCards from "./ComparisonCards";
 import PostingCalendar from "./PostingCalendar";
+import { WordingNote } from "./DailyFindings";
 
 const TONE_LEVEL = { negative: "critical", positive: "healthy", neutral: "watch" };
 const FORMAT_LABEL = { Reel: "Reels", Carousel: "Carousels", Photo: "Photos", Video: "Videos", Other: "Other" };
@@ -77,6 +78,7 @@ export default function PostInsights({ insights }) {
           ))}
         </ul>
       )}
+      <WordingNote findings={findings} />
 
       <div className="visual-pair">
         {calendar?.length > 0 && (
