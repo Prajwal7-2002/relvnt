@@ -23,6 +23,7 @@ export default function ReachChart({ data }) {
   const [range, setRange] = useState("all");
   const metricType = data?.metric_type;
   const isRoas = metricType === "roas";
+  const perPost = data?.data_source === "post_export";
   const metricLabel = isRoas ? "ROAS" : "reach";
 
   const chartData = useMemo(() => {
@@ -45,8 +46,12 @@ export default function ReachChart({ data }) {
     <section className="panel">
       <div className="panel-header">
         <div>
-          <h2 className="section-title">Daily {metricLabel}</h2>
-          <p className="section-subtitle">Compared with what is usual for each day of the week.</p>
+          <h2 className="section-title">{perPost ? "Reach per post" : `Daily ${metricLabel}`}</h2>
+          <p className="section-subtitle">
+            {perPost
+              ? "Each point is a day you posted (average if there were several posts), compared with what is usual."
+              : "Compared with what is usual for each day of the week."}
+          </p>
         </div>
         <div className="segmented" role="tablist" aria-label="Date range">
           {RANGES.map((r) => (

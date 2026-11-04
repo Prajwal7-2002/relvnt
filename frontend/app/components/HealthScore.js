@@ -48,7 +48,7 @@ export default function HealthScore({ data }) {
 
       <dl className="stat-row">
         <div className="stat">
-          <dt>Recent 7-day average</dt>
+          <dt>Average, {metrics.recent_window_label || "last 7 days"}</dt>
           <dd>{formatMetric(metrics.recent_avg ?? metrics.current_value, metricType)}</dd>
         </div>
         <div className="stat">

@@ -6,6 +6,7 @@ import AnomalyTable from "./components/AnomalyTable";
 import ClientPortfolio from "./components/ClientPortfolio";
 import ErrorBoundary from "./components/ErrorBoundary";
 import HealthScore from "./components/HealthScore";
+import PostInsights from "./components/PostInsights";
 import ReachChart from "./components/ReachChart";
 import AuthGate from "./components/AuthGate";
 import SettingsView from "./components/SettingsView";
@@ -71,6 +72,14 @@ const DEFAULT_PORTFOLIO = [
     tag: "Benchmark",
   },
 ];
+
+function dataSourceLabel(source) {
+  if (source === "post_export") return "Post export";
+  if (source === "csv_upload") return "CSV upload";
+  if (source === "google_sheets_live") return "Google Sheet";
+  if (source === "instagram_live_api" || source === "instagram") return "Instagram";
+  return "Sample data";
+}
 
 export default function Page() {
   const [data, setData] = useState(null);
@@ -180,6 +189,15 @@ export default function Page() {
     }
   };
 
+  // Uploaded/synced analyses get a per-client id and are cached, so each client
+  // keeps its own row and reopening it shows that exact analysis
+  const rememberAnalysis = (json, source, tag) => {
+    const id = `${source}:${json.account_name || "account"}`;
+    channelCache.current[id] = json;
+    setActivePreset(id);
+    recordToPortfolio(json, id, tag);
+  };
+
   const recordToPortfolio = (analysisData, id, tag = "Audited Target") => {
     if (!analysisData) return;
     const item = {
@@ -275,11 +293,10 @@ export default function Page() {
 
       const json = await res.json();
       setData(json);
-      setActivePreset("custom_upload");
-      recordToPortfolio(json, "custom_upload", "CSV Audit");
+      rememberAnalysis(json, "upload", json.data_source === "post_export" ? "Post export" : "CSV upload");
       setActiveView("audit");
       setShowQuickIngest(false);
-      triggerToast("success", `✓ CSV parsed successfully: ${json.account_name} analyzed.`);
+      triggerToast("success", `${json.account_name} analysed${json.post_insights ? ` from ${json.post_insights.post_count} posts` : ""}.`);
     } catch (err) {
       triggerToast("error", err.message || "Failed to process CSV file.");
     } finally {
@@ -318,11 +335,10 @@ export default function Page() {
 
       const json = await res.json();
       setData(json);
-      setActivePreset("google_sheet");
-      recordToPortfolio(json, "google_sheet", "Google Sheet");
+      rememberAnalysis(json, "sheet", "Google Sheet");
       setActiveView("audit");
       setShowQuickIngest(false);
-      triggerToast("success", `✓ Google Sheet synchronized: ${json.account_name} analyzed.`);
+      triggerToast("success", `${json.account_name} analysed from Google Sheet.`);
     } catch (err) {
       triggerToast("error", err.message || "Could not sync Google Sheet. Verify sharing permissions.");
     } finally {
@@ -355,10 +371,9 @@ export default function Page() {
       }
       const json = await res.json();
       setData(json);
-      setActivePreset("instagram_live");
-      recordToPortfolio(json, "instagram_live", "Meta API Live");
+      rememberAnalysis(json, "instagram", "Instagram");
       setActiveView("audit");
-      triggerToast("success", `✓ Meta Graph API synchronized: ${json.account_name} analyzed.`);
+      triggerToast("success", `${json.account_name} analysed from Instagram.`);
     } catch (err) {
       triggerToast("error", err.message || "Meta API connection failed.");
     } finally {
@@ -624,15 +639,8 @@ export default function Page() {
               <p className="page-meta">
                 <span>{platformLabel(data?.platform)}</span>
                 <span>Last 90 days</span>
-                <span>
-                  {activePreset === "custom_upload"
-                    ? "CSV upload"
-                    : activePreset === "google_sheet"
-                    ? "Google Sheet"
-                    : activePreset === "instagram_live"
-                    ? "Instagram"
-                    : "Sample data"}
-                </span>
+                <span>{dataSourceLabel(data?.data_source)}</span>
+                {data?.post_insights && <span>{data.post_insights.post_count} posts</span>}
                 <button className="link-button" onClick={() => setShowExplainer(!showExplainer)}>
                   {showExplainer ? "Hide details" : "How this works"}
                 </button>
@@ -728,6 +736,9 @@ export default function Page() {
               {/* Story & Resonance Range Bar */}
               {data && <HealthScore data={data} />}
 
+              {/* Per-post "why" (only for per-post exports) */}
+              {data?.post_insights && <PostInsights insights={data.post_insights} />}
+
               {/* Reach vs Baseline Chart */}
               {data && <ReachChart data={data} />}
 
@@ -812,75 +823,67 @@ export default function Page() {
 
       {/* QUICK INGEST MODAL */}
       {showQuickIngest && (
-        <div className="quick-modal-overlay" onClick={() => setShowQuickIngest(false)}>
-          <div className="quick-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-              <h3 style={{ fontSize: "var(--font-size-lg)", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
-                Quick Ingest Client Data
-              </h3>
-              <button
-                onClick={() => setShowQuickIngest(false)}
-                style={{ background: "transparent", border: "none", fontSize: "var(--font-size-xl)", color: "var(--text-muted)", cursor: "pointer" }}
-              >
-                ×
+        <div className="dialog-overlay" onClick={() => setShowQuickIngest(false)}>
+          <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="add-data-title" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-header">
+              <h2 id="add-data-title" className="section-title">Add client data</h2>
+              <button className="dialog-close" onClick={() => setShowQuickIngest(false)} aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
-            <p style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)", margin: "0 0 16px 0", lineHeight: 1.5 }}>
-              Evaluate custom time-series performance data in real time. Choose CSV upload or live Google Sheet URL.
+            <p className="dialog-text">
+              For the most useful audit, upload a <strong>per-post export</strong>: in Meta Business Suite go to{" "}
+              <strong>Insights → Content → Export</strong> and choose CSV for the last 90 days. Daily exports from Meta Ads
+              or Instagram work too.
             </p>
 
-            <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "var(--font-size-xs)", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px" }}>
-                Client / Handle Identifier:
-              </label>
+            <label className="field-label" htmlFor="client-handle">
+              Client name <span className="field-optional">(optional, read from the export if left blank)</span>
+            </label>
+            <input
+              id="client-handle"
+              type="text"
+              value={clientHandle}
+              onChange={(e) => setClientHandle(e.target.value)}
+              placeholder="@cafe_bloom"
+              className="text-input"
+            />
+
+            <label className={`dropzone ${integrationLoading ? "dropzone-busy" : ""}`}>
+              <input type="file" accept=".csv,text/csv" onChange={handleFileUpload} disabled={integrationLoading} />
+              <span className="dropzone-title">{integrationLoading ? "Analysing…" : "Choose a CSV file"}</span>
+              <span className="dropzone-hint">Up to 10 MB</span>
+            </label>
+
+            <p className="dialog-hint">
+              No export to hand?{" "}
+              <a href="/samples/sample_instagram_posts.csv" download>
+                Download a sample export
+              </a>{" "}
+              and upload it to see a full audit.
+            </p>
+
+            <div className="dialog-divider">
+              <span>or connect a Google Sheet</span>
+            </div>
+
+            <form onSubmit={handleGoogleSheetSync} className="inline-form">
               <input
-                type="text"
-                value={clientHandle}
-                onChange={(e) => setClientHandle(e.target.value)}
-                placeholder="e.g. @acme_brand or Campaign Alpha"
-                className="input-text-field"
+                type="url"
+                value={sheetUrl}
+                onChange={(e) => setSheetUrl(e.target.value)}
+                placeholder="https://docs.google.com/spreadsheets/d/…"
+                className="text-input"
+                aria-label="Google Sheet link"
               />
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-              <div className="file-dropzone">
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={handleFileUpload}
-                  style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
-                />
-                <div style={{ fontSize: "var(--font-size-2xl)", marginBottom: "4px" }}>📄</div>
-                <div style={{ fontSize: "var(--font-size-md)", fontWeight: 600, color: "var(--text-primary)" }}>
-                  Upload CSV File
-                </div>
-                <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>
-                  Meta Ads, Instagram, or TikTok exports
-                </div>
-              </div>
-
-              <div style={{ textAlign: "center", fontSize: "var(--font-size-xs)", color: "var(--text-dim)", fontWeight: 600 }}>— OR —</div>
-
-              <form onSubmit={handleGoogleSheetSync}>
-                <input
-                  type="url"
-                  value={sheetUrl}
-                  onChange={(e) => setSheetUrl(e.target.value)}
-                  placeholder="https://docs.google.com/spreadsheets/d/.../edit"
-                  className="input-text-field"
-                  style={{ marginBottom: "8px" }}
-                />
-                <button
-                  type="submit"
-                  disabled={integrationLoading || !sheetUrl.trim()}
-                  className="btn-primary"
-                  style={{ width: "100%", justifyContent: "center" }}
-                >
-                  {integrationLoading ? "Evaluating..." : "Sync Google Sheet"}
-                </button>
-              </form>
-            </div>
+              <button type="submit" disabled={integrationLoading || !sheetUrl.trim()} className="btn-secondary">
+                Connect
+              </button>
+            </form>
+            <p className="dialog-hint">The sheet must be shared as &quot;Anyone with the link can view&quot;.</p>
           </div>
         </div>
       )}
