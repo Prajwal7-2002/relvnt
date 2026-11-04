@@ -190,18 +190,28 @@ class AnomalyEngine:
         # 5. Anomaly Point Detection (deseasonalized outliers > 1.8 std or ML outlier flag)
         rolling_mean_long = pd.Series(deseasonalized).rolling(window=long_window, min_periods=1).mean().values
         rolling_std_long = pd.Series(deseasonalized).rolling(window=long_window, min_periods=2).std().fillna(1e-5).values
+
+        # "Usual" for each day = rolling level with that weekday's pattern put back, so it is
+        # comparable with the raw value shown next to it (e.g. Saturdays are compared with usual Saturdays)
+        seasonal_factor = np.divide(
+            raw_series, deseasonalized, out=np.ones_like(raw_series, dtype=float), where=deseasonalized != 0
+        )
+        expected_raw = rolling_mean_long * seasonal_factor
         anomaly_points = []
 
         for i in range(len(raw_series)):
             pt_deseas = deseasonalized[i]
             exp_val = rolling_mean_long[i]
             std_val = rolling_std_long[i]
-            if (std_val > 0 and (exp_val - pt_deseas) / std_val > 1.8) or (iso_preds[i] == -1 and (exp_val - pt_deseas) > 0):
+            deviation_pct = (pt_deseas - exp_val) / exp_val * 100.0 if exp_val else 0.0
+            statistically_low = (std_val > 0 and (exp_val - pt_deseas) / std_val > 1.8) or (iso_preds[i] == -1 and (exp_val - pt_deseas) > 0)
+            # Only call a day "well below usual" when it is at least 15% below
+            if statistically_low and deviation_pct <= -15.0:
                 anomaly_points.append(
                     {
                         "date": df["date"].iloc[i].strftime("%Y-%m-%d"),
                         "value": float(round(raw_series[i], 2)),
-                        "deviation": round(float((pt_deseas - exp_val) / exp_val * 100.0), 1),
+                        "deviation": round(float(deviation_pct), 1),
                     }
                 )
 
@@ -255,7 +265,7 @@ class AnomalyEngine:
             series_data.append({
                 "date": d_str,
                 "reach": float(round(row["value"], 2)),
-                "baseline": float(round(rolling_mean_long[i], 2)),
+                "baseline": float(round(expected_raw[i], 2)),
                 "is_anomaly": d_str in anomaly_dates_set,
             })
 

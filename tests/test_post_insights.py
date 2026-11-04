@@ -61,3 +61,13 @@ def test_upload_endpoint_routes_post_exports():
     assert data["post_insights"]["post_count"] >= 40
     assert "posting days" in data["metrics_summary"]["recent_window_label"]
     assert len(data["protocol_phases"]) == 3
+
+
+def test_flagged_days_are_always_below_their_usual_level():
+    """'Usual' is weekday-aware, so a flagged day can never show as above usual."""
+    for source in (SAMPLE, DAILY_SAMPLE):
+        with source.open("rb") as f:
+            data = client.post("/api/v1/analyze/upload", files={"file": ("e.csv", f, "text/csv")}).json()
+        usual = {p["date"]: p["baseline"] for p in data["reach_data"]}
+        for a in data["anomalies"]:
+            assert a["value"] <= usual[a["date"]] * 0.85, (source.name, a)
