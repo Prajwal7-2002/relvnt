@@ -169,8 +169,13 @@ export default function Page() {
     initSession();
   }, []);
 
+  // Each selection (opening a client, uploading data) gets a sequence number;
+  // a slower earlier request must not replace what the user picked afterwards
+  const latestSelection = useRef(0);
+
   // 2. Fetch Target Audit Data with Rate Limit Interception
   const fetchAnalysis = async (presetKey = "instagram_drop") => {
+    const selection = ++latestSelection.current;
     if (channelCache.current[presetKey]) {
       setData(channelCache.current[presetKey]);
       setActivePreset(presetKey);
@@ -193,13 +198,14 @@ export default function Page() {
       }
       const json = await res.json();
       channelCache.current[presetKey] = json;
+      recordToPortfolio(json, presetKey, "Preset Benchmark");
+      if (selection !== latestSelection.current) return; // user has moved on
       setData(json);
       setActivePreset(presetKey);
-      recordToPortfolio(json, presetKey, "Preset Benchmark");
     } catch (err) {
-      setError(err.message || "Failed to load anomaly detection data.");
+      if (selection === latestSelection.current) setError(err.message || "Failed to load anomaly detection data.");
     } finally {
-      setLoading(false);
+      if (selection === latestSelection.current) setLoading(false);
     }
   };
 
@@ -207,9 +213,26 @@ export default function Page() {
   // keeps its own row and reopening it shows that exact analysis
   const rememberAnalysis = (json, source, tag) => {
     const id = `${source}:${json.account_name || "account"}`;
+    latestSelection.current += 1;
+    setLoading(false); // an earlier, now-ignored request may have set these
+    setError(null);
     channelCache.current[id] = json;
     setActivePreset(id);
     recordToPortfolio(json, id, tag);
+  };
+
+  const prefetchPreset = async (presetKey) => {
+    if (channelCache.current[presetKey]) return;
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+      const res = await fetch(`${apiUrl}/analyze?preset=${presetKey}`);
+      if (!res.ok) return;
+      const json = await res.json();
+      channelCache.current[presetKey] = json;
+      recordToPortfolio(json, presetKey, "Preset Benchmark");
+    } catch {
+      // Background only: the row keeps its placeholder values
+    }
   };
 
   const recordToPortfolio = (analysisData, id, tag = "Audited Target") => {
@@ -219,12 +242,15 @@ export default function Page() {
       account: analysisData.account_name || "@target",
       platform: analysisData.platform || "instagram",
       metric_type: analysisData.metric_type || "reach",
-      health_score: analysisData.health_score || 50,
-      status: analysisData.prediction || analysisData.severity || "Decoupled",
+      // ?? not ||: a score of 0 or a 0% change are real values
+      health_score: analysisData.health_score ?? null,
+      status: analysisData.prediction || analysisData.severity || "",
       last_audited: "Just now",
-      baseline: analysisData.metrics_summary?.baseline_avg || 10000,
-      current: analysisData.metrics_summary?.current_value || 5000,
-      change_pct: analysisData.metrics_summary?.change_pct || -50.0,
+      baseline: analysisData.metrics_summary?.baseline_avg ?? null,
+      // Same window as change_pct, so "Current" and "Change" in one row agree
+      current: analysisData.metrics_summary?.recent_avg ?? analysisData.metrics_summary?.current_value ?? null,
+      change_pct: analysisData.metrics_summary?.change_pct ?? null,
+      trend: (analysisData.reach_data || []).slice(-30).map((pt) => pt.reach),
       tag: tag,
     };
 
@@ -264,6 +290,9 @@ export default function Page() {
     if (savedWebhook) setSlackWebhook(savedWebhook);
 
     fetchAnalysis("instagram_drop");
+    // Analyse the other sample clients in the background so the Clients list
+    // shows their real scores and trends instead of placeholder numbers
+    PRESETS.filter((p) => p.id !== "instagram_drop").forEach((p) => prefetchPreset(p.id));
   }, []);
 
   // Export the one-page report: warn about placeholder branding, and give the PDF a
