@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import ReportDetailsPanel from "./ReportDetailsPanel";
 
 export default function SettingsView({
   agencyName,
@@ -80,14 +81,10 @@ export default function SettingsView({
 
   return (
     <div className="settings-container">
-      {/* SETTINGS HEADER */}
-      <div className="settings-header-card">
+      <div className="page-header">
         <div>
-          <span className="settings-kicker">Agency Workspace Management</span>
-          <h2 className="settings-title">Integrations &amp; Workspace Configuration</h2>
-          <p className="settings-subtitle">
-            Configure executive white-label branding, automated decoupling radar alerts, and client data connectors.
-          </p>
+          <h1 className="page-title">Settings</h1>
+          <p className="page-subtitle">Your business details, alerts and data connections.</p>
         </div>
       </div>
 
@@ -97,25 +94,25 @@ export default function SettingsView({
           onClick={() => setActiveTab("branding")}
           className={`settings-tab-btn ${activeTab === "branding" ? "settings-tab-btn-active" : ""}`}
         >
-          Agency Branding &amp; Memo
+          Business &amp; reports
         </button>
         <button
           onClick={() => setActiveTab("radar")}
           className={`settings-tab-btn ${activeTab === "radar" ? "settings-tab-btn-active" : ""}`}
         >
-          Decoupling Radar &amp; Webhooks
+          Alerts
         </button>
         <button
           onClick={() => setActiveTab("connectors")}
           className={`settings-tab-btn ${activeTab === "connectors" ? "settings-tab-btn-active" : ""}`}
         >
-          Data Connectors (Sheets, CSV &amp; Meta API)
+          Data sources
         </button>
         <button
           onClick={() => setActiveTab("security")}
           className={`settings-tab-btn ${activeTab === "security" ? "settings-tab-btn-active" : ""}`}
         >
-          Security Hardening &amp; Governance
+          Security
         </button>
       </div>
 
@@ -143,12 +140,12 @@ export default function SettingsView({
       {activeTab === "branding" && (
         <div className="settings-grid-layout">
           <div className="settings-panel">
-            <h3 className="panel-title">White-Label Branding Profile</h3>
-            <p className="panel-subtitle">These details replace all Relvnt branding in boardroom PDF memos and Slack alerts.</p>
+            <h3 className="section-title">Your business</h3>
+            <p className="section-subtitle">Your name and business appear on client reports and alerts instead of Relvnt.</p>
 
             <form onSubmit={handleSaveBranding} className="settings-form">
               <div className="form-group">
-                <label className="form-label">Agency / Firm Name</label>
+                <label className="form-label">Business name</label>
                 <input
                   type="text"
                   value={agencyName}
@@ -160,7 +157,7 @@ export default function SettingsView({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Agency Tagline / Subtitle</label>
+                <label className="form-label">Tagline</label>
                 <input
                   type="text"
                   value={agencyTagline}
@@ -172,7 +169,7 @@ export default function SettingsView({
 
               <div className="form-row">
                 <div className="form-group" style={{ flex: 1 }}>
-                  <label className="form-label">Lead Auditor Name</label>
+                  <label className="form-label">Your name</label>
                   <input
                     type="text"
                     value={auditorName}
@@ -183,7 +180,7 @@ export default function SettingsView({
                   />
                 </div>
                 <div className="form-group" style={{ flex: 1 }}>
-                  <label className="form-label">Auditor Professional Title</label>
+                  <label className="form-label">Your title</label>
                   <input
                     type="text"
                     value={agencyRole}
@@ -195,7 +192,7 @@ export default function SettingsView({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Contact / Inquiries Email</label>
+                <label className="form-label">Contact email</label>
                 <input
                   type="email"
                   value={agencyContact}
@@ -207,7 +204,7 @@ export default function SettingsView({
               </div>
 
               <div className="form-group">
-                <label className="form-label">Boardroom Confidentiality Attestation</label>
+                <label className="form-label">Confidentiality note</label>
                 <input
                   type="text"
                   value={confidentiality}
@@ -218,44 +215,12 @@ export default function SettingsView({
               </div>
 
               <button type="submit" className="btn-primary" style={{ marginTop: "12px" }}>
-                {saveSuccess ? "✓ Profile Saved Successfully" : "Save White-Label Profile"}
+                {saveSuccess ? "Saved" : "Save"}
               </button>
             </form>
           </div>
 
-          {/* LIVE PREVIEW CARD */}
-          <div className="settings-panel">
-            <h3 className="panel-title">Live Boardroom Memo Preview</h3>
-            <p className="panel-subtitle">Instant visual representation of your generated PDF memo header.</p>
-
-            <div className="memo-preview-box">
-              <div className="memo-preview-header">
-                <div className="memo-preview-monogram">{getMonogram(agencyName)}</div>
-                <div style={{ flex: 1 }}>
-                  <div className="memo-preview-title">
-                    RELVNT × {agencyName.toUpperCase()} · DISTRIBUTION AUDIT
-                  </div>
-                  <div className="memo-preview-sub">
-                    {agencyTagline} • Lead Auditor: <strong>{auditorName}</strong> ({agencyRole})
-                  </div>
-                </div>
-              </div>
-
-              <div className="memo-preview-meta">
-                <span>{confidentiality}</span>
-                <span>Inquiries: {agencyContact}</span>
-              </div>
-
-              <div className="memo-preview-body">
-                <div style={{ fontSize: "var(--font-size-xs)", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", marginBottom: "6px" }}>
-                  Sample Executive Signoff:
-                </div>
-                <div style={{ fontSize: "var(--font-size-sm)", color: "var(--text-primary)", fontStyle: "italic", borderLeft: "2px solid var(--border-medium)", paddingLeft: "10px" }}>
-                  &ldquo;Certified algorithmic anomaly baseline audit completed under confidential retainer engagement.&rdquo;
-                </div>
-              </div>
-            </div>
-          </div>
+          <ReportDetailsPanel />
         </div>
       )}
 

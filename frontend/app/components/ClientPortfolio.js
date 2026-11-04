@@ -1,231 +1,179 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { displayName, formatMetric, healthLevel, platformLabel } from "../../lib/health";
 
-// "shock" / "pre_shock" / "Creative Fatigue" -> consistent Title Case labels
-function formatStatus(status) {
-  if (!status) return "Analyzing";
-  return status
-    .replace(/[_-]+/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase());
-}
+const FILTERS = [
+  { id: "all", label: "All" },
+  { id: "critical", label: "Critical" },
+  { id: "watch", label: "Watch" },
+  { id: "healthy", label: "Healthy" },
+];
 
-export default function ClientPortfolio({
-  portfolioList,
-  onSelectClient,
-  onOpenConnectModal,
-  onOpenAgencyModal,
-  agencyName,
-  auditorName,
-}) {
+export default function ClientPortfolio({ portfolioList, onSelectClient, onOpenConnectModal, agencyName }) {
+  const [filter, setFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const atRiskCount = portfolioList.filter((c) => (c.health_score || 50) < 50).length;
-  const healthyCount = portfolioList.filter((c) => (c.health_score || 50) >= 70).length;
+  const rows = useMemo(
+    () => portfolioList.map((client) => ({ ...client, level: healthLevel(client.health_score) })),
+    [portfolioList]
+  );
 
-  const filteredList = portfolioList.filter((c) => {
-    const q = searchQuery.toLowerCase().trim();
-    if (!q) return true;
-    return (
-      (c.account || "").toLowerCase().includes(q) ||
-      (c.platform || "").toLowerCase().includes(q) ||
-      (c.status || "").toLowerCase().includes(q)
-    );
+  const counts = useMemo(() => {
+    const c = { all: rows.length, critical: 0, watch: 0, healthy: 0 };
+    rows.forEach((r) => (c[r.level.key] += 1));
+    return c;
+  }, [rows]);
+
+  const visibleRows = rows.filter((r) => {
+    if (filter !== "all" && r.level.key !== filter) return false;
+    const q = searchQuery.trim().toLowerCase();
+    return !q || r.account.toLowerCase().includes(q) || platformLabel(r.platform).toLowerCase().includes(q);
   });
 
+  const attention = counts.critical + counts.watch;
+  const openClient = (client) => onSelectClient(client.id || client.preset || "instagram_drop");
+
   return (
-    <div className="portfolio-container">
-      {/* PORTFOLIO EXECUTIVE HEADER */}
-      <div className="portfolio-header-card">
-        <div className="portfolio-header-left">
-          <div className="portfolio-agency-badge">
-            <span className="portfolio-agency-dot" />
-            <span>AGENCY WORKSPACE • {agencyName.toUpperCase()}</span>
-          </div>
-          <h2 className="portfolio-title">Client Distribution Portfolio</h2>
-          <p className="portfolio-subtitle">
-            Centralized algorithmic anomaly radar and client retainer protection ledger. Managed by {auditorName}.
+    <div className="clients-page">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">Clients</h1>
+          <p className="page-subtitle">
+            {counts.all} {counts.all === 1 ? "account" : "accounts"} monitored for {agencyName}
+            {attention > 0 && (
+              <>
+                {" · "}
+                <span className="text-attention">{attention} need attention</span>
+              </>
+            )}
           </p>
         </div>
-
-        <div className="portfolio-header-actions" style={{ display: "flex", gap: "10px" }}>
-          <button onClick={onOpenAgencyModal} className="btn-secondary" title="Configure agency co-branding">
-            Agency Branding
-          </button>
+        <div className="page-actions">
           <button onClick={onOpenConnectModal} className="btn-primary">
-            + Quick Ingest Client Data
+            Add client
           </button>
         </div>
       </div>
 
-      {/* QUICK KPI METRICS BANNER */}
-      <div className="portfolio-metrics-grid">
-        <div className="portfolio-metric-box">
-          <span className="portfolio-metric-label">Total Accounts Monitored</span>
-          <span className="portfolio-metric-value mono-num">{portfolioList.length}</span>
-          <span className="portfolio-metric-sub">Multi-platform radar coverage</span>
-        </div>
-
-        <div className="portfolio-metric-box">
-          <span className="portfolio-metric-label">Accounts Under Algorithmic Risk</span>
-          <span className="portfolio-metric-value mono-num" style={{ color: "var(--status-drift)" }}>{atRiskCount}</span>
-          <span className="portfolio-metric-sub">Requires 72h turnaround execution</span>
-        </div>
-
-        <div className="portfolio-metric-box">
-          <span className="portfolio-metric-label">Accounts In Equilibrium</span>
-          <span className="portfolio-metric-value mono-num" style={{ color: "var(--status-nominal)" }}>{healthyCount}</span>
-          <span className="portfolio-metric-sub">Nominal baseline distribution</span>
-        </div>
-
-        <div className="portfolio-metric-box">
-          <span className="portfolio-metric-label">Retainer Retention Assurance</span>
-          <span className="portfolio-metric-value mono-num" style={{ color: "var(--status-nominal)" }}>100%</span>
-          <span className="portfolio-metric-sub">Objective third-party audit coverage</span>
-        </div>
+      <div className="summary-strip">
+        {["critical", "watch", "healthy"].map((key) => (
+          <button
+            key={key}
+            className={`summary-item summary-${key} ${filter === key ? "summary-item-active" : ""}`}
+            onClick={() => setFilter(filter === key ? "all" : key)}
+          >
+            <span className="summary-label">
+              <span className={`status-dot status-dot-${key}`} />
+              {FILTERS.find((f) => f.id === key).label}
+            </span>
+            <span className="summary-value">{counts[key]}</span>
+            <span className="summary-hint">
+              {key === "critical" && "Reach well below usual. Act now."}
+              {key === "watch" && "Trending down. Keep an eye on it."}
+              {key === "healthy" && "Performing as expected."}
+            </span>
+          </button>
+        ))}
       </div>
 
-      {/* CLIENT ACCOUNTS LEDGER TABLE */}
-      <div className="portfolio-table-card">
-        <div className="portfolio-table-topbar" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-            <h3 className="portfolio-table-heading">Client Account Telemetry Ledger</h3>
-            <span className="portfolio-table-count mono-num">({filteredList.length} Accounts)</span>
+      <div className="table-card">
+        <div className="table-toolbar">
+          <div className="filter-tabs" role="tablist">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                role="tab"
+                aria-selected={filter === f.id}
+                className={`filter-tab ${filter === f.id ? "filter-tab-active" : ""}`}
+                onClick={() => setFilter(f.id)}
+              >
+                {f.label}
+                <span className="filter-tab-count">{counts[f.id]}</span>
+              </button>
+            ))}
           </div>
-
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <input
-              type="text"
-              placeholder="Search by handle or status..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="input-text-field"
-              style={{ width: "220px", padding: "6px 10px", fontSize: "var(--font-size-sm)" }}
-            />
-          </div>
+          <input
+            type="search"
+            placeholder="Search clients"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="table-search"
+            aria-label="Search clients"
+          />
         </div>
 
-        <div className="anomaly-table-wrapper">
-          {filteredList.length === 0 ? (
-            <div style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-muted)" }}>
-              <div style={{ fontSize: "var(--font-size-base)", fontWeight: 600, color: "var(--text-primary)" }}>No Client Accounts Found</div>
-              <p style={{ fontSize: "var(--font-size-sm)", margin: "4px 0 16px 0" }}>
-                {searchQuery ? `No accounts matched search term "${searchQuery}".` : "Your portfolio does not have any tracked accounts yet."}
-              </p>
-              <button onClick={onOpenConnectModal} className="btn-primary" style={{ margin: "0 auto" }}>
-                + Add Client Account
+        {visibleRows.length === 0 ? (
+          <div className="empty-state">
+            <p className="empty-state-title">{searchQuery ? "No matching clients" : "No clients here yet"}</p>
+            <p className="empty-state-text">
+              {searchQuery
+                ? `Nothing matches "${searchQuery}".`
+                : "Add a client by uploading a CSV export or connecting a Google Sheet."}
+            </p>
+            {!searchQuery && (
+              <button onClick={onOpenConnectModal} className="btn-primary">
+                Add client
               </button>
-            </div>
-          ) : (
-            <table className="anomaly-data-table">
+            )}
+          </div>
+        ) : (
+          <div className="table-scroll">
+            <table className="data-table">
               <thead>
                 <tr>
                   <th>Client</th>
-                  <th>Platform</th>
                   <th>Health</th>
-                  <th>Current vs Baseline</th>
-                  <th>Status</th>
-                  <th>Last Audit</th>
-                  <th style={{ textAlign: "right" }}>Actions</th>
+                  <th className="num col-optional">Current</th>
+                  <th className="num col-optional">Usual</th>
+                  <th className="num">Change</th>
+                  <th className="col-optional">Last checked</th>
+                  <th aria-label="Open" />
                 </tr>
               </thead>
               <tbody>
-                {filteredList.map((client) => {
-                  const score = client.health_score || 50;
-                  // Same thresholds as the health range bar and radar alerts
-                  const isCrit = score < 40;
-                  const isWarn = score >= 40 && score < 70;
-                  const statusColor = isCrit ? "var(--status-drift)" : isWarn ? "var(--status-warning)" : "var(--status-nominal)";
-
+                {visibleRows.map((client) => {
+                  const change = Number(client.change_pct);
+                  const hasChange = Number.isFinite(change);
                   return (
-                    <tr key={client.id || client.account}>
+                    <tr
+                      key={client.id || client.account}
+                      className="data-row"
+                      tabIndex={0}
+                      onClick={() => openClient(client)}
+                      onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && openClient(client)}
+                    >
                       <td>
-                        <div className="client-cell-name">
-                          <span style={{ fontWeight: 600, color: "var(--text-primary)" }}>{client.account}</span>
-                          {client.tag && (
-                            <span style={{
-                              marginLeft: "8px",
-                              fontSize: "var(--font-size-2xs)",
-                              padding: "1px 6px",
-                              borderRadius: "4px",
-                              background: "var(--bg-surface-subtle)",
-                              color: "var(--text-muted)",
-                            }}>
-                              {client.tag}
-                            </span>
-                          )}
+                        <div className="client-name">{displayName(client.account)}</div>
+                        <div className="client-meta">
+                          {platformLabel(client.platform)}
+                          {client.tag && /benchmark/i.test(client.tag) && <span className="sample-tag">Sample data</span>}
                         </div>
                       </td>
                       <td>
-                        <span className="account-platform-tag">{client.platform || "Instagram"}</span>
-                      </td>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                          <span
-                            style={{
-                              width: "8px",
-                              height: "8px",
-                              borderRadius: "50%",
-                              backgroundColor: statusColor,
-                              display: "inline-block",
-                            }}
-                          />
-                          <span className="mono-num font-semibold" style={{ color: statusColor, fontSize: "var(--font-size-sm)" }}>
-                            {score}/100
-                          </span>
-                        </div>
-                      </td>
-                      <td className="mono-num">
-                        <div style={{ fontSize: "var(--font-size-sm)", whiteSpace: "nowrap" }}>
-                          <span>{client.current ? Math.round(client.current).toLocaleString() : "N/A"}</span>
-                          <span style={{ color: "var(--text-dim)" }}> / {client.baseline ? Math.round(client.baseline).toLocaleString() : "N/A"}</span>
-                          {client.change_pct !== undefined && (
-                            <span
-                              style={{
-                                marginLeft: "6px",
-                                fontWeight: 600,
-                                color: client.change_pct < 0 ? "var(--status-drift)" : "var(--status-nominal)",
-                              }}
-                            >
-                              ({client.change_pct > 0 ? `+${client.change_pct}%` : `${client.change_pct}%`})
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <span
-                          style={{
-                            fontSize: "var(--font-size-xs)",
-                            fontWeight: 600,
-                            padding: "3px 8px",
-                            borderRadius: "4px",
-                            backgroundColor: isCrit ? "var(--status-drift-bg)" : isWarn ? "var(--status-warning-bg)" : "var(--status-nominal-bg)",
-                            color: statusColor,
-                            border: `1px solid ${isCrit ? "var(--status-drift-border)" : isWarn ? "var(--status-warning-border)" : "var(--status-nominal-border)"}`,
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          {formatStatus(client.status)}
+                        <span className={`health-pill health-pill-${client.level.key}`}>
+                          <span className="health-pill-score">{client.health_score ?? "–"}</span>
+                          {client.level.label}
                         </span>
                       </td>
-                      <td style={{ color: "var(--text-dim)", fontSize: "var(--font-size-sm)" }}>
-                        {client.last_audited || "Just now"}
+                      <td className="num col-optional">{formatMetric(client.current, client.metric_type)}</td>
+                      <td className="num text-muted col-optional">{formatMetric(client.baseline, client.metric_type)}</td>
+                      <td className={`num ${hasChange ? (change < 0 ? "text-down" : "text-up") : "text-muted"}`}>
+                        {hasChange ? `${change > 0 ? "+" : change < 0 ? "−" : ""}${Math.abs(change).toFixed(1)}%` : "–"}
                       </td>
-                      <td style={{ textAlign: "right" }}>
-                        <button
-                          onClick={() => onSelectClient(client.id || client.preset || "instagram_drop")}
-                          className="btn-portfolio-inspect"
-                        >
-                          Inspect Audit →
-                        </button>
+                      <td className="text-muted col-optional">{client.last_audited || "–"}</td>
+                      <td className="row-chevron" aria-hidden="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m9 18 6-6-6-6" />
+                        </svg>
                       </td>
                     </tr>
                   );
                 })}
               </tbody>
             </table>
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

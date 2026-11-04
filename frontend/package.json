@@ -8,8 +8,8 @@
     "start": "next start"
   },
   "dependencies": {
-    "@fontsource-variable/jetbrains-mono": "5.3.0",
-    "@fontsource-variable/plus-jakarta-sans": "5.3.0",
+    "@fontsource-variable/fraunces": "5.3.0",
+    "@fontsource-variable/inter": "5.3.0",
     "@supabase/supabase-js": "2.118.0",
     "autoprefixer": "10.5.0",
     "next": "14.2.35",

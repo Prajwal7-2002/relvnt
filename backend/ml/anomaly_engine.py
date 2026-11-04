@@ -108,7 +108,11 @@ class AnomalyEngine:
         metric_type: str = "reach",
         account_name: Optional[str] = None,
         platform: str = "instagram",
+        findings: Optional[List[Dict]] = None,
+        series_unit: str = "days",
     ) -> Dict:
+        """Analyse a daily series. `findings` are optional evidence-backed
+        observations (e.g. from per-post analysis) passed to the briefing."""
         if len(values) < 7:
             raise ValueError("At least 7 data points are required for statistical performance evaluation.")
 
@@ -161,7 +165,7 @@ class AnomalyEngine:
             health_score = max(5, min(38, int(round(35 + (z_score * 4.5)))))
             alert_level = "red"
             confidence = min(0.96, max(0.72, 0.78 + abs(change_pct) / 250.0))
-        elif change_pct < -12.0 or z_score < -1.1 or (slope_3d < 0 and change_pct < -8.0) or is_ml_outlier:
+        elif change_pct < -12.0 or z_score < -1.1 or (slope_3d < 0 and change_pct < -8.0) or (is_ml_outlier and change_pct < 0):
             prediction_label = "pre_shock"
             health_score = max(40, min(69, int(round(58 + (change_pct * 0.75)))))
             alert_level = "yellow"
@@ -186,28 +190,45 @@ class AnomalyEngine:
         # 5. Anomaly Point Detection (deseasonalized outliers > 1.8 std or ML outlier flag)
         rolling_mean_long = pd.Series(deseasonalized).rolling(window=long_window, min_periods=1).mean().values
         rolling_std_long = pd.Series(deseasonalized).rolling(window=long_window, min_periods=2).std().fillna(1e-5).values
+
+        # "Usual" for each day = rolling level with that weekday's pattern put back, so it is
+        # comparable with the raw value shown next to it (e.g. Saturdays are compared with usual Saturdays)
+        seasonal_factor = np.divide(
+            raw_series, deseasonalized, out=np.ones_like(raw_series, dtype=float), where=deseasonalized != 0
+        )
+        expected_raw = rolling_mean_long * seasonal_factor
         anomaly_points = []
 
         for i in range(len(raw_series)):
             pt_deseas = deseasonalized[i]
             exp_val = rolling_mean_long[i]
             std_val = rolling_std_long[i]
-            if (std_val > 0 and (exp_val - pt_deseas) / std_val > 1.8) or (iso_preds[i] == -1 and (exp_val - pt_deseas) > 0):
+            deviation_pct = (pt_deseas - exp_val) / exp_val * 100.0 if exp_val else 0.0
+            statistically_low = (std_val > 0 and (exp_val - pt_deseas) / std_val > 1.8) or (iso_preds[i] == -1 and (exp_val - pt_deseas) > 0)
+            # Only call a day "well below usual" when it is at least 15% below
+            if statistically_low and deviation_pct <= -15.0:
                 anomaly_points.append(
                     {
                         "date": df["date"].iloc[i].strftime("%Y-%m-%d"),
                         "value": float(round(raw_series[i], 2)),
-                        "deviation": round(float((pt_deseas - exp_val) / exp_val * 100.0), 1),
+                        "deviation": round(float(deviation_pct), 1),
                     }
                 )
 
-        # 6. Quantified Impact Modeling
+        # 6. Measured shortfall over the recent window (what actually happened, no projection)
+        recent_values = raw_series[-short_window:]
+        window_label = f"last {short_window} {series_unit}"
         if metric_type.lower() == "roas":
-            daily_loss = max(0.0, (baseline_avg - current_val) * 150.0)
-            projected_impact = f"Est. ${int(daily_loss * 7):,} ad spend efficiency at risk over 7 days"
+            projected_impact = (
+                f"ROAS averaged {recent_avg:.2f}x over the {window_label} vs a usual {baseline_avg:.2f}x"
+            )
         else:
-            lost_impressions = max(0, int((baseline_avg - current_val) * 7))
-            projected_impact = f"Est. -{lost_impressions:,} distribution deficit projected over 7 days"
+            shortfall = int(round(sum(max(0.0, baseline_avg - v) for v in recent_values)))
+            projected_impact = (
+                f"About {shortfall:,} fewer {metric_type.lower()} than usual over the {window_label}"
+                if shortfall > 0
+                else f"No shortfall vs usual over the {window_label}"
+            )
 
         metrics_summary = {
             "current_value": round(current_val, 2),
@@ -218,12 +239,14 @@ class AnomalyEngine:
             "volatility_index": volatility_index,
             "anomaly_count": len(anomaly_points),
             "projected_impact": projected_impact,
+            "recent_window_days": short_window,
+            "recent_window_label": window_label,
             "ml_model": "Scikit-Learn IsolationForest (100 Decision Trees)",
             "ml_anomaly_score": ml_anomaly_score,
             "ml_flagged": is_ml_outlier,
         }
 
-        # 7. Cognitive AI Agent Briefing (Gemini or Local Fallback)
+        # 7. Plain-language briefing (Gemini if configured, otherwise local templates)
         briefing = self.ai_agent.generate_briefing(
             account_name=account_name or "Connected Account",
             platform=platform,
@@ -232,6 +255,7 @@ class AnomalyEngine:
             health_score=health_score,
             metrics=metrics_summary,
             anomalies=anomaly_points,
+            findings=findings or [],
         )
 
         anomaly_dates_set = {a["date"] for a in anomaly_points}
@@ -241,7 +265,7 @@ class AnomalyEngine:
             series_data.append({
                 "date": d_str,
                 "reach": float(round(row["value"], 2)),
-                "baseline": float(round(rolling_mean_long[i], 2)),
+                "baseline": float(round(expected_raw[i], 2)),
                 "is_anomaly": d_str in anomaly_dates_set,
             })
 

@@ -1,30 +1,34 @@
 import "./globals.css";
+import "./shell.css";
+import "./analysis.css";
+import "./report.css";
 import localFont from "next/font/local";
 
-// Self-hosted variable fonts (Fontsource) so builds never depend on Google Fonts
-const displayFont = localFont({
-  src: "../node_modules/@fontsource-variable/plus-jakarta-sans/files/plus-jakarta-sans-latin-wght-normal.woff2",
+// Self-hosted variable font (Fontsource) so builds never depend on Google Fonts
+const sansFont = localFont({
+  src: "../node_modules/@fontsource-variable/inter/files/inter-latin-wght-normal.woff2",
   variable: "--font-sans",
-  weight: "200 800",
+  weight: "100 900",
   display: "swap",
 });
 
-const monoFont = localFont({
-  src: "../node_modules/@fontsource-variable/jetbrains-mono/files/jetbrains-mono-latin-wght-normal.woff2",
-  variable: "--font-mono",
-  weight: "100 800",
+// Serif for page titles only
+const serifFont = localFont({
+  src: "../node_modules/@fontsource-variable/fraunces/files/fraunces-latin-wght-normal.woff2",
+  variable: "--font-serif",
+  weight: "100 900",
   display: "swap",
 });
 
 export const metadata = {
-  title: "relvnt. — Algorithmic Relevance & Distribution Early-Warning Radar",
+  title: "Relvnt: Reach monitoring for agencies",
   description:
-    "Presentation-grade algorithmic intelligence platform. Early detection of social feed suppression, ad fatigue, and reach decoupling with 72-hour turnaround directives.",
+    "Relvnt watches your clients' Instagram and Meta Ads performance and tells you when reach drops, before your clients notice.",
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${displayFont.variable} ${monoFont.variable}`}>
+    <html lang="en" className={`${sansFont.variable} ${serifFont.variable}`}>
       <body>{children}</body>
     </html>
   );

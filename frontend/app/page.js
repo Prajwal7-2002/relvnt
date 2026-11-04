@@ -6,16 +6,21 @@ import AnomalyTable from "./components/AnomalyTable";
 import ClientPortfolio from "./components/ClientPortfolio";
 import ErrorBoundary from "./components/ErrorBoundary";
 import HealthScore from "./components/HealthScore";
+import PostInsights from "./components/PostInsights";
 import ReachChart from "./components/ReachChart";
+import ClientReport from "./components/ClientReport";
 import AuthGate from "./components/AuthGate";
 import SettingsView from "./components/SettingsView";
+import Sidebar from "./components/Sidebar";
 import { authService } from "../lib/supabaseClient";
+import { displayName, needsAttention, platformLabel } from "../lib/health";
+import { PLACEHOLDER_BRANDING } from "../lib/branding";
 
 const PRESETS = [
-  { id: "instagram_drop", label: "Instagram Drop", account: "@tech_founder" },
-  { id: "meta_ads_fatigue", label: "Meta Ads Fatigue", account: "US Retargeting" },
-  { id: "real_creator", label: "Creator History", account: "99D History" },
-  { id: "healthy_growth", label: "Healthy Equilibrium", account: "@growth_studio" },
+  { id: "instagram_drop", label: "Instagram reach drop", account: "@tech_founder" },
+  { id: "meta_ads_fatigue", label: "Meta Ads fatigue", account: "US Retargeting" },
+  { id: "real_creator", label: "Creator history", account: "99D History" },
+  { id: "healthy_growth", label: "Healthy account", account: "@growth_studio" },
 ];
 
 const DEFAULT_PORTFOLIO = [
@@ -35,6 +40,7 @@ const DEFAULT_PORTFOLIO = [
     id: "meta_ads_fatigue",
     account: "US Retargeting",
     platform: "Meta Ads",
+    metric_type: "roas",
     health_score: 38,
     status: "Creative Fatigue",
     last_audited: "Yesterday",
@@ -69,6 +75,14 @@ const DEFAULT_PORTFOLIO = [
   },
 ];
 
+function dataSourceLabel(source) {
+  if (source === "post_export") return "Post export";
+  if (source === "csv_upload") return "CSV upload";
+  if (source === "google_sheets_live") return "Google Sheet";
+  if (source === "instagram_live_api" || source === "instagram") return "Instagram";
+  return "Sample data";
+}
+
 export default function Page() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -77,7 +91,6 @@ export default function Page() {
   const [showBenchmarkDropdown, setShowBenchmarkDropdown] = useState(false);
   const [theme, setTheme] = useState("light");
   const [currentUser, setCurrentUser] = useState(null);
-  const [showUserDropdown, setShowUserDropdown] = useState(false);
   const [sessionLoaded, setSessionLoaded] = useState(false);
 
   // Active View: "radar" (Roster) | "audit" (Deep-Dive) | "settings" (Workspace & Webhooks)
@@ -127,6 +140,20 @@ export default function Page() {
 
   const channelCache = useRef({});
 
+  // Sign-up details only fill in names the user hasn't already set in Settings,
+  // so logging in never overwrites saved branding
+  const applySignupDetails = (meta = {}) => {
+    const saved = (key) => {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    };
+    if (meta?.agency_name && !saved("relvnt-agency-name")) setAgencyName(meta.agency_name);
+    if (meta?.auditor_name && !saved("relvnt-auditor-name")) setAuditorName(meta.auditor_name);
+  };
+
   // 1. Initial Auth Session Check
   useEffect(() => {
     async function initSession() {
@@ -134,9 +161,7 @@ export default function Page() {
         const session = await authService.getSession();
         if (session?.user) {
           setCurrentUser(session.user);
-          const meta = session.user.user_metadata || {};
-          if (meta.agency_name) setAgencyName(meta.agency_name);
-          if (meta.auditor_name) setAuditorName(meta.auditor_name);
+          applySignupDetails(session.user.user_metadata);
         }
       } catch (_) {}
       setSessionLoaded(true);
@@ -178,12 +203,22 @@ export default function Page() {
     }
   };
 
+  // Uploaded/synced analyses get a per-client id and are cached, so each client
+  // keeps its own row and reopening it shows that exact analysis
+  const rememberAnalysis = (json, source, tag) => {
+    const id = `${source}:${json.account_name || "account"}`;
+    channelCache.current[id] = json;
+    setActivePreset(id);
+    recordToPortfolio(json, id, tag);
+  };
+
   const recordToPortfolio = (analysisData, id, tag = "Audited Target") => {
     if (!analysisData) return;
     const item = {
       id: id || analysisData.account_name,
       account: analysisData.account_name || "@target",
-      platform: (analysisData.platform || "Instagram").toUpperCase(),
+      platform: analysisData.platform || "instagram",
+      metric_type: analysisData.metric_type || "reach",
       health_score: analysisData.health_score || 50,
       status: analysisData.prediction || analysisData.severity || "Decoupled",
       last_audited: "Just now",
@@ -231,6 +266,34 @@ export default function Page() {
     fetchAnalysis("instagram_drop");
   }, []);
 
+  // Export the one-page report: warn about placeholder branding, and give the PDF a
+  // proper filename (browsers use the document title as the default name)
+  const handleExportReport = () => {
+    const usesPlaceholders =
+      agencyName === PLACEHOLDER_BRANDING.agencyName ||
+      auditorName === PLACEHOLDER_BRANDING.auditorName ||
+      agencyContact === PLACEHOLDER_BRANDING.agencyContact;
+    if (
+      usesPlaceholders &&
+      !window.confirm(
+        'This report still shows placeholder details ("Your Agency", "Lead Strategist"). Export anyway?\n\n' +
+          "Choose Cancel to add your business details in Settings first."
+      )
+    ) {
+      setActiveView("settings");
+      return;
+    }
+    const previousTitle = document.title;
+    const month = new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric" }).format(new Date());
+    document.title = `${displayName(data?.account_name).replace(/^@/, "")} - Performance check-up - ${month}`;
+    const restore = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    window.print();
+  };
+
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
     setTheme(next);
@@ -272,11 +335,10 @@ export default function Page() {
 
       const json = await res.json();
       setData(json);
-      setActivePreset("custom_upload");
-      recordToPortfolio(json, "custom_upload", "CSV Audit");
+      rememberAnalysis(json, "upload", json.data_source === "post_export" ? "Post export" : "CSV upload");
       setActiveView("audit");
       setShowQuickIngest(false);
-      triggerToast("success", `✓ CSV parsed successfully: ${json.account_name} analyzed.`);
+      triggerToast("success", `${json.account_name} analysed${json.post_insights ? ` from ${json.post_insights.post_count} posts` : ""}.`);
     } catch (err) {
       triggerToast("error", err.message || "Failed to process CSV file.");
     } finally {
@@ -315,11 +377,10 @@ export default function Page() {
 
       const json = await res.json();
       setData(json);
-      setActivePreset("google_sheet");
-      recordToPortfolio(json, "google_sheet", "Google Sheet");
+      rememberAnalysis(json, "sheet", "Google Sheet");
       setActiveView("audit");
       setShowQuickIngest(false);
-      triggerToast("success", `✓ Google Sheet synchronized: ${json.account_name} analyzed.`);
+      triggerToast("success", `${json.account_name} analysed from Google Sheet.`);
     } catch (err) {
       triggerToast("error", err.message || "Could not sync Google Sheet. Verify sharing permissions.");
     } finally {
@@ -352,10 +413,9 @@ export default function Page() {
       }
       const json = await res.json();
       setData(json);
-      setActivePreset("instagram_live");
-      recordToPortfolio(json, "instagram_live", "Meta API Live");
+      rememberAnalysis(json, "instagram", "Instagram");
       setActiveView("audit");
-      triggerToast("success", `✓ Meta Graph API synchronized: ${json.account_name} analyzed.`);
+      triggerToast("success", `${json.account_name} analysed from Instagram.`);
     } catch (err) {
       triggerToast("error", err.message || "Meta API connection failed.");
     } finally {
@@ -503,7 +563,7 @@ export default function Page() {
         color: "var(--text-muted)",
         fontSize: "var(--font-size-md)",
       }}>
-        Initializing Relvnt Intelligence Enclave...
+        Loading…
       </div>
     );
   }
@@ -513,9 +573,7 @@ export default function Page() {
       <AuthGate
         onAuthSuccess={(user) => {
           setCurrentUser(user);
-          const meta = user?.user_metadata || {};
-          if (meta.agency_name) setAgencyName(meta.agency_name);
-          if (meta.auditor_name) setAuditorName(meta.auditor_name);
+          applySignupDetails(user?.user_metadata);
         }}
       />
     );
@@ -524,7 +582,23 @@ export default function Page() {
   const monogram = (agencyName || "YA").trim().replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "YA";
 
   return (
-    <main className="app-container">
+    <>
+    <div className="app-shell">
+      <Sidebar
+        activeView={activeView}
+        onNavigate={setActiveView}
+        attentionCount={portfolioList.filter((c) => needsAttention(c.health_score)).length}
+        agencyName={agencyName}
+        monogram={monogram}
+        userEmail={currentUser.email}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+        onSignOut={async () => {
+          await authService.signOut();
+          setCurrentUser(null);
+        }}
+      />
+      <main className="app-main">
       {/* FLOATING TOAST NOTIFICATION */}
       {toast.show && (
         <div className="toast-container">
@@ -537,180 +611,6 @@ export default function Page() {
         </div>
       )}
 
-      {/* 1. TOP CORPORATE SAAS NAVIGATION */}
-      <header className="top-nav">
-        <div className="brand-group">
-          <h1 className="brand-text">
-            relvnt<span>.</span>
-          </h1>
-          <span className="brand-subtext">Distribution Decoupling &amp; Ad Fatigue Sentinel</span>
-        </div>
-
-        {/* THREE SEGMENTED NAVIGATION PILLARS */}
-        <div className="view-mode-tabs">
-          <button
-            onClick={() => setActiveView("radar")}
-            className={`view-mode-btn ${activeView === "radar" ? "view-mode-btn-active" : ""}`}
-          >
-            Clients ({portfolioList.length})
-          </button>
-          <button
-            onClick={() => setActiveView("audit")}
-            className={`view-mode-btn ${activeView === "audit" ? "view-mode-btn-active" : ""}`}
-          >
-            Audit
-          </button>
-          <button
-            onClick={() => setActiveView("settings")}
-            className={`view-mode-btn ${activeView === "settings" ? "view-mode-btn-active" : ""}`}
-          >
-            Settings
-          </button>
-        </div>
-
-        {/* TOP ACTIONS */}
-        <div className="nav-actions">
-          <button
-            onClick={() => window.print()}
-            className="btn-secondary"
-            title="Export 1-Click Boardroom PDF Memo"
-          >
-            Export PDF
-          </button>
-
-          <button
-            onClick={() => setShowCopilot(true)}
-            className="btn-secondary"
-            title="Launch AI Growth Analyst Drawer"
-          >
-            AI Copilot
-          </button>
-
-          <button
-            onClick={toggleTheme}
-            className="theme-toggle-btn"
-            title={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
-            aria-label={theme === "light" ? "Switch to dark theme" : "Switch to light theme"}
-          >
-            {theme === "light" ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="4" />
-                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-              </svg>
-            )}
-          </button>
-
-          {/* USER & AGENCY DROPDOWN */}
-          <div style={{ position: "relative" }}>
-            <button
-              onClick={() => setShowUserDropdown(!showUserDropdown)}
-              className="btn-secondary"
-              style={{ padding: "5px 10px" }}
-            >
-              <span style={{
-                width: "22px",
-                height: "22px",
-                borderRadius: "4px",
-                backgroundColor: "var(--btn-primary-bg)",
-                color: "var(--btn-primary-text)",
-                fontSize: "var(--font-size-2xs)",
-                fontWeight: 800,
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}>
-                {monogram}
-              </span>
-              <span style={{ fontSize: "var(--font-size-sm)", fontWeight: 600 }}>{auditorName}</span>
-              <span style={{ fontSize: "var(--font-size-2xs)", color: "var(--text-muted)" }}>{showUserDropdown ? "▴" : "▾"}</span>
-            </button>
-
-            {showUserDropdown && (
-              <>
-                <div className="dropdown-backdrop-transparent" onClick={() => setShowUserDropdown(false)} />
-                <div style={{
-                  position: "absolute",
-                  top: "calc(100% + 6px)",
-                  right: 0,
-                  background: "var(--bg-surface)",
-                  border: "1px solid var(--border-medium)",
-                  borderRadius: "8px",
-                  boxShadow: "var(--shadow-lg)",
-                  minWidth: "220px",
-                  zIndex: 90,
-                  overflow: "hidden",
-                }}>
-                  <div style={{ padding: "12px 14px", borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-surface-subtle)" }}>
-                    <div style={{ fontSize: "var(--font-size-sm)", fontWeight: 700, color: "var(--text-primary)" }}>{agencyName}</div>
-                    <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)", marginTop: "2px" }}>{currentUser.email}</div>
-                  </div>
-                  <button
-                    onClick={() => { setActiveView("settings"); setShowUserDropdown(false); }}
-                    className="dropdown-item"
-                  >
-                    Agency &amp; Webhooks Settings
-                  </button>
-                  <button
-                    onClick={async () => {
-                      await authService.signOut();
-                      setCurrentUser(null);
-                      setShowUserDropdown(false);
-                    }}
-                    className="dropdown-item"
-                    style={{ color: "var(--status-drift)" }}
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-      </header>
-
-      {/* 2. PRINT-ONLY BOARDROOM MEMO HEADER */}
-      <div className="print-memo-header">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #0F172A", paddingBottom: "14px", marginBottom: "10px" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-            <div style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "6px",
-              backgroundColor: "#0F172A",
-              color: "#FFFFFF",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 800,
-              fontSize: "16px",
-            }}>
-              {monogram}
-            </div>
-            <div>
-              <div style={{ fontSize: "18px", fontWeight: 800, letterSpacing: "-0.03em", color: "#0F172A" }}>
-                RELVNT × {agencyName.toUpperCase()} · EXECUTIVE DISTRIBUTION AUDIT
-              </div>
-              <div style={{ fontSize: "12px", color: "#475569", marginTop: "3px" }}>
-                {agencyTagline} • Certified Lead Auditor: <strong>{auditorName}</strong> ({agencyRole})
-              </div>
-            </div>
-          </div>
-          <div style={{ textAlign: "right", fontSize: "12px", color: "#334155" }}>
-            <div><strong>Audit Target:</strong> {data?.account_name || "Client Account"}</div>
-            <div style={{ color: "#64748B", marginTop: "2px" }}>
-              Date: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-            </div>
-          </div>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9.5px", fontWeight: 700, letterSpacing: "0.05em", color: "#64748B", textTransform: "uppercase", paddingBottom: "12px", borderBottom: "1px dashed #CBD5E1", marginBottom: "16px" }}>
-          <span>{confidentiality}</span>
-          <span>Official Inquiries: {agencyContact} · Protocol v2.1.0</span>
-        </div>
-      </div>
 
       {/* 3. VIEW MODE: RADAR ROSTER */}
       {activeView === "radar" && (
@@ -721,129 +621,101 @@ export default function Page() {
             setActiveView("audit");
           }}
           onOpenConnectModal={() => setShowQuickIngest(true)}
-          onOpenAgencyModal={() => setActiveView("settings")}
           agencyName={agencyName}
-          auditorName={auditorName}
         />
       )}
 
       {/* 4. VIEW MODE: DIAGNOSTIC AUDIT */}
       {activeView === "audit" && (
         <>
-          {/* TARGET ACCOUNT HEADER */}
-          <div className="account-bar-card">
-            <div className="account-bar-left">
-              <div className="account-profile-main">
-                <span className="account-name-text">
-                  {data?.account_name || "@tech_founder"}
-                </span>
-
-                <span className="account-platform-tag">
-                  {data?.platform ? data.platform.toUpperCase() : "INSTAGRAM"}
-                </span>
-
-                <span className="account-mode-tag">
-                  {activePreset === "custom_upload"
-                    ? "CSV Ingestion"
-                    : activePreset === "google_sheet"
-                    ? "Google Sheet Sync"
-                    : activePreset === "instagram_live"
-                    ? "Meta Graph API"
-                    : "Industry Benchmark"}
-                </span>
-
-                <span className="account-period-tag">
-                  Last 90 days
-                </span>
-
-                <button
-                  onClick={() => setShowExplainer(!showExplainer)}
-                  style={{
-                    background: "transparent",
-                    border: "none",
-                    padding: 0,
-                    color: "var(--accent-primary)",
-                    fontSize: "var(--font-size-sm)",
-                    fontWeight: 600,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {showExplainer ? "Hide methodology" : "How this is calculated"}
+          <div className="page-header">
+            <div>
+              <button className="breadcrumb" onClick={() => setActiveView("radar")}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="m15 18-6-6 6-6" />
+                </svg>
+                Clients
+              </button>
+              <h1 className="page-title">{displayName(data?.account_name || "Analysis")}</h1>
+              <p className="page-meta">
+                <span>{platformLabel(data?.platform)}</span>
+                <span>Last 90 days</span>
+                <span>{dataSourceLabel(data?.data_source)}</span>
+                {data?.post_insights && <span>{data.post_insights.post_count} posts</span>}
+                <button className="link-button" onClick={() => setShowExplainer(!showExplainer)}>
+                  {showExplainer ? "Hide details" : "How this works"}
                 </button>
-              </div>
+              </p>
             </div>
 
-            <div className="account-bar-actions">
-              {/* Benchmark Dropdown */}
-              <div className="benchmark-dropdown-wrapper">
+            <div className="page-actions">
+              <div className="menu-wrap">
                 <button
                   onClick={() => setShowBenchmarkDropdown(!showBenchmarkDropdown)}
-                  className="btn-dropdown-trigger"
+                  className="btn-secondary"
+                  aria-expanded={showBenchmarkDropdown}
                 >
-                  <span>Benchmark Scenarios</span>
-                  <span>{showBenchmarkDropdown ? "▴" : "▾"}</span>
+                  Change data
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
                 </button>
 
                 {showBenchmarkDropdown && (
                   <>
-                    <div
-                      className="dropdown-backdrop-transparent"
-                      onClick={() => setShowBenchmarkDropdown(false)}
-                    />
-                    <div className="benchmark-dropdown-menu">
-                      <div className="dropdown-header">Pre-Calibrated Reference Datasets</div>
+                    <div className="dropdown-backdrop-transparent" onClick={() => setShowBenchmarkDropdown(false)} />
+                    <div className="menu-popover" role="menu">
+                      <button
+                        className="menu-item"
+                        role="menuitem"
+                        onClick={() => {
+                          setShowBenchmarkDropdown(false);
+                          setShowQuickIngest(true);
+                        }}
+                      >
+                        <span className="menu-item-title">Upload new data</span>
+                        <span className="menu-item-sub">CSV export or Google Sheet</span>
+                      </button>
+                      <div className="menu-divider" />
+                      <div className="menu-label">Sample data</div>
                       {PRESETS.map((p) => (
                         <button
                           key={p.id}
+                          role="menuitem"
                           onClick={() => {
                             fetchAnalysis(p.id);
                             setShowBenchmarkDropdown(false);
                           }}
-                          className="dropdown-item"
+                          className={`menu-item ${activePreset === p.id ? "menu-item-active" : ""}`}
                         >
-                          <div className="dropdown-item-title">
-                            <span>{p.label}</span>
-                            {activePreset === p.id && <span>✓</span>}
-                          </div>
-                          <div className="dropdown-item-sub mono-num">{p.account}</div>
+                          <span className="menu-item-title">{p.label}</span>
+                          <span className="menu-item-sub">{p.account}</span>
                         </button>
                       ))}
                     </div>
                   </>
                 )}
               </div>
-
-              <button
-                onClick={() => setShowQuickIngest(true)}
-                className="btn-primary"
-              >
-                + Quick Ingest Data
+              <button onClick={() => setShowCopilot(true)} className="btn-secondary">
+                Ask AI
+              </button>
+              <button onClick={handleExportReport} className="btn-primary" title="Opens the print dialog: choose Save as PDF">
+                Export report
               </button>
             </div>
           </div>
 
-          {/* METHODOLOGY EXPLAINER BANNER */}
           {showExplainer && (
-            <div style={{
-              background: "var(--bg-surface)",
-              border: "1px solid var(--border-medium)",
-              borderRadius: "10px",
-              padding: "18px 22px",
-              marginBottom: "20px",
-              fontSize: "var(--font-size-sm)",
-              color: "var(--text-secondary)",
-              lineHeight: 1.55,
-            }}>
-              <strong style={{ color: "var(--text-primary)", display: "block", marginBottom: "6px" }}>
-                Scientific Decoupling Methodology:
-              </strong>
-              Relvnt continuously models daily account distribution using an ensemble of STL (Seasonal and Trend decomposition using Loess) and scikit-learn IsolationForest anomaly detection. A score &lt; 40 indicates that content distribution has disconnected from established follower velocity due to feed suppression or acute creative fatigue.
+            <div className="note">
+              <strong>How this works.</strong> Relvnt compares each day with what is usual for that day of the
+              week, based on the account&apos;s own history. One-off viral spikes are capped so they don&apos;t
+              inflate &quot;usual&quot;. Days that fall well below usual are flagged, and the health score summarises
+              how far recent days are below normal: under 40 is critical, under 70 is worth watching.
             </div>
           )}
 
           {error && (
-            <div style={{ background: "var(--status-drift-bg)", border: "1px solid var(--status-drift-border)", borderRadius: "8px", padding: "14px 18px", marginBottom: "20px", color: "var(--status-drift)", fontSize: "var(--font-size-md)" }}>
+            <div className="note note-error" role="alert">
               {error}
             </div>
           )}
@@ -865,6 +737,9 @@ export default function Page() {
               {/* Story & Resonance Range Bar */}
               {data && <HealthScore data={data} />}
 
+              {/* Per-post "why" (only for per-post exports) */}
+              {data?.post_insights && <PostInsights insights={data.post_insights} />}
+
               {/* Reach vs Baseline Chart */}
               {data && <ReachChart data={data} />}
 
@@ -874,37 +749,6 @@ export default function Page() {
               {/* 72-Hour Turnaround Action Plan */}
               {data && <ActionCard data={data} />}
 
-              {/* PRINT-ONLY BOARDROOM MEMO FOOTER */}
-              <div className="print-memo-footer">
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "16px" }}>
-                  <div style={{ fontSize: "11px" }}>
-                    <div style={{ fontWeight: 800, textTransform: "uppercase", color: "#475569", marginBottom: "20px" }}>
-                      Executive Audit Attestation
-                    </div>
-                    <div style={{ borderBottom: "1.5px solid #0F172A", marginBottom: "6px" }} />
-                    <div style={{ fontWeight: 700, color: "#0F172A" }}>{auditorName}</div>
-                    <div style={{ color: "#64748B", fontSize: "10px" }}>{agencyRole} • {agencyName}</div>
-                    <div style={{ color: "#94A3B8", fontSize: "9px", marginTop: "2px" }}>
-                      Certified: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-                    </div>
-                  </div>
-
-                  <div style={{ fontSize: "11px" }}>
-                    <div style={{ fontWeight: 800, textTransform: "uppercase", color: "#475569", marginBottom: "20px" }}>
-                      Client Acknowledgement &amp; Receipt
-                    </div>
-                    <div style={{ borderBottom: "1.5px solid #0F172A", marginBottom: "6px" }} />
-                    <div style={{ fontWeight: 700, color: "#0F172A" }}>Authorized Client Representative</div>
-                    <div style={{ color: "#64748B", fontSize: "10px" }}>{data?.account_name || "Client Enterprise"}</div>
-                    <div style={{ color: "#94A3B8", fontSize: "9px", marginTop: "2px" }}>Date Received: ____________________</div>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#94A3B8", borderTop: "1px dashed #CBD5E1", paddingTop: "8px", textTransform: "uppercase" }}>
-                  <span>{confidentiality}</span>
-                  <span>Relvnt Algorithmic Intelligence · Zero-Data-Leak Enclave</span>
-                </div>
-              </div>
             </ErrorBoundary>
           )}
         </>
@@ -949,75 +793,67 @@ export default function Page() {
 
       {/* QUICK INGEST MODAL */}
       {showQuickIngest && (
-        <div className="quick-modal-overlay" onClick={() => setShowQuickIngest(false)}>
-          <div className="quick-modal-box" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "14px" }}>
-              <h3 style={{ fontSize: "var(--font-size-lg)", fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
-                Quick Ingest Client Data
-              </h3>
-              <button
-                onClick={() => setShowQuickIngest(false)}
-                style={{ background: "transparent", border: "none", fontSize: "var(--font-size-xl)", color: "var(--text-muted)", cursor: "pointer" }}
-              >
-                ×
+        <div className="dialog-overlay" onClick={() => setShowQuickIngest(false)}>
+          <div className="dialog" role="dialog" aria-modal="true" aria-labelledby="add-data-title" onClick={(e) => e.stopPropagation()}>
+            <div className="dialog-header">
+              <h2 id="add-data-title" className="section-title">Add client data</h2>
+              <button className="dialog-close" onClick={() => setShowQuickIngest(false)} aria-label="Close">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+                  <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
-            <p style={{ fontSize: "var(--font-size-sm)", color: "var(--text-muted)", margin: "0 0 16px 0", lineHeight: 1.5 }}>
-              Evaluate custom time-series performance data in real time. Choose CSV upload or live Google Sheet URL.
+            <p className="dialog-text">
+              For the most useful audit, upload a <strong>per-post export</strong>: in Meta Business Suite go to{" "}
+              <strong>Insights → Content → Export</strong> and choose CSV for the last 90 days. Daily exports from Meta Ads
+              or Instagram work too.
             </p>
 
-            <div style={{ marginBottom: "14px" }}>
-              <label style={{ display: "block", fontSize: "var(--font-size-xs)", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "4px" }}>
-                Client / Handle Identifier:
-              </label>
+            <label className="field-label" htmlFor="client-handle">
+              Client name <span className="field-optional">(optional, read from the export if left blank)</span>
+            </label>
+            <input
+              id="client-handle"
+              type="text"
+              value={clientHandle}
+              onChange={(e) => setClientHandle(e.target.value)}
+              placeholder="@cafe_bloom"
+              className="text-input"
+            />
+
+            <label className={`dropzone ${integrationLoading ? "dropzone-busy" : ""}`}>
+              <input type="file" accept=".csv,text/csv" onChange={handleFileUpload} disabled={integrationLoading} />
+              <span className="dropzone-title">{integrationLoading ? "Analysing…" : "Choose a CSV file"}</span>
+              <span className="dropzone-hint">Up to 10 MB</span>
+            </label>
+
+            <p className="dialog-hint">
+              No export to hand?{" "}
+              <a href="/samples/sample_instagram_posts.csv" download>
+                Download a sample export
+              </a>{" "}
+              and upload it to see a full audit.
+            </p>
+
+            <div className="dialog-divider">
+              <span>or connect a Google Sheet</span>
+            </div>
+
+            <form onSubmit={handleGoogleSheetSync} className="inline-form">
               <input
-                type="text"
-                value={clientHandle}
-                onChange={(e) => setClientHandle(e.target.value)}
-                placeholder="e.g. @acme_brand or Campaign Alpha"
-                className="input-text-field"
+                type="url"
+                value={sheetUrl}
+                onChange={(e) => setSheetUrl(e.target.value)}
+                placeholder="https://docs.google.com/spreadsheets/d/…"
+                className="text-input"
+                aria-label="Google Sheet link"
               />
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: "14px" }}>
-              <div className="file-dropzone">
-                <input
-                  type="file"
-                  accept=".csv,text/csv"
-                  onChange={handleFileUpload}
-                  style={{ position: "absolute", inset: 0, opacity: 0, cursor: "pointer" }}
-                />
-                <div style={{ fontSize: "var(--font-size-2xl)", marginBottom: "4px" }}>📄</div>
-                <div style={{ fontSize: "var(--font-size-md)", fontWeight: 600, color: "var(--text-primary)" }}>
-                  Upload CSV File
-                </div>
-                <div style={{ fontSize: "var(--font-size-xs)", color: "var(--text-muted)" }}>
-                  Meta Ads, Instagram, or TikTok exports
-                </div>
-              </div>
-
-              <div style={{ textAlign: "center", fontSize: "var(--font-size-xs)", color: "var(--text-dim)", fontWeight: 600 }}>— OR —</div>
-
-              <form onSubmit={handleGoogleSheetSync}>
-                <input
-                  type="url"
-                  value={sheetUrl}
-                  onChange={(e) => setSheetUrl(e.target.value)}
-                  placeholder="https://docs.google.com/spreadsheets/d/.../edit"
-                  className="input-text-field"
-                  style={{ marginBottom: "8px" }}
-                />
-                <button
-                  type="submit"
-                  disabled={integrationLoading || !sheetUrl.trim()}
-                  className="btn-primary"
-                  style={{ width: "100%", justifyContent: "center" }}
-                >
-                  {integrationLoading ? "Evaluating..." : "Sync Google Sheet"}
-                </button>
-              </form>
-            </div>
+              <button type="submit" disabled={integrationLoading || !sheetUrl.trim()} className="btn-secondary">
+                Connect
+              </button>
+            </form>
+            <p className="dialog-hint">The sheet must be shared as &quot;Anyone with the link can view&quot;.</p>
           </div>
         </div>
       )}
@@ -1116,6 +952,20 @@ export default function Page() {
           </aside>
         </>
       )}
-    </main>
+      </main>
+    </div>
+
+    <ClientReport
+      data={data}
+      agency={{
+        name: agencyName,
+        tagline: agencyTagline,
+        monogram,
+        auditorName,
+        role: agencyRole,
+        contact: agencyContact,
+      }}
+    />
+    </>
   );
 }

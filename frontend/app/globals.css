@@ -1,51 +1,62 @@
 /* ==========================================================================
-   RELVNT: INDUSTRY-STANDARD B2B SAAS DESIGN SYSTEM
-   W3C Semantic Design Tokens · High-Craft Corporate Executive Interface
+   RELVNT DESIGN TOKENS: "Forest & Paper"
+   Warm paper canvas, deep forest brand surface, gold highlight.
+   Red / amber / green are reserved for health status.
    ========================================================================== */
 
 :root,
 [data-theme="light"] {
-  /* Surfaces & Canvas */
-  --bg-canvas: #F8FAFC;
-  --bg-surface: #FFFFFF;
-  --bg-surface-subtle: #F1F5F9;
-  --bg-surface-hover: #E2E8F0;
+  /* Surfaces */
+  --bg-canvas: #F3F0E8;
+  --bg-surface: #FFFDF7;
+  --bg-surface-subtle: #EEEADF;
+  --bg-surface-hover: #E6E1D3;
 
-  /* Aliases for Child Components */
   --bg-app: var(--bg-canvas);
   --bg-page: var(--bg-canvas);
   --bg-card: var(--bg-surface);
   --bg-card-subtle: var(--bg-surface-subtle);
   --bg-card-hover: var(--bg-surface-hover);
 
-  /* Borders & Dividers */
-  --border-subtle: #E2E8F0;
-  --border-medium: #CBD5E1;
-  --border-focus: #0F172A;
+  /* Brand surface (sidebar) */
+  --bg-sidebar: #17342A;
+  --sidebar-text: rgba(243, 240, 232, 0.74);
+  --sidebar-text-strong: #F7F4EC;
+  --sidebar-text-muted: rgba(243, 240, 232, 0.52);
+  --sidebar-hover: rgba(255, 255, 255, 0.06);
+  --sidebar-active: rgba(255, 255, 255, 0.11);
+  --sidebar-border: rgba(255, 255, 255, 0.10);
+  --brand-gold: #E8B04A;
+  --brand-forest: #17342A;
+  --chart-line: #1F4A3A;
+
+  /* Borders */
+  --border-subtle: #E3DED1;
+  --border-medium: #CFC8B7;
+  --border-focus: var(--accent-primary);
   --border-light: var(--border-subtle);
 
-  /* Typography */
-  --text-primary: #0F172A;
-  --text-secondary: #334155;
-  --text-muted: #64748B;
-  --text-dim: #94A3B8;
+  /* Text */
+  --text-primary: #1A1F1B;
+  --text-secondary: #424A44;
+  --text-muted: #6F7770;
+  --text-dim: #A3A79F;
   --text-title: var(--text-primary);
   --text-body: var(--text-secondary);
 
-  /* Semantic Statuses */
-  --status-nominal: #10B981;
-  --status-nominal-bg: #ECFDF5;
-  --status-nominal-border: #A7F3D0;
+  /* Status */
+  --status-nominal: #3A8F5C;
+  --status-nominal-bg: #E6F0E7;
+  --status-nominal-border: #C2DBC6;
 
-  --status-warning: #F59E0B;
-  --status-warning-bg: #FFFBEB;
-  --status-warning-border: #FDE68A;
+  --status-warning: #C27B12;
+  --status-warning-bg: #F8EDD6;
+  --status-warning-border: #EBD3A0;
 
-  --status-drift: #EF4444;
-  --status-drift-bg: #FEF2F2;
-  --status-drift-border: #FECACA;
+  --status-drift: #C8402F;
+  --status-drift-bg: #F7E3DE;
+  --status-drift-border: #EBC0B7;
 
-  /* Aliases for Child Components */
   --status-good: var(--status-nominal);
   --status-good-bg: var(--status-nominal-bg);
   --status-good-border: var(--status-nominal-border);
@@ -57,32 +68,34 @@
   --status-alert-border: var(--status-drift-border);
   --status-critical: var(--status-drift);
 
-  /* Primary Accent & Buttons (single brand accent, matches the logo dot) */
-  --accent-primary: #0284C7;
-  --accent-primary-hover: #0369A1;
+  /* Accent & Buttons */
+  --accent-primary: #1F4A3A;
+  --accent-primary-hover: #17342A;
+  --accent-primary-soft: #DCE6DD;
 
-  --btn-primary-bg: #0F172A;
-  --btn-primary-text: #FFFFFF;
-  --btn-primary-hover: #1E293B;
+  --btn-primary-bg: #17342A;
+  --btn-primary-text: #F7F4EC;
+  --btn-primary-hover: #234A3C;
 
-  --btn-secondary-bg: #FFFFFF;
-  --btn-secondary-text: #0F172A;
-  --btn-secondary-border: #CBD5E1;
-  --btn-secondary-hover: #F8FAFC;
+  --btn-secondary-bg: var(--bg-surface);
+  --btn-secondary-text: var(--text-primary);
+  --btn-secondary-border: var(--border-medium);
+  --btn-secondary-hover: var(--bg-surface-subtle);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
-
-  --shadow-dropdown: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.06);
+  /* Elevation (kept flat: borders do the work) */
+  --shadow-sm: 0 1px 2px rgba(26, 31, 27, 0.04);
+  --shadow-md: 0 2px 8px rgba(26, 31, 27, 0.06);
+  --shadow-lg: 0 16px 40px -12px rgba(26, 31, 27, 0.22);
+  --shadow-dropdown: 0 16px 40px -12px rgba(26, 31, 27, 0.24), 0 2px 6px rgba(26, 31, 27, 0.06);
 
   /* Radii */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
 
-  /* Type Scale (use these instead of ad-hoc pixel sizes) */
+  /* Type */
+  --font-mono: var(--font-sans);
+  --font-display: var(--font-serif, Georgia, "Times New Roman", serif);
   --font-size-2xs: 10px;
   --font-size-xs: 11px;
   --font-size-sm: 12px;
@@ -94,57 +107,60 @@
   --font-size-display: 36px;
   --font-size-hero: 48px;
 
-  /* Health Range Bar */
-  --range-grad: linear-gradient(to right, #B91C1C 0%, #B91C1C 35%, #D97706 45%, #D97706 65%, #15803D 75%, #15803D 100%);
-  --range-pin-border: #0F172A;
+  /* Health range bar */
+  --range-grad: linear-gradient(to right, var(--status-drift) 0%, var(--status-drift) 35%, var(--status-warning) 45%, var(--status-warning) 65%, var(--status-nominal) 75%, var(--status-nominal) 100%);
+  --range-pin-border: var(--text-primary);
 
-  /* Animation */
+  /* Motion */
   --ease-snappy: cubic-bezier(0.16, 1, 0.3, 1);
   --transition-fast: 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 [data-theme="dark"] {
-  /* Surfaces & Canvas */
-  --bg-canvas: #090D16;
-  --bg-surface: #0F172A;
-  --bg-surface-subtle: #1E293B;
-  --bg-surface-hover: #334155;
+  --bg-canvas: #0F1613;
+  --bg-surface: #16201B;
+  --bg-surface-subtle: #1C2822;
+  --bg-surface-hover: #24332B;
 
-  /* Aliases for Child Components */
   --bg-app: var(--bg-canvas);
   --bg-page: var(--bg-canvas);
   --bg-card: var(--bg-surface);
   --bg-card-subtle: var(--bg-surface-subtle);
   --bg-card-hover: var(--bg-surface-hover);
 
-  /* Borders & Dividers */
-  --border-subtle: #1E293B;
-  --border-medium: #334155;
-  --border-focus: #F8FAFC;
+  --bg-sidebar: #0B110E;
+  --sidebar-text: rgba(238, 240, 234, 0.72);
+  --sidebar-text-strong: #F2F3EE;
+  --sidebar-text-muted: rgba(238, 240, 234, 0.48);
+  --sidebar-hover: rgba(255, 255, 255, 0.05);
+  --sidebar-active: rgba(255, 255, 255, 0.09);
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --chart-line: #A9CDB5;
+
+  --border-subtle: #25342C;
+  --border-medium: #33463B;
+  --border-focus: var(--accent-primary);
   --border-light: var(--border-subtle);
 
-  /* Typography */
-  --text-primary: #F8FAFC;
-  --text-secondary: #CBD5E1;
-  --text-muted: #94A3B8;
-  --text-dim: #64748B;
+  --text-primary: #EEF0EA;
+  --text-secondary: #C9CEC5;
+  --text-muted: #8E978E;
+  --text-dim: #66705F;
   --text-title: var(--text-primary);
   --text-body: var(--text-secondary);
 
-  /* Semantic Statuses */
-  --status-nominal: #10B981;
-  --status-nominal-bg: rgba(16, 185, 129, 0.12);
-  --status-nominal-border: rgba(16, 185, 129, 0.3);
+  --status-nominal: #6CC28A;
+  --status-nominal-bg: rgba(108, 194, 138, 0.10);
+  --status-nominal-border: rgba(108, 194, 138, 0.28);
 
-  --status-warning: #F59E0B;
-  --status-warning-bg: rgba(245, 158, 11, 0.12);
-  --status-warning-border: rgba(245, 158, 11, 0.3);
+  --status-warning: #E3A13F;
+  --status-warning-bg: rgba(227, 161, 63, 0.10);
+  --status-warning-border: rgba(227, 161, 63, 0.28);
 
-  --status-drift: #EF4444;
-  --status-drift-bg: rgba(239, 68, 68, 0.12);
-  --status-drift-border: rgba(239, 68, 68, 0.3);
+  --status-drift: #EE7A66;
+  --status-drift-bg: rgba(238, 122, 102, 0.10);
+  --status-drift-border: rgba(238, 122, 102, 0.28);
 
-  /* Aliases for Child Components */
   --status-good: var(--status-nominal);
   --status-good-bg: var(--status-nominal-bg);
   --status-good-border: var(--status-nominal-border);
@@ -156,28 +172,25 @@
   --status-alert-border: var(--status-drift-border);
   --status-critical: var(--status-drift);
 
-  /* Primary Accent & Buttons */
-  --accent-primary: #38BDF8;
-  --accent-primary-hover: #0EA5E9;
+  --accent-primary: #A9CDB5;
+  --accent-primary-hover: #C1DDCA;
+  --accent-primary-soft: rgba(169, 205, 181, 0.12);
 
-  --btn-primary-bg: #F8FAFC;
-  --btn-primary-text: #090D16;
-  --btn-primary-hover: #E2E8F0;
+  --btn-primary-bg: #F2EEE3;
+  --btn-primary-text: #17342A;
+  --btn-primary-hover: #FFFFFF;
 
-  --btn-secondary-bg: #1E293B;
-  --btn-secondary-text: #F8FAFC;
-  --btn-secondary-border: #334155;
-  --btn-secondary-hover: #334155;
+  --btn-secondary-bg: var(--bg-surface);
+  --btn-secondary-text: var(--text-primary);
+  --btn-secondary-border: var(--border-medium);
+  --btn-secondary-hover: var(--bg-surface-subtle);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.4);
-  --shadow-dropdown: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 16px 40px -12px rgba(0, 0, 0, 0.7);
+  --shadow-dropdown: 0 16px 40px -12px rgba(0, 0, 0, 0.75);
 
-  /* Health Range Bar */
-  --range-grad: linear-gradient(to right, #EF4444 0%, #EF4444 35%, #F59E0B 45%, #F59E0B 65%, #10B981 75%, #10B981 100%);
-  --range-pin-border: #FAFAFA;
+  --range-pin-border: var(--text-primary);
 }
 
 *,
@@ -206,17 +219,28 @@ button:disabled {
 html,
 body {
   background-color: var(--bg-canvas);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   font-family: var(--font-sans, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif);
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  font-feature-settings: "cv11" 1, "ss01" 1;
+  font-variant-numeric: tabular-nums;
   margin: 0;
   padding: 0;
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
 }
 
+h1,
+h2,
+h3,
+h4 {
+  letter-spacing: -0.011em;
+}
+
+/* Numbers align in columns without switching to a monospace font */
 .mono-num {
-  font-family: var(--font-mono, "SF Mono", Consolas, monospace);
-  font-feature-settings: "tnum" 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .font-semibold {
