@@ -8,6 +8,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import HealthScore from "./components/HealthScore";
 import PostInsights from "./components/PostInsights";
 import ReachChart from "./components/ReachChart";
+import ClientReport from "./components/ClientReport";
 import AuthGate from "./components/AuthGate";
 import SettingsView from "./components/SettingsView";
 import Sidebar from "./components/Sidebar";
@@ -542,6 +543,7 @@ export default function Page() {
   const monogram = (agencyName || "YA").trim().replace(/[^a-zA-Z0-9\s]/g, "").split(/\s+/).filter(Boolean).map(w => w[0]).join("").slice(0, 2).toUpperCase() || "YA";
 
   return (
+    <>
     <div className="app-shell">
       <Sidebar
         activeView={activeView}
@@ -570,46 +572,6 @@ export default function Page() {
         </div>
       )}
 
-
-      {/* 2. PRINT-ONLY BOARDROOM MEMO HEADER */}
-      <div className="print-memo-header">
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", borderBottom: "2px solid #0F172A", paddingBottom: "14px", marginBottom: "10px" }}>
-          <div style={{ display: "flex", alignItems: "flex-start", gap: "12px" }}>
-            <div style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "6px",
-              backgroundColor: "#0F172A",
-              color: "#FFFFFF",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 800,
-              fontSize: "16px",
-            }}>
-              {monogram}
-            </div>
-            <div>
-              <div style={{ fontSize: "18px", fontWeight: 800, letterSpacing: "-0.03em", color: "#0F172A" }}>
-                RELVNT × {agencyName.toUpperCase()} · EXECUTIVE DISTRIBUTION AUDIT
-              </div>
-              <div style={{ fontSize: "12px", color: "#475569", marginTop: "3px" }}>
-                {agencyTagline} • Certified Lead Auditor: <strong>{auditorName}</strong> ({agencyRole})
-              </div>
-            </div>
-          </div>
-          <div style={{ textAlign: "right", fontSize: "12px", color: "#334155" }}>
-            <div><strong>Audit Target:</strong> {data?.account_name || "Client Account"}</div>
-            <div style={{ color: "#64748B", marginTop: "2px" }}>
-              Date: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-            </div>
-          </div>
-        </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9.5px", fontWeight: 700, letterSpacing: "0.05em", color: "#64748B", textTransform: "uppercase", paddingBottom: "12px", borderBottom: "1px dashed #CBD5E1", marginBottom: "16px" }}>
-          <span>{confidentiality}</span>
-          <span>Official Inquiries: {agencyContact} · Protocol v2.1.0</span>
-        </div>
-      </div>
 
       {/* 3. VIEW MODE: RADAR ROSTER */}
       {activeView === "radar" && (
@@ -698,7 +660,7 @@ export default function Page() {
               <button onClick={() => setShowCopilot(true)} className="btn-secondary">
                 Ask AI
               </button>
-              <button onClick={() => window.print()} className="btn-primary">
+              <button onClick={() => window.print()} className="btn-primary" title="Opens the print dialog: choose Save as PDF">
                 Export report
               </button>
             </div>
@@ -748,37 +710,6 @@ export default function Page() {
               {/* 72-Hour Turnaround Action Plan */}
               {data && <ActionCard data={data} />}
 
-              {/* PRINT-ONLY BOARDROOM MEMO FOOTER */}
-              <div className="print-memo-footer">
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px", marginBottom: "16px" }}>
-                  <div style={{ fontSize: "11px" }}>
-                    <div style={{ fontWeight: 800, textTransform: "uppercase", color: "#475569", marginBottom: "20px" }}>
-                      Executive Audit Attestation
-                    </div>
-                    <div style={{ borderBottom: "1.5px solid #0F172A", marginBottom: "6px" }} />
-                    <div style={{ fontWeight: 700, color: "#0F172A" }}>{auditorName}</div>
-                    <div style={{ color: "#64748B", fontSize: "10px" }}>{agencyRole} • {agencyName}</div>
-                    <div style={{ color: "#94A3B8", fontSize: "9px", marginTop: "2px" }}>
-                      Certified: {new Date().toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" })}
-                    </div>
-                  </div>
-
-                  <div style={{ fontSize: "11px" }}>
-                    <div style={{ fontWeight: 800, textTransform: "uppercase", color: "#475569", marginBottom: "20px" }}>
-                      Client Acknowledgement &amp; Receipt
-                    </div>
-                    <div style={{ borderBottom: "1.5px solid #0F172A", marginBottom: "6px" }} />
-                    <div style={{ fontWeight: 700, color: "#0F172A" }}>Authorized Client Representative</div>
-                    <div style={{ color: "#64748B", fontSize: "10px" }}>{data?.account_name || "Client Enterprise"}</div>
-                    <div style={{ color: "#94A3B8", fontSize: "9px", marginTop: "2px" }}>Date Received: ____________________</div>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#94A3B8", borderTop: "1px dashed #CBD5E1", paddingTop: "8px", textTransform: "uppercase" }}>
-                  <span>{confidentiality}</span>
-                  <span>Relvnt Algorithmic Intelligence · Zero-Data-Leak Enclave</span>
-                </div>
-              </div>
             </ErrorBoundary>
           )}
         </>
@@ -984,5 +915,18 @@ export default function Page() {
       )}
       </main>
     </div>
+
+    <ClientReport
+      data={data}
+      agency={{
+        name: agencyName,
+        tagline: agencyTagline,
+        monogram,
+        auditorName,
+        role: agencyRole,
+        contact: agencyContact,
+      }}
+    />
+    </>
   );
 }

@@ -1,0 +1,248 @@
+/* ==========================================================================
+   ONE-PAGE CLIENT REPORT (print only)
+   Always printed in the light palette, whatever theme the app is in.
+   ========================================================================== */
+
+.client-report {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 13mm;
+  }
+
+  html,
+  body {
+    background: #FFFFFF !important;
+  }
+
+  .app-shell,
+  .toast-container,
+  .dialog-overlay,
+  .drawer-content,
+  .drawer-backdrop {
+    display: none !important;
+  }
+
+  .client-report {
+    display: block;
+    color: #1A1F1B;
+    font-size: 9.5pt;
+    line-height: 1.45;
+  }
+}
+
+.client-report h1,
+.client-report h2,
+.client-report h3,
+.client-report p {
+  margin: 0;
+}
+
+.report-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #17342A;
+}
+
+.report-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.report-monogram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: #17342A;
+  color: #E8B04A;
+  font-weight: 700;
+  font-size: 9pt;
+}
+
+.report-agency {
+  font-weight: 700;
+  font-size: 11pt;
+}
+
+.report-tagline,
+.report-meta {
+  color: #6F7770;
+  font-size: 8.5pt;
+}
+
+.report-meta {
+  text-align: right;
+}
+
+.report-doc-title {
+  color: #1A1F1B;
+  font-weight: 600;
+  font-size: 10pt;
+}
+
+.report-client {
+  margin: 14px 0 10px;
+}
+
+.report-client h1 {
+  font-family: var(--font-display, Georgia, serif);
+  font-weight: 500;
+  font-size: 20pt;
+  letter-spacing: -0.01em;
+}
+
+.report-client p {
+  color: #6F7770;
+  font-size: 9pt;
+}
+
+.report-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 12px 14px;
+  border: 1px solid #E3DED1;
+  border-radius: 8px;
+  background: #FBF9F4;
+}
+
+.report-summary h2 {
+  margin: 4px 0;
+  font-family: var(--font-display, Georgia, serif);
+  font-weight: 500;
+  font-size: 14pt;
+}
+
+.report-summary p {
+  color: #424A44;
+}
+
+.report-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  font-size: 8.5pt;
+}
+
+.report-status::before {
+  content: "";
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.report-status-critical::before { background: #C8402F; }
+.report-status-watch::before { background: #C27B12; }
+.report-status-healthy::before { background: #3A8F5C; }
+
+.report-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  flex-shrink: 0;
+}
+
+.report-score span {
+  font-size: 28pt;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.report-score small {
+  margin-top: 4px;
+  color: #6F7770;
+  font-size: 7.5pt;
+}
+
+.report-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 10px 0 0;
+}
+
+.report-stats div + div {
+  padding-left: 14px;
+  border-left: 1px solid #E3DED1;
+}
+
+.report-stats dt {
+  color: #6F7770;
+  font-size: 8pt;
+}
+
+.report-stats dd {
+  margin: 2px 0 0;
+  font-size: 13pt;
+  font-weight: 600;
+}
+
+.report-down { color: #C8402F; }
+.report-up { color: #3A8F5C; }
+
+.report-chart {
+  margin-top: 12px;
+}
+
+.client-report h3 {
+  margin-bottom: 6px;
+  font-size: 9.5pt;
+  font-weight: 700;
+}
+
+.report-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+  margin-top: 12px;
+}
+
+.report-columns section:only-child {
+  grid-column: 1 / -1;
+}
+
+.report-findings,
+.report-steps {
+  margin: 0;
+  padding-left: 16px;
+}
+
+.report-findings li,
+.report-steps li {
+  margin-bottom: 6px;
+  color: #424A44;
+}
+
+.report-findings strong,
+.report-steps strong {
+  color: #1A1F1B;
+}
+
+.report-footer {
+  margin-top: 14px;
+  padding-top: 8px;
+  border-top: 1px solid #E3DED1;
+  font-size: 8pt;
+  color: #424A44;
+}
+
+.report-method {
+  margin-top: 4px;
+  color: #6F7770;
+  font-size: 7.5pt;
+}
+
+.client-report section,
+.report-summary,
+.report-footer {
+  break-inside: avoid;
+}
