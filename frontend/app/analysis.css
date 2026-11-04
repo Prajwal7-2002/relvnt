@@ -931,3 +931,90 @@
 .inline-form .btn-secondary {
   height: 38px;
 }
+
+/* ---- Report details (Settings) ---- */
+
+.report-details-form {
+  display: flex;
+  flex-direction: column;
+  margin-top: 16px;
+}
+
+.report-details-form .field-label {
+  margin-top: 14px;
+}
+
+.logo-field {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.logo-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 140px;
+  height: 64px;
+  flex-shrink: 0;
+  padding: 6px;
+  border: 1px dashed var(--border-medium);
+  border-radius: var(--radius-md);
+  background: #FFFFFF;
+  color: var(--text-dim);
+  font-size: var(--font-size-sm);
+}
+
+.logo-preview img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.logo-upload {
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+}
+
+.logo-upload input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.logo-remove {
+  margin-left: 12px;
+  font-size: var(--font-size-sm);
+}
+
+.field-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.field-error {
+  margin: 6px 0 0;
+  color: var(--status-drift);
+  font-size: var(--font-size-sm);
+}
+
+.field-success {
+  color: var(--status-nominal);
+  font-size: var(--font-size-sm);
+}
+
+.report-details-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+@media (max-width: 640px) {
+  .field-pair {
+    grid-template-columns: 1fr;
+  }
+}

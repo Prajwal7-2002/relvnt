@@ -14,6 +14,7 @@ import SettingsView from "./components/SettingsView";
 import Sidebar from "./components/Sidebar";
 import { authService } from "../lib/supabaseClient";
 import { displayName, needsAttention, platformLabel } from "../lib/health";
+import { PLACEHOLDER_BRANDING } from "../lib/branding";
 
 const PRESETS = [
   { id: "instagram_drop", label: "Instagram reach drop", account: "@tech_founder" },
@@ -139,6 +140,20 @@ export default function Page() {
 
   const channelCache = useRef({});
 
+  // Sign-up details only fill in names the user hasn't already set in Settings,
+  // so logging in never overwrites saved branding
+  const applySignupDetails = (meta = {}) => {
+    const saved = (key) => {
+      try {
+        return localStorage.getItem(key);
+      } catch {
+        return null;
+      }
+    };
+    if (meta?.agency_name && !saved("relvnt-agency-name")) setAgencyName(meta.agency_name);
+    if (meta?.auditor_name && !saved("relvnt-auditor-name")) setAuditorName(meta.auditor_name);
+  };
+
   // 1. Initial Auth Session Check
   useEffect(() => {
     async function initSession() {
@@ -146,9 +161,7 @@ export default function Page() {
         const session = await authService.getSession();
         if (session?.user) {
           setCurrentUser(session.user);
-          const meta = session.user.user_metadata || {};
-          if (meta.agency_name) setAgencyName(meta.agency_name);
-          if (meta.auditor_name) setAuditorName(meta.auditor_name);
+          applySignupDetails(session.user.user_metadata);
         }
       } catch (_) {}
       setSessionLoaded(true);
@@ -252,6 +265,34 @@ export default function Page() {
 
     fetchAnalysis("instagram_drop");
   }, []);
+
+  // Export the one-page report: warn about placeholder branding, and give the PDF a
+  // proper filename (browsers use the document title as the default name)
+  const handleExportReport = () => {
+    const usesPlaceholders =
+      agencyName === PLACEHOLDER_BRANDING.agencyName ||
+      auditorName === PLACEHOLDER_BRANDING.auditorName ||
+      agencyContact === PLACEHOLDER_BRANDING.agencyContact;
+    if (
+      usesPlaceholders &&
+      !window.confirm(
+        'This report still shows placeholder details ("Your Agency", "Lead Strategist"). Export anyway?\n\n' +
+          "Choose Cancel to add your business details in Settings first."
+      )
+    ) {
+      setActiveView("settings");
+      return;
+    }
+    const previousTitle = document.title;
+    const month = new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric" }).format(new Date());
+    document.title = `${displayName(data?.account_name).replace(/^@/, "")} - Performance check-up - ${month}`;
+    const restore = () => {
+      document.title = previousTitle;
+      window.removeEventListener("afterprint", restore);
+    };
+    window.addEventListener("afterprint", restore);
+    window.print();
+  };
 
   const toggleTheme = () => {
     const next = theme === "light" ? "dark" : "light";
@@ -532,9 +573,7 @@ export default function Page() {
       <AuthGate
         onAuthSuccess={(user) => {
           setCurrentUser(user);
-          const meta = user?.user_metadata || {};
-          if (meta.agency_name) setAgencyName(meta.agency_name);
-          if (meta.auditor_name) setAuditorName(meta.auditor_name);
+          applySignupDetails(user?.user_metadata);
         }}
       />
     );
@@ -660,7 +699,7 @@ export default function Page() {
               <button onClick={() => setShowCopilot(true)} className="btn-secondary">
                 Ask AI
               </button>
-              <button onClick={() => window.print()} className="btn-primary" title="Opens the print dialog: choose Save as PDF">
+              <button onClick={handleExportReport} className="btn-primary" title="Opens the print dialog: choose Save as PDF">
                 Export report
               </button>
             </div>
