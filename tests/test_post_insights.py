@@ -71,3 +71,16 @@ def test_flagged_days_are_always_below_their_usual_level():
         usual = {p["date"]: p["baseline"] for p in data["reach_data"]}
         for a in data["anomalies"]:
             assert a["value"] <= usual[a["date"]] * 0.85, (source.name, a)
+
+
+def test_comparison_and_calendar_for_visuals():
+    insights = analyze_posts(PostExportParser.parse(SAMPLE.read_bytes()))
+    comp = insights["comparison"]
+    assert comp["best_format"] == "Reel"
+    assert comp["prior"]["posts_per_week"] > comp["recent"]["posts_per_week"]
+    assert comp["prior"]["best_format_share"] > comp["recent"]["best_format_share"]
+
+    cal = insights["calendar"]
+    assert cal[0]["date"] == insights["period_start"] and cal[-1]["date"] == insights["period_end"]
+    assert sum(d["posts"] for d in cal) == insights["post_count"]
+    assert any(d["posts"] == 0 and d["reach"] is None for d in cal)  # gaps are kept
