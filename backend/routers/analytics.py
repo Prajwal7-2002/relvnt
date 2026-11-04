@@ -250,13 +250,14 @@ async def analyze_csv(
 
         acc = account_name or safe_filename.replace(".csv", "").replace("_", " ").title()
         acc = re.sub(r"[^\w\s\-@.]", "", acc).strip()
+        metric, platform = _metric_and_platform(val_col, metric_type, platform or "uploaded_csv")
 
         res = engine.analyze_series(
             dates=clean_df["date"].tolist(),
             values=clean_df["value"].tolist(),
-            metric_type=metric_type or "reach",
+            metric_type=metric,
             account_name=acc,
-            platform=platform or "uploaded_csv",
+            platform=platform,
         )
         res["username"] = acc
         res["data_source"] = "csv_upload"
@@ -273,6 +274,15 @@ async def analyze_csv(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred during dataset evaluation. Please verify file format.",
         )
+
+
+def _metric_and_platform(val_col: str, requested_metric: Optional[str], platform: str):
+    """The detected column decides the metric (a ROAS column is ROAS, whatever was requested);
+    ad metrics come from Meta Ads exports."""
+    metric = DefensiveCSVParser.metric_for_column(val_col) or requested_metric or "reach"
+    if metric in ("roas", "spend") and platform in ("uploaded_csv", "google_sheets", "instagram", None):
+        platform = "meta_ads"
+    return metric, platform
 
 
 def _analyze_post_export(content: bytes, safe_filename: str, account_name: Optional[str]) -> Dict[str, Any]:
@@ -363,12 +373,13 @@ def analyze_google_sheet(payload: GoogleSheetPayload):
         )
 
         acc = payload.account_name or "Google Sheet Roster"
+        metric, sheet_platform = _metric_and_platform(val_col, payload.metric_type, "google_sheets")
         analysis = engine.analyze_series(
             dates=clean_df["date"].tolist(),
             values=clean_df["value"].tolist(),
-            metric_type=payload.metric_type or "reach",
+            metric_type=metric,
             account_name=acc,
-            platform="google_sheets",
+            platform=sheet_platform,
         )
         analysis["username"] = acc
         analysis["data_source"] = "google_sheets_live"
