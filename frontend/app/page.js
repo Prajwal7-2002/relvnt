@@ -12,6 +12,7 @@ import ClientReport from "./components/ClientReport";
 import AuthGate from "./components/AuthGate";
 import SettingsView from "./components/SettingsView";
 import Sidebar from "./components/Sidebar";
+import SnapshotView from "./components/SnapshotView";
 import { authService } from "../lib/supabaseClient";
 import { displayName, needsAttention, platformLabel } from "../lib/health";
 import { PLACEHOLDER_BRANDING } from "../lib/branding";
@@ -781,6 +782,11 @@ export default function Page() {
             </ErrorBoundary>
           )}
         </>
+      )}
+
+      {/* FREE SNAPSHOT (outreach card from public view counts) */}
+      {activeView === "snapshot" && (
+        <SnapshotView agency={{ name: agencyName, monogram, contact: agencyContact }} />
       )}
 
       {/* 5. VIEW MODE: SETTINGS & INTEGRATIONS */}

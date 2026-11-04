@@ -2,6 +2,7 @@ import "./globals.css";
 import "./shell.css";
 import "./analysis.css";
 import "./report.css";
+import "./snapshot.css";
 import localFont from "next/font/local";
 
 // Self-hosted variable font (Fontsource) so builds never depend on Google Fonts
