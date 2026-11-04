@@ -439,3 +439,20 @@
   color: #424A44;
   white-space: pre-wrap;
 }
+
+/* Public sample report: the same report shown on screen as a sheet of paper */
+@media screen {
+  .client-report-screen {
+    display: block;
+    width: 794px;
+    margin: 0 auto;
+    padding: 48px 56px;
+    background: #FFFFFF;
+    color: #1A1F1B;
+    font-size: 12px;
+    line-height: 1.45;
+    border: 1px solid var(--border-subtle);
+    border-radius: 4px;
+    box-shadow: var(--shadow-lg);
+  }
+}

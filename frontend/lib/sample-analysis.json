@@ -1,0 +1,1067 @@
+{
+ "account_name": "@cafe_bloom",
+ "platform": "instagram",
+ "metric_type": "reach",
+ "health_score": 26,
+ "alert_level": "red",
+ "prediction": "shock",
+ "diagnosis": "Your reach for @cafe_bloom on Instagram dropped 46.9% below your usual level, averaging 1,955 over the last 7 posting days compared to your usual level of 3,679. The daily series shows performance changed on these flagged days: 14 Aug, 16 Sep, 29 Sep, and 30 Sep. Median reach per post fell from 3,680 to 1,867 (-49%), comparing the latest 7 posts with the 44 before them.",
+ "protocol_phases": [
+  {
+   "phase": "Day 1",
+   "title": "Reels reached more people",
+   "action": "Make at least 5 of the next 7 posts reels. They have been this account's strongest format."
+  },
+  {
+   "phase": "Day 2",
+   "title": "Check your posting rhythm",
+   "action": "Aim for about 6 posts a week again, the rate you kept before the drop."
+  },
+  {
+   "phase": "Day 3",
+   "title": "Saturday posts performed best",
+   "action": "Schedule the week's most important post for Saturday."
+  }
+ ],
+ "metrics_summary": {
+  "current_value": 2196.0,
+  "recent_avg": 1955.29,
+  "baseline_avg": 3679.0,
+  "change_pct": -46.9,
+  "z_score_deviation": -2.04,
+  "volatility_index": 22.9,
+  "anomaly_count": 4,
+  "projected_impact": "About 12,066 fewer reach than usual over the last 7 posting days",
+  "recent_window_days": 7,
+  "recent_window_label": "last 7 posting days",
+  "ml_model": "Scikit-Learn IsolationForest (100 Decision Trees)",
+  "ml_anomaly_score": 0.44,
+  "ml_flagged": false
+ },
+ "anomalies": [
+  {
+   "date": "2026-08-14",
+   "value": 1501.0,
+   "deviation": -52.7
+  },
+  {
+   "date": "2026-09-16",
+   "value": 861.0,
+   "deviation": -68.4
+  },
+  {
+   "date": "2026-09-29",
+   "value": 3398.0,
+   "deviation": -20.3
+  },
+  {
+   "date": "2026-09-30",
+   "value": 772.0,
+   "deviation": -73.1
+  }
+ ],
+ "reach_data": [
+  {
+   "date": "2026-08-04",
+   "reach": 3991.0,
+   "baseline": 3991.0,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-06",
+   "reach": 3908.0,
+   "baseline": 3422.13,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-07",
+   "reach": 2667.0,
+   "baseline": 3574.94,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-08",
+   "reach": 1947.0,
+   "baseline": 4441.64,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-09",
+   "reach": 3589.0,
+   "baseline": 3304.3,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-10",
+   "reach": 5786.0,
+   "baseline": 3624.31,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-11",
+   "reach": 3327.0,
+   "baseline": 3933.18,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-12",
+   "reach": 3680.0,
+   "baseline": 2830.54,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-13",
+   "reach": 1519.0,
+   "baseline": 2856.18,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-14",
+   "reach": 1501.0,
+   "baseline": 3176.46,
+   "is_anomaly": true
+  },
+  {
+   "date": "2026-08-15",
+   "reach": 5806.0,
+   "baseline": 4787.28,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-16",
+   "reach": 2209.0,
+   "baseline": 3378.42,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-17",
+   "reach": 2981.0,
+   "baseline": 3241.83,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-18",
+   "reach": 4345.0,
+   "baseline": 3661.08,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-19",
+   "reach": 3592.0,
+   "baseline": 2593.12,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-21",
+   "reach": 4631.0,
+   "baseline": 3346.48,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-22",
+   "reach": 4013.0,
+   "baseline": 4881.89,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-23",
+   "reach": 2466.0,
+   "baseline": 3493.17,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-24",
+   "reach": 2321.0,
+   "baseline": 3318.97,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-25",
+   "reach": 3924.0,
+   "baseline": 3705.82,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-26",
+   "reach": 4037.0,
+   "baseline": 2623.28,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-27",
+   "reach": 4456.0,
+   "baseline": 2877.13,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-29",
+   "reach": 6750.0,
+   "baseline": 5072.63,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-30",
+   "reach": 2805.0,
+   "baseline": 3655.46,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-08-31",
+   "reach": 5279.0,
+   "baseline": 3601.1,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-02",
+   "reach": 3856.0,
+   "baseline": 2803.1,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-03",
+   "reach": 2219.0,
+   "baseline": 2965.32,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-05",
+   "reach": 6447.0,
+   "baseline": 5195.86,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-06",
+   "reach": 3529.0,
+   "baseline": 3775.62,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-07",
+   "reach": 3679.0,
+   "baseline": 3608.22,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-08",
+   "reach": 3068.0,
+   "baseline": 4015.91,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-09",
+   "reach": 2794.0,
+   "baseline": 2828.47,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-11",
+   "reach": 5602.0,
+   "baseline": 3637.5,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-14",
+   "reach": 2121.0,
+   "baseline": 3641.92,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-15",
+   "reach": 4653.0,
+   "baseline": 4101.17,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-16",
+   "reach": 861.0,
+   "baseline": 2724.23,
+   "is_anomaly": true
+  },
+  {
+   "date": "2026-09-17",
+   "reach": 2095.0,
+   "baseline": 2930.34,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-18",
+   "reach": 5228.0,
+   "baseline": 3583.04,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-19",
+   "reach": 4932.0,
+   "baseline": 5253.91,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-20",
+   "reach": 4415.0,
+   "baseline": 3903.18,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-21",
+   "reach": 4207.0,
+   "baseline": 3814.27,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-24",
+   "reach": 2825.0,
+   "baseline": 3110.34,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-25",
+   "reach": 2019.0,
+   "baseline": 3572.63,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-26",
+   "reach": 6078.0,
+   "baseline": 5242.88,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-27",
+   "reach": 4046.0,
+   "baseline": 3856.54,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-28",
+   "reach": 4646.0,
+   "baseline": 3806.28,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-09-29",
+   "reach": 3398.0,
+   "baseline": 4265.85,
+   "is_anomaly": true
+  },
+  {
+   "date": "2026-09-30",
+   "reach": 772.0,
+   "baseline": 2869.38,
+   "is_anomaly": true
+  },
+  {
+   "date": "2026-10-01",
+   "reach": 3566.0,
+   "baseline": 3038.17,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-10-04",
+   "reach": 5326.0,
+   "baseline": 3829.55,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-10-14",
+   "reach": 1237.0,
+   "baseline": 2750.54,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-10-16",
+   "reach": 1484.0,
+   "baseline": 3418.5,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-10-21",
+   "reach": 2822.0,
+   "baseline": 2674.72,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-10-22",
+   "reach": 1867.0,
+   "baseline": 2776.48,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-10-24",
+   "reach": 3022.0,
+   "baseline": 4791.9,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-10-26",
+   "reach": 1059.0,
+   "baseline": 3245.42,
+   "is_anomaly": false
+  },
+  {
+   "date": "2026-11-02",
+   "reach": 2196.0,
+   "baseline": 3202.1,
+   "is_anomaly": false
+  }
+ ],
+ "data_source": "post_export",
+ "post_insights": {
+  "post_count": 57,
+  "period_start": "2026-08-04",
+  "period_end": "2026-11-02",
+  "median_reach": 3566.0,
+  "findings": [
+   {
+    "id": "trend",
+    "tone": "negative",
+    "title": "Post reach went down",
+    "detail": "Median reach per post fell from 3,680 to 1,867 (-49%), comparing the latest 7 posts with the 44 before them.",
+    "evidence": {
+     "recent_median": 1867.0,
+     "prior_median": 3679.5,
+     "recent_posts": 7,
+     "prior_posts": 44
+    },
+    "wording": "ai",
+    "action": ""
+   },
+   {
+    "id": "format",
+    "tone": "negative",
+    "title": "Reels reached more people",
+    "detail": "Reels got 2.8x the reach of photos (median 4,126 across 34 posts vs 1,484 across 7). But only 1 of the latest 7 posts was a reel, down from 66% before.",
+    "action": "Make at least 5 of the next 7 posts reels. They have been this account's strongest format.",
+    "evidence": {
+     "best_format": "Reel",
+     "best_median": 4126.5,
+     "worst_format": "Photo",
+     "worst_median": 1484.0,
+     "ratio": 2.78,
+     "recent_share": 0.14,
+     "prior_share": 0.66
+    },
+    "wording": "ai"
+   },
+   {
+    "id": "frequency",
+    "tone": "negative",
+    "title": "Check your posting rhythm",
+    "detail": "Posting dropped from about 5.5 to 1.8 posts a week. Reach per post fell over the same period.",
+    "action": "Aim for about 6 posts a week again, the rate you kept before the drop.",
+    "evidence": {
+     "recent_per_week": 1.75,
+     "prior_per_week": 5.5
+    },
+    "wording": "ai"
+   },
+   {
+    "id": "weekday",
+    "tone": "positive",
+    "title": "Saturday posts performed best",
+    "detail": "Posts published on Saturday reached a median of 5,369, 1.5x the account's overall median of 3,566 (8 posts).",
+    "action": "Schedule the week's most important post for Saturday.",
+    "evidence": {
+     "weekday": "Saturday",
+     "weekday_median": 5369.0,
+     "overall_median": 3566.0
+    },
+    "wording": "ai"
+   }
+  ],
+  "formats": [
+   {
+    "type": "Reel",
+    "median_reach": 4126.5,
+    "posts": 34
+   },
+   {
+    "type": "Carousel",
+    "median_reach": 2393.5,
+    "posts": 16
+   },
+   {
+    "type": "Photo",
+    "median_reach": 1484.0,
+    "posts": 7
+   }
+  ],
+  "top_posts": [
+   {
+    "date": "2026-08-29",
+    "type": "Reel",
+    "reach": 6750.0,
+    "caption": "Morning routine â˜•",
+    "permalink": "https://www.instagram.com/p/sample23/"
+   },
+   {
+    "date": "2026-09-05",
+    "type": "Reel",
+    "reach": 6447.0,
+    "caption": "Festive offer â˜•",
+    "permalink": "https://www.instagram.com/p/sample28/"
+   },
+   {
+    "date": "2026-09-26",
+    "type": "Reel",
+    "reach": 6078.0,
+    "caption": "Morning routine â˜•",
+    "permalink": "https://www.instagram.com/p/sample44/"
+   }
+  ],
+  "bottom_posts": [
+   {
+    "date": "2026-09-30",
+    "type": "Carousel",
+    "reach": 772.0,
+    "caption": "New menu item â˜•",
+    "permalink": "https://www.instagram.com/p/sample48/"
+   },
+   {
+    "date": "2026-09-16",
+    "type": "Photo",
+    "reach": 861.0,
+    "caption": "New menu item â˜•",
+    "permalink": "https://www.instagram.com/p/sample36/"
+   },
+   {
+    "date": "2026-10-26",
+    "type": "Photo",
+    "reach": 1059.0,
+    "caption": "Morning routine â˜•",
+    "permalink": "https://www.instagram.com/p/sample56/"
+   }
+  ],
+  "comparison": {
+   "recent_label": "Latest 4 weeks",
+   "prior_label": "Before",
+   "best_format": "Reel",
+   "recent": {
+    "posts": 7,
+    "posts_per_week": 1.8,
+    "median_reach": 1867.0,
+    "best_format_share": 0.14
+   },
+   "prior": {
+    "posts": 44,
+    "posts_per_week": 5.5,
+    "median_reach": 3679.5,
+    "best_format_share": 0.66
+   }
+  },
+  "calendar": [
+   {
+    "date": "2026-08-04",
+    "posts": 1,
+    "reach": 3991.0
+   },
+   {
+    "date": "2026-08-05",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-08-06",
+    "posts": 1,
+    "reach": 3908.0
+   },
+   {
+    "date": "2026-08-07",
+    "posts": 1,
+    "reach": 2667.0
+   },
+   {
+    "date": "2026-08-08",
+    "posts": 1,
+    "reach": 1947.0
+   },
+   {
+    "date": "2026-08-09",
+    "posts": 1,
+    "reach": 3589.0
+   },
+   {
+    "date": "2026-08-10",
+    "posts": 1,
+    "reach": 5786.0
+   },
+   {
+    "date": "2026-08-11",
+    "posts": 1,
+    "reach": 3327.0
+   },
+   {
+    "date": "2026-08-12",
+    "posts": 1,
+    "reach": 3680.0
+   },
+   {
+    "date": "2026-08-13",
+    "posts": 1,
+    "reach": 1519.0
+   },
+   {
+    "date": "2026-08-14",
+    "posts": 1,
+    "reach": 1501.0
+   },
+   {
+    "date": "2026-08-15",
+    "posts": 1,
+    "reach": 5806.0
+   },
+   {
+    "date": "2026-08-16",
+    "posts": 1,
+    "reach": 2209.0
+   },
+   {
+    "date": "2026-08-17",
+    "posts": 1,
+    "reach": 2981.0
+   },
+   {
+    "date": "2026-08-18",
+    "posts": 1,
+    "reach": 4345.0
+   },
+   {
+    "date": "2026-08-19",
+    "posts": 1,
+    "reach": 3592.0
+   },
+   {
+    "date": "2026-08-20",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-08-21",
+    "posts": 1,
+    "reach": 4631.0
+   },
+   {
+    "date": "2026-08-22",
+    "posts": 1,
+    "reach": 4013.0
+   },
+   {
+    "date": "2026-08-23",
+    "posts": 1,
+    "reach": 2466.0
+   },
+   {
+    "date": "2026-08-24",
+    "posts": 1,
+    "reach": 2321.0
+   },
+   {
+    "date": "2026-08-25",
+    "posts": 1,
+    "reach": 3924.0
+   },
+   {
+    "date": "2026-08-26",
+    "posts": 1,
+    "reach": 4037.0
+   },
+   {
+    "date": "2026-08-27",
+    "posts": 1,
+    "reach": 4456.0
+   },
+   {
+    "date": "2026-08-28",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-08-29",
+    "posts": 1,
+    "reach": 6750.0
+   },
+   {
+    "date": "2026-08-30",
+    "posts": 1,
+    "reach": 2805.0
+   },
+   {
+    "date": "2026-08-31",
+    "posts": 1,
+    "reach": 5279.0
+   },
+   {
+    "date": "2026-09-01",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-09-02",
+    "posts": 1,
+    "reach": 3856.0
+   },
+   {
+    "date": "2026-09-03",
+    "posts": 1,
+    "reach": 2219.0
+   },
+   {
+    "date": "2026-09-04",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-09-05",
+    "posts": 1,
+    "reach": 6447.0
+   },
+   {
+    "date": "2026-09-06",
+    "posts": 1,
+    "reach": 3529.0
+   },
+   {
+    "date": "2026-09-07",
+    "posts": 1,
+    "reach": 3679.0
+   },
+   {
+    "date": "2026-09-08",
+    "posts": 1,
+    "reach": 3068.0
+   },
+   {
+    "date": "2026-09-09",
+    "posts": 1,
+    "reach": 2794.0
+   },
+   {
+    "date": "2026-09-10",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-09-11",
+    "posts": 1,
+    "reach": 5602.0
+   },
+   {
+    "date": "2026-09-12",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-09-13",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-09-14",
+    "posts": 1,
+    "reach": 2121.0
+   },
+   {
+    "date": "2026-09-15",
+    "posts": 1,
+    "reach": 4653.0
+   },
+   {
+    "date": "2026-09-16",
+    "posts": 1,
+    "reach": 861.0
+   },
+   {
+    "date": "2026-09-17",
+    "posts": 1,
+    "reach": 2095.0
+   },
+   {
+    "date": "2026-09-18",
+    "posts": 1,
+    "reach": 5228.0
+   },
+   {
+    "date": "2026-09-19",
+    "posts": 1,
+    "reach": 4932.0
+   },
+   {
+    "date": "2026-09-20",
+    "posts": 1,
+    "reach": 4415.0
+   },
+   {
+    "date": "2026-09-21",
+    "posts": 1,
+    "reach": 4207.0
+   },
+   {
+    "date": "2026-09-22",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-09-23",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-09-24",
+    "posts": 1,
+    "reach": 2825.0
+   },
+   {
+    "date": "2026-09-25",
+    "posts": 1,
+    "reach": 2019.0
+   },
+   {
+    "date": "2026-09-26",
+    "posts": 1,
+    "reach": 6078.0
+   },
+   {
+    "date": "2026-09-27",
+    "posts": 1,
+    "reach": 4046.0
+   },
+   {
+    "date": "2026-09-28",
+    "posts": 1,
+    "reach": 4646.0
+   },
+   {
+    "date": "2026-09-29",
+    "posts": 1,
+    "reach": 3398.0
+   },
+   {
+    "date": "2026-09-30",
+    "posts": 1,
+    "reach": 772.0
+   },
+   {
+    "date": "2026-10-01",
+    "posts": 1,
+    "reach": 3566.0
+   },
+   {
+    "date": "2026-10-02",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-03",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-04",
+    "posts": 1,
+    "reach": 5326.0
+   },
+   {
+    "date": "2026-10-05",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-06",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-07",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-08",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-09",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-10",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-11",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-12",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-13",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-14",
+    "posts": 1,
+    "reach": 1237.0
+   },
+   {
+    "date": "2026-10-15",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-16",
+    "posts": 1,
+    "reach": 1484.0
+   },
+   {
+    "date": "2026-10-17",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-18",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-19",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-20",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-21",
+    "posts": 1,
+    "reach": 2822.0
+   },
+   {
+    "date": "2026-10-22",
+    "posts": 1,
+    "reach": 1867.0
+   },
+   {
+    "date": "2026-10-23",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-24",
+    "posts": 1,
+    "reach": 3022.0
+   },
+   {
+    "date": "2026-10-25",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-26",
+    "posts": 1,
+    "reach": 1059.0
+   },
+   {
+    "date": "2026-10-27",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-28",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-29",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-30",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-10-31",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-11-01",
+    "posts": 0,
+    "reach": null
+   },
+   {
+    "date": "2026-11-02",
+    "posts": 1,
+    "reach": 2196.0
+   }
+  ]
+ },
+ "findings": [
+  {
+   "id": "trend",
+   "tone": "negative",
+   "title": "Post reach went down",
+   "detail": "Median reach per post fell from 3,680 to 1,867 (-49%), comparing the latest 7 posts with the 44 before them.",
+   "evidence": {
+    "recent_median": 1867.0,
+    "prior_median": 3679.5,
+    "recent_posts": 7,
+    "prior_posts": 44
+   },
+   "wording": "ai",
+   "action": ""
+  },
+  {
+   "id": "format",
+   "tone": "negative",
+   "title": "Reels reached more people",
+   "detail": "Reels got 2.8x the reach of photos (median 4,126 across 34 posts vs 1,484 across 7). But only 1 of the latest 7 posts was a reel, down from 66% before.",
+   "action": "Make at least 5 of the next 7 posts reels. They have been this account's strongest format.",
+   "evidence": {
+    "best_format": "Reel",
+    "best_median": 4126.5,
+    "worst_format": "Photo",
+    "worst_median": 1484.0,
+    "ratio": 2.78,
+    "recent_share": 0.14,
+    "prior_share": 0.66
+   },
+   "wording": "ai"
+  },
+  {
+   "id": "frequency",
+   "tone": "negative",
+   "title": "Check your posting rhythm",
+   "detail": "Posting dropped from about 5.5 to 1.8 posts a week. Reach per post fell over the same period.",
+   "action": "Aim for about 6 posts a week again, the rate you kept before the drop.",
+   "evidence": {
+    "recent_per_week": 1.75,
+    "prior_per_week": 5.5
+   },
+   "wording": "ai"
+  },
+  {
+   "id": "weekday",
+   "tone": "positive",
+   "title": "Saturday posts performed best",
+   "detail": "Posts published on Saturday reached a median of 5,369, 1.5x the account's overall median of 3,566 (8 posts).",
+   "action": "Schedule the week's most important post for Saturday.",
+   "evidence": {
+    "weekday": "Saturday",
+    "weekday_median": 5369.0,
+    "overall_median": 3566.0
+   },
+   "wording": "ai"
+  }
+ ]
+}
