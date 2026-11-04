@@ -6,13 +6,46 @@ import requests
 
 logger = logging.getLogger("relvnt.diagnostics")
 
+LOCAL_ENGINE_NAME = "Relvnt built-in analysis (runs locally, no data sent externally)"
+
+# Shared rules for any generated text: the product's credibility depends on
+# never stating a cause the data cannot show.
+HONESTY_RULES = (
+    "Rules:\n"
+    "- Use only the numbers and findings provided. Quote them.\n"
+    "- The daily series shows WHEN performance changed, not WHY. Do not claim causes such as "
+    "algorithm penalties, retention, watch time, frequency or audience fatigue unless a provided "
+    "finding shows it.\n"
+    "- When suggesting causes, phrase them as things to check.\n"
+    "- Plain English for a non-technical business owner. No jargon, no buzzwords, no emojis.\n"
+)
+
+
+def _metric_word(metric_type: str) -> str:
+    return {"roas": "ROAS", "reach": "reach", "views": "views", "impressions": "impressions"}.get(
+        (metric_type or "").lower(), metric_type or "performance"
+    )
+
+
+def _fmt(value: float, metric_type: str) -> str:
+    if (metric_type or "").lower() == "roas":
+        return f"{value:.2f}x"
+    return f"{value:,.0f}"
+
+
+def _readable_date(iso: str) -> str:
+    try:
+        from datetime import datetime
+
+        return datetime.strptime(iso, "%Y-%m-%d").strftime("%d %b").lstrip("0")
+    except (ValueError, TypeError):
+        return str(iso)
+
 
 class LocalDiagnosticEngine:
     """
-    Zero-Data-Leakage Local Diagnostic Engine.
-    Executes entirely on-premise / on-server with zero third-party API transmissions.
-    Generates deterministic, mathematically grounded root-cause diagnoses,
-    remediation protocols, and conversational Copilot answers.
+    Deterministic, offline briefing generator. Every sentence is built from the
+    measured metrics, flagged days and (when available) per-post findings.
     """
 
     @classmethod
@@ -25,136 +58,104 @@ class LocalDiagnosticEngine:
         health_score: int,
         metrics: Dict,
         anomalies: List[Dict],
+        findings: Optional[List[Dict]] = None,
     ) -> Dict:
-        current = metrics.get("current_value", 0.0)
-        baseline = metrics.get("baseline_avg", 0.0)
-        change = metrics.get("change_pct", 0.0)
-        z_score = metrics.get("z_score_deviation", 0.0)
-        volatility = metrics.get("volatility_index", 0.0)
-        iso_score = metrics.get("ml_anomaly_score", 0.0)
-        anomaly_count = len(anomalies)
+        findings = findings or []
+        word = _metric_word(metric_type)
+        is_roas = (metric_type or "").lower() == "roas"
+        recent = float(metrics.get("recent_avg", metrics.get("current_value", 0.0)) or 0.0)
+        baseline = float(metrics.get("baseline_avg", 0.0) or 0.0)
+        change = float(metrics.get("change_pct", 0.0) or 0.0)
+        window = int(metrics.get("recent_window_days", 7) or 7)
 
-        dates_list = [a["date"] for a in anomalies[:3]] if anomalies else []
-        dates_ref = ", ".join(dates_list) if dates_list else "the recent evaluation window"
-        unit = "x" if metric_type.lower() == "roas" else ""
+        flagged_dates = sorted(a["date"] for a in anomalies) if anomalies else []
+        flagged_note = ""
+        if flagged_dates:
+            flagged_note = (
+                f" {len(flagged_dates)} {'day was' if len(flagged_dates) == 1 else 'days were'} flagged as well below "
+                f"usual, most recently {_readable_date(flagged_dates[-1])}."
+            )
+        since = _readable_date(flagged_dates[0]) if flagged_dates else "the last few weeks"
 
-        # Formulate clinical, non-hyped technical diagnosis and phased runbook
+        facts = (
+            f"Over the last {window} days, {word} averaged {_fmt(recent, metric_type)}, "
+            f"{abs(change):.1f}% {'below' if change < 0 else 'above'} the usual {_fmt(baseline, metric_type)}."
+        )
+
+        # Evidence-backed findings (from per-post analysis) take priority over generic checks
+        finding_actions = [f for f in findings if f.get("action")]
+        evidence_sentence = ""
+        if findings:
+            evidence_sentence = " " + " ".join(f["detail"] for f in findings[:2] if f.get("detail"))
+
         if prediction == "shock":
             severity = "CRITICAL_DRIFT"
-            if metric_type.lower() == "roas":
-                diagnosis = (
-                    f"Return on Ad Spend collapsed from baseline {baseline:.2f}x to {current:.2f}x "
-                    f"({change:.1f}%), crossing statistical significance at {z_score:.2f} std dev. "
-                    f"Outlier clusters registered on {dates_ref}. "
-                    f"IsolationForest ensemble confirmed anomalous state ({int(iso_score * 100)}% ML confidence). "
-                    f"Pattern confirms acute audience saturation and auction delivery exhaustion."
-                )
-                action = (
-                    "1. Terminate exhausted ad sets immediately to halt capital erosion.\n"
-                    "2. Rotate 2 fresh creative assets featuring distinct first-frame visual contrasts.\n"
-                    "3. Expand audience exclusion parameters to eliminate recent 30-day purchasers."
-                )
-                phases = [
-                    {"phase": "PHASE 01 (00:00 - 24:00)", "title": "Immediate Capital Containment", "action": "Kill exhausted ad sets with frequency > 3.2. Pause budget bleeding."},
-                    {"phase": "PHASE 02 (24:00 - 48:00)", "title": "Creative Format Rotation", "action": "Deploy 2 high-contrast visual angle assets to break feed banner-blindness."},
-                    {"phase": "PHASE 03 (48:00 - 72:00)", "title": "Audience Pool Expansion", "action": "Expand exclusions and broaden lookalike seed to refresh delivery cohorts."},
-                ]
-            else:
-                diagnosis = (
-                    f"Distribution velocity contracted by {abs(change):.1f}% against the {baseline:,.0f} baseline "
-                    f"({z_score:.2f} std dev deviation). Primary divergence identified on {dates_ref}. "
-                    f"IsolationForest detected distribution decoupling ({int(iso_score * 100)}% ML confidence). "
-                    f"Pattern indicates algorithmic feed de-prioritization driven by declining initial-retention cohorts."
-                )
-                action = (
-                    "1. Suspend non-performing asset formats for a 48-hour index reset.\n"
-                    "2. Publish 1 high-density short-form asset with instant narrative premise in frame 0-1.\n"
-                    "3. Front-load audience engagement responses within 45 minutes of asset release."
-                )
-                phases = [
-                    {"phase": "PHASE 01 (00:00 - 24:00)", "title": "Algorithmic Decay Reset", "action": "Halt underperforming formats for 48 hours to prevent compounding negative distribution signals."},
-                    {"phase": "PHASE 02 (24:00 - 48:00)", "title": "High-Density Hook Injection", "action": "Release 1 high-retention asset with immediate narrative punchline in frame 0 to reset completion rate."},
-                    {"phase": "PHASE 03 (48:00 - 72:00)", "title": "Engagement Cohort Priming", "action": "Actively resolve incoming dialogue within 45 minutes of publication to trigger feed re-indexing."},
-                ]
-
+            diagnosis = (
+                f"{facts}{flagged_note}{evidence_sentence}"
+                + ("" if findings else " The daily numbers show when this happened, not why; the steps below cover what to check first.")
+            )
         elif prediction == "pre_shock":
             severity = "ELEVATED_RISK"
-            if metric_type.lower() == "roas":
-                diagnosis = (
-                    f"Performance deceleration observed. ROAS drifted {abs(change):.1f}% below baseline "
-                    f"({current:.2f}x vs {baseline:.2f}x benchmark), with elevated variance ({volatility}% vol). "
-                    f"Frequency accumulation indicates impending creative exhaustion within 3-5 days."
-                )
-                action = (
-                    "1. Queue next-generation creative variants for immediate phased deployment.\n"
-                    "2. Restrict daily campaign budget pacing to increments below 10%.\n"
-                    "3. Broaden targeting pools to distribute frequency across fresh user cohorts."
-                )
-                phases = [
-                    {"phase": "PHASE 01 (00:00 - 24:00)", "title": "Frequency Audit", "action": "Inspect 7-day frequency metrics across top 3 spending ad sets."},
-                    {"phase": "PHASE 02 (24:00 - 48:00)", "title": "Variant Staging", "action": "Stage 3 new UGC and motion graphic angles in parallel sandbox testing."},
-                    {"phase": "PHASE 03 (48:00 - 72:00)", "title": "Pacing Stabilization", "action": "Lock daily spend increments under 10% to prevent auction bid spiking."},
-                ]
-            else:
-                diagnosis = (
-                    f"Early distribution decay detected. Metric velocity decelerated by {abs(change):.1f}% "
-                    f"below the {baseline:,.0f} baseline. Initial inflection point registered on {dates_ref}. "
-                    f"Risk of broader feed suppression elevated if retention metrics remain uncorrected."
-                )
-                action = (
-                    "1. Restructure lead hook timings to deliver value proposition under 2.0 seconds.\n"
-                    "2. A/B test split between carousel deep-dives and rapid single-topic shorts.\n"
-                    "3. Deploy interactive follower touchpoints 60 minutes prior to scheduled primary distribution."
-                )
-                phases = [
-                    {"phase": "PHASE 01 (00:00 - 24:00)", "title": "Retention Hook Compression", "action": "Audit average watch-time curves; cut intros to reach key proposition under 2.0s."},
-                    {"phase": "PHASE 02 (24:00 - 48:00)", "title": "Format Split Testing", "action": "Deploy high-save carousels alongside high-share rapid shorts to recalibrate distribution channels."},
-                    {"phase": "PHASE 03 (48:00 - 72:00)", "title": "Early Signal Amplification", "action": "Post interactive poll stickers to warm up active follower cohort before major drops."},
-                ]
-
+            diagnosis = (
+                f"{facts}{flagged_note}{evidence_sentence}"
+                + ("" if findings else " This is an early dip rather than a collapse, so small changes now are worth more than big changes later.")
+            )
         elif prediction == "recovering":
             severity = "RECOVERY_PHASE"
-            diagnosis = (
-                f"Positive trajectory shift confirmed. Current velocity ({current:,.1f}{unit}) "
-                f"is reclaiming baseline equilibrium ({baseline:,.1f}{unit}), with variance stabilizing. "
-                f"Algorithmic indexing is responding positively to recent publishing adjustments."
-            )
-            action = (
-                "1. Maintain stable distribution schedule and asset composition.\n"
-                "2. Standardize top-performing asset parameters as reference template.\n"
-                "3. Incrementally test 1 controlled variant while baseline solidifies."
-            )
-            phases = [
-                {"phase": "PHASE 01 (00:00 - 24:00)", "title": "Cadence Preservation", "action": "Maintain exact publishing frequency and schedule timing without disruption."},
-                {"phase": "PHASE 02 (24:00 - 48:00)", "title": "Asset Template Extraction", "action": "Document winning hook pacing, framing, and caption style as reference SOP."},
-                {"phase": "PHASE 03 (48:00 - 72:00)", "title": "Controlled Variation", "action": "Introduce at most 1 minor asset variable test while core baseline cements."},
-            ]
-
+            diagnosis = f"{facts} The last few days are moving back towards the usual level.{evidence_sentence}"
         else:
             severity = "NOMINAL_EQUILIBRIUM"
-            diagnosis = (
-                f"System operating within normal variance parameters. Current velocity ({current:,.1f}{unit}) "
-                f"matches expected baseline ({baseline:,.1f}{unit}, {change:+.1f}% variance). "
-                f"Distribution stability verified across all analytical windows."
-            )
-            action = (
-                "1. Preserve current operational cadence and budget allocation.\n"
-                "2. Archive current asset performance metrics as standard benchmarks.\n"
-                "3. Continue scheduled creative pipeline without disruption."
-            )
-            phases = [
-                {"phase": "PHASE 01 (00:00 - 24:00)", "title": "Nominal Health Monitoring", "action": "Verify baseline metrics remain within 1.0 standard deviation bounds."},
-                {"phase": "PHASE 02 (24:00 - 48:00)", "title": "Benchmark Archival", "action": "Store current performance velocities as baseline profile for rolling comparisons."},
-                {"phase": "PHASE 03 (48:00 - 72:00)", "title": "Continuous Pipeline Execution", "action": "Advance scheduled content calendar and ad experiments with standard pacing."},
-            ]
+            diagnosis = f"{facts} This is within the normal range for this account.{evidence_sentence}"
+
+        phases = cls._build_steps(prediction, is_roas, since, baseline, metric_type, finding_actions)
+        action = "\n".join(f"{i + 1}. {p['title']}: {p['action']}" for i, p in enumerate(phases))
 
         return {
             "severity": severity,
-            "diagnosis": diagnosis,
+            "diagnosis": diagnosis.strip(),
             "recommended_action": action,
             "phases": phases,
-            "ai_engine": "Relvnt Local Statistical Inference Engine (Zero-Data-Leak)",
+            "ai_engine": LOCAL_ENGINE_NAME,
         }
+
+    @staticmethod
+    def _build_steps(prediction, is_roas, since, baseline, metric_type, finding_actions) -> List[Dict]:
+        """Three steps. Evidence-backed actions from findings come first; generic checks fill the rest."""
+        steps: List[Dict] = [
+            {"phase": f"Day {i + 1}", "title": f["title"], "action": f["action"]} for i, f in enumerate(finding_actions[:3])
+        ]
+
+        if prediction in ("shock", "pre_shock"):
+            if is_roas:
+                generic = [
+                    ("Check the ads that changed", f"Look at ad sets that slowed since {since}: how long each creative has been running and how often the same people have seen it."),
+                    ("Refresh the weakest creative", "Pause the lowest-ROAS ad and test one new creative in its place, keeping the budget the same so the comparison is fair."),
+                    ("Compare after three days", f"Check whether ROAS is moving back towards the usual {_fmt(baseline, metric_type)} before changing anything else."),
+                ]
+            else:
+                generic = [
+                    ("Find what changed", f"Compare posts published since {since} with earlier ones: format (reels, carousels, photos), how often you posted, and posting times."),
+                    ("Repeat what worked before", "Go back to the format and posting schedule of your best-performing posts from before the drop for the next few posts."),
+                    ("Check progress", f"Compare the next few days with the usual level of {_fmt(baseline, metric_type)}. Upload a per-post export for a detailed breakdown of what is and isn't working."),
+                ]
+        elif prediction == "recovering":
+            generic = [
+                ("Keep what changed", "Keep the posting schedule and formats from the last few days; they coincide with the recovery."),
+                ("Note what worked", "Write down which recent posts did best so the team can repeat them."),
+                ("Change one thing at a time", "If you test something new, change only one thing so you can tell what made the difference."),
+            ]
+        else:
+            generic = [
+                ("Keep the current schedule", "Performance is normal; no changes are needed."),
+                ("Note your best posts", "Keep a short list of the best-performing recent posts as a reference."),
+                ("Check again next week", "Relvnt will flag any drop below the usual level."),
+            ]
+
+        for title, text in generic:
+            if len(steps) >= 3:
+                break
+            steps.append({"phase": f"Day {len(steps) + 1}", "title": title, "action": text})
+        return steps
 
     @classmethod
     def answer_copilot(
@@ -167,73 +168,55 @@ class LocalDiagnosticEngine:
         metrics: Dict,
         anomalies: List[Dict],
         diagnosis: str,
-        agency_name: str = "Growth Agency Partner",
-        auditor_name: str = "Lead Growth Strategist",
+        agency_name: str = "Your Agency",
+        auditor_name: str = "Account Manager",
     ) -> Dict:
-        """
-        Local deterministic Copilot reasoning fallback.
-        Provides targeted expert answers for common questions without calling external APIs.
-        """
+        """Offline copilot answers built only from the measured numbers."""
         q = question.lower()
-        current = metrics.get("current_value", 0)
-        baseline = metrics.get("baseline_avg", 0)
-        change = metrics.get("change_pct", 0)
-        unit = "x" if metric_type.lower() == "roas" else ""
+        word = _metric_word(metric_type)
+        recent = float(metrics.get("recent_avg", metrics.get("current_value", 0)) or 0)
+        baseline = float(metrics.get("baseline_avg", 0) or 0)
+        change = float(metrics.get("change_pct", 0) or 0)
+        direction = "below" if change < 0 else "above"
+        numbers = f"{word} averaged {_fmt(recent, metric_type)} recently, {abs(change):.1f}% {direction} the usual {_fmt(baseline, metric_type)}"
 
-        if any(w in q for w in ["email", "sponsor", "client", "draft"]):
+        if any(w in q for w in ["email", "client", "draft", "message", "update"]):
             answer = (
-                f"Subject: Performance Trajectory Update & Algorithmic Optimization // {account_name}\n\n"
-                f"Hi team,\n\n"
-                f"We are monitoring our recent distribution metrics across {platform}. "
-                f"Our Sentinel radar detected a temporary velocity adjustment (current run-rate at {current:,.1f}{unit} "
-                f"vs {baseline:,.1f}{unit} baseline, a {change:+.1f}% variance). "
-                f"This shift reflects standard algorithmic recalibration rather than creative failure.\n\n"
-                f"We have already initiated our 72-hour containment protocol:\n"
-                f"1. Halting lower-performing static assets for 48 hours to preserve algorithmic index scores.\n"
-                f"2. Preparing 2 high-retention hook variants to reclaim explore distribution.\n"
-                f"3. Monitoring daily velocity recovery against our rolling median baseline.\n\n"
-                f"We will share our next benchmark update in 48 hours.\n\n"
+                f"Subject: {account_name}: performance update\n\n"
+                f"Hi,\n\n"
+                f"A quick update on {account_name}. Over the last week, {numbers}.\n\n"
+                f"Here is what we're doing next:\n"
+                f"1. Reviewing recent posts against earlier, stronger ones to find what changed.\n"
+                f"2. Returning to the formats and schedule that worked best before the drop.\n"
+                f"3. Checking the numbers again in a few days and sharing what we find.\n\n"
                 f"Best regards,\n{auditor_name}\n{agency_name}"
             )
         elif any(w in q for w in ["why", "drop", "reason", "cause"]):
             answer = (
-                f"ROOT CAUSE BREAKDOWN FOR {account_name}:\n\n"
-                f"1. Statistical Divergence: Run-rate contracted by {abs(change):.1f}% against the {baseline:,.0f}{unit} baseline, "
-                f"triggering statistical outlier flags at {metrics.get('z_score_deviation', 0)} std deviations.\n"
-                f"2. Retention Decay: The primary inflection occurred when early audience watch-time fell below threshold. "
-                f"When 0-3s retention falls below 35%, distribution algorithms deprioritize explore feed insertion.\n"
-                f"3. Algorithmic State: Account health is currently indexed at {health_score}/100. "
-                f"Anomalies detected: {len(anomalies)} events in the evaluation window."
+                f"{numbers.capitalize()}. {len(anomalies)} days were flagged as well below usual.\n\n"
+                f"The daily numbers show when the drop happened, not why. The most common causes to check are: "
+                f"a change in what was posted (format or topic), posting less often, or a change in posting times. "
+                f"Uploading a per-post export lets Relvnt compare these directly."
             )
-        elif any(w in q for w in ["format", "post", "hook", "what to post"]):
+        elif any(w in q for w in ["post", "format", "what to", "next"]):
             answer = (
-                f"RECOMMENDED 72-HOUR PUBLISHING SOP FOR {platform.upper()}:\n\n"
-                f"1. Format: High-contrast short-form video (7 to 12 seconds maximum).\n"
-                f"2. Hook Execution: Deliver the core premise or visual contradiction within frames 0–1 (first 1.5s). Zero intro sequences.\n"
-                f"3. Dwell Strategy: Place a detailed actionable tip in the text caption to keep viewers watching on loop.\n"
-                f"4. Engagement Window: Actively respond to incoming comments within 45 minutes of asset release to trigger feed re-indexing."
+                "Start with what has worked for this account before: look at the best-performing posts from before "
+                "the drop and repeat their format and posting schedule for the next few posts. "
+                "A per-post export gives a specific comparison of formats, posting frequency and timing."
             )
         else:
             answer = (
-                f"SENTINEL INTELLIGENCE BRIEF FOR {account_name}:\n\n"
-                f"• Current Health Score: {health_score}/100\n"
-                f"• Run-Rate: {current:,.1f}{unit} vs {baseline:,.1f}{unit} baseline ({change:+.1f}%)\n"
-                f"• ML Status: {diagnosis}\n"
-                f"• Recommended Protocol: Execute 72-hour phase reset and maintain engagement priming."
-            )
+                f"{account_name}: health score {health_score}/100. {numbers.capitalize()}.\n"
+                f"{diagnosis}"
+            ).strip()
 
-        return {
-            "answer": answer,
-            "engine": "Relvnt Local Copilot Engine (Zero-Data-Leak)",
-        }
+        return {"answer": answer, "engine": LOCAL_ENGINE_NAME}
 
 
 class HybridAIAgent:
     """
-    Hybrid Compound AI Agent:
-    - If GEMINI_API_KEY is available: calls Google Gemini (gemini-flash-lite-latest or gemini-3.5-flash)
-      for live generative reasoning.
-    - If offline / no key / timeout: seamlessly falls back to LocalDiagnosticEngine (Zero-Data-Leak).
+    Uses Google Gemini when GEMINI_API_KEY is set, otherwise (or on any failure)
+    falls back to LocalDiagnosticEngine.
     """
 
     def __init__(self):
@@ -265,27 +248,28 @@ class HybridAIAgent:
         health_score: int,
         metrics: Dict,
         anomalies: List[Dict],
+        findings: Optional[List[Dict]] = None,
     ) -> Dict:
+        findings = findings or []
         if self.api_key:
+            flagged = sorted(a["date"] for a in anomalies)
             prompt = (
-                f"You are the Relvnt Enterprise Algorithmic Incident Sentinel. "
-                f"Analyze this performance anomaly report and generate a clinical, quantified Root-Cause Analysis (RCA) "
-                f"and a structured 3-phase chronological 72-hour tactical recovery runbook.\n\n"
-                f"Account: {account_name}\n"
-                f"Platform: {platform}\n"
-                f"Metric: {metric_type}\n"
-                f"Health Score: {health_score}/100\n"
-                f"Current Run-Rate: {metrics.get('current_value')}\n"
-                f"Baseline Expected: {metrics.get('baseline_avg')}\n"
-                f"Velocity Change: {metrics.get('change_pct')}%\n"
-                f"Z-Score: {metrics.get('z_score_deviation')} std dev\n"
-                f"IsolationForest ML Score: {metrics.get('ml_anomaly_score')}\n"
-                f"Anomalies: {anomalies}\n\n"
-                f"Format output as JSON with keys:\n"
-                f"- 'severity': 'CRITICAL_DRIFT' | 'ELEVATED_RISK' | 'NOMINAL_EQUILIBRIUM'\n"
-                f"- 'diagnosis': 2-3 clinical sentences detailing exact inflection points and causes\n"
-                f"- 'recommended_action': Numbered overview of recovery actions\n"
-                f"- 'phases': list of 3 objects with 'phase' (e.g. 'PHASE 01 (00:00 - 24:00)'), 'title', and 'action'\n"
+                "You write short performance summaries for a social media monitoring tool used by small "
+                "businesses and agencies.\n\n"
+                f"{HONESTY_RULES}\n"
+                f"Account: {account_name}\nPlatform: {platform}\nMetric: {_metric_word(metric_type)}\n"
+                f"Health score: {health_score}/100 (under 40 critical, under 70 watch)\n"
+                f"Recent {metrics.get('recent_window_days', 7)}-day average: {metrics.get('recent_avg')}\n"
+                f"Usual level: {metrics.get('baseline_avg')}\n"
+                f"Change vs usual: {metrics.get('change_pct')}%\n"
+                f"Flagged days ({len(flagged)}): {', '.join(flagged[-10:]) or 'none'}\n"
+                f"Per-post findings: {json.dumps(findings) if findings else 'none (only daily totals available)'}\n\n"
+                "Return JSON with keys:\n"
+                "- 'severity': 'CRITICAL_DRIFT' | 'ELEVATED_RISK' | 'RECOVERY_PHASE' | 'NOMINAL_EQUILIBRIUM'\n"
+                "- 'diagnosis': 2-3 sentences stating what changed and when, quoting the numbers\n"
+                "- 'recommended_action': the three steps as a numbered list\n"
+                "- 'phases': exactly 3 objects with 'phase' ('Day 1', 'Day 2', 'Day 3'), 'title' (max 6 words), "
+                "and 'action' (1-2 sentences). Base them on the per-post findings when available.\n"
             )
             payload = {
                 "contents": [{"parts": [{"text": prompt}]}],
@@ -295,21 +279,21 @@ class HybridAIAgent:
             for model_name in self._get_candidate_models():
                 try:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
-                    res = requests.post(url, json=payload, timeout=4.0)
+                    res = requests.post(url, json=payload, timeout=6.0)
                     if res.status_code == 200:
-                        resp_json = res.json()
-                        text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
+                        text = res.json()["candidates"][0]["content"]["parts"][0]["text"]
                         data = json.loads(text)
-                        data["ai_engine"] = f"Gemini ({model_name}) (Live AI)"
+                        if not isinstance(data.get("phases"), list) or len(data["phases"]) != 3:
+                            raise ValueError("Gemini returned an unexpected phase structure")
+                        data["ai_engine"] = f"Gemini ({model_name})"
                         return data
-                    else:
-                        logger.warning("Gemini briefing (%s) returned HTTP %s: %s", model_name, res.status_code, res.text[:120])
+                    logger.warning("Gemini briefing (%s) returned HTTP %s: %s", model_name, res.status_code, res.text[:120])
                 except Exception as exc:
-                    logger.warning("Gemini model %s briefing timed out or failed: %s", model_name, exc)
+                    logger.warning("Gemini model %s briefing failed: %s", model_name, exc)
                     continue
 
         return LocalDiagnosticEngine.generate_briefing(
-            account_name, platform, metric_type, prediction, health_score, metrics, anomalies
+            account_name, platform, metric_type, prediction, health_score, metrics, anomalies, findings
         )
 
     def query_copilot(
@@ -322,29 +306,22 @@ class HybridAIAgent:
         metrics: Dict,
         anomalies: List[Dict],
         diagnosis: str,
-        agency_name: str = "Growth Agency Partner",
-        auditor_name: str = "Lead Growth Strategist",
+        agency_name: str = "Your Agency",
+        auditor_name: str = "Account Manager",
     ) -> Dict:
         if self.api_key:
             prompt = (
-                f"You are the Relvnt AI Growth & Incident Copilot acting on behalf of agency '{agency_name}'.\n"
-                f"Lead Strategist/Auditor: {auditor_name}\n"
-                f"Client Account: {account_name}\n"
-                f"Platform: {platform} | Metric: {metric_type}\n"
-                f"Health Score: {health_score}/100\n"
-                f"Current Run-Rate: {metrics.get('current_value')}\n"
-                f"Baseline: {metrics.get('baseline_avg')}\n"
-                f"Net Drift: {metrics.get('change_pct')}%\n"
-                f"Active Diagnosis: {diagnosis}\n\n"
-                f"USER QUESTION: {question}\n\n"
-                f"INSTRUCTIONS:\n"
-                f"Provide an authoritative, direct, and actionable answer citing their specific data.\n"
-                f"If the user asks to draft an email, memo, or update to the client/sponsor:\n"
-                f"- Write a polished, complete, ready-to-send draft addressing the client.\n"
-                f"- Clearly explain the algorithmic shift without defensiveness, outline the 72-hour turnaround protocol, and sign off as:\n"
-                f"  {auditor_name}\n"
-                f"  {agency_name}\n"
-                f"Do not use generic buzzwords or emojis. Keep it professional, high-trust, and clear."
+                f"You are an assistant for the agency '{agency_name}', answering questions about one client account.\n\n"
+                f"{HONESTY_RULES}\n"
+                f"Account: {account_name}\nPlatform: {platform}\nMetric: {_metric_word(metric_type)}\n"
+                f"Health score: {health_score}/100\n"
+                f"Recent average: {metrics.get('recent_avg', metrics.get('current_value'))}\n"
+                f"Usual level: {metrics.get('baseline_avg')}\n"
+                f"Change vs usual: {metrics.get('change_pct')}%\n"
+                f"Current summary: {diagnosis}\n\n"
+                f"Question: {question}\n\n"
+                "If asked to draft a message or email to the client, write a calm, complete, ready-to-send draft "
+                f"signed as:\n{auditor_name}\n{agency_name}\n"
             )
             payload = {"contents": [{"parts": [{"text": prompt}]}]}
 
@@ -353,14 +330,9 @@ class HybridAIAgent:
                     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
                     res = requests.post(url, json=payload, timeout=8.0)
                     if res.status_code == 200:
-                        resp_json = res.json()
-                        text = resp_json["candidates"][0]["content"]["parts"][0]["text"]
-                        return {
-                            "answer": text.strip(),
-                            "engine": f"Gemini ({model_name}) (Live AI Copilot)",
-                        }
-                    else:
-                        logger.warning("Gemini copilot (%s) returned HTTP %s: %s", model_name, res.status_code, res.text[:120])
+                        text = res.json()["candidates"][0]["content"]["parts"][0]["text"]
+                        return {"answer": text.strip(), "engine": f"Gemini ({model_name})"}
+                    logger.warning("Gemini copilot (%s) returned HTTP %s: %s", model_name, res.status_code, res.text[:120])
                 except Exception as exc:
                     logger.warning("Gemini model %s copilot failed: %s", model_name, exc)
                     continue

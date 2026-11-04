@@ -65,7 +65,10 @@ def test_analyze_preset_meta_ads_fatigue():
     assert data["metric_type"] == "roas"
     assert data["health_score"] <= 50
     assert len(data["reach_data"]) >= 7
-    assert "ad spend" in data["metrics_summary"]["projected_impact"].lower() or "deficit" in data["metrics_summary"]["projected_impact"].lower()
+    # Impact describes what was measured, never an invented dollar figure
+    impact = data["metrics_summary"]["projected_impact"].lower()
+    assert "roas averaged" in impact
+    assert "$" not in impact
 
 
 def test_csv_parser_clean_numeric():
@@ -147,9 +150,13 @@ def test_zero_data_leak_local_agent():
         anomalies=[{"date": "2026-08-10", "value": 4500.0, "deviation": -62.5}],
     )
     assert briefing["severity"] == "CRITICAL_DRIFT"
-    assert "contracted by 62.5%" in briefing["diagnosis"]
+    assert "62.5% below the usual 12,000" in briefing["diagnosis"]
     assert len(briefing["phases"]) == 3
-    assert "Zero-Data-Leak" in briefing["ai_engine"]
+    assert "locally" in briefing["ai_engine"]
+    # Daily totals cannot show why reach dropped, so no cause may be asserted
+    text = (briefing["diagnosis"] + " " + briefing["recommended_action"]).lower()
+    for unsupported in ["algorithm", "retention", "penalty", "decoupling", "fatigue", "suppression"]:
+        assert unsupported not in text, unsupported
 
 
 def test_google_sheet_url_validation():
@@ -273,3 +280,28 @@ def test_alerts_test_endpoint():
     )
     assert res.status_code == 200
     assert res.json()["status"] == "success"
+
+
+def test_spike_does_not_trigger_warning():
+    """A viral spike on the last day is an outlier, but not a problem."""
+    engine = AnomalyEngine()
+    dates = [f"2026-09-{d:02d}" for d in range(1, 31)]
+    values = [1000.0 + (i % 7) * 20 for i in range(29)] + [9000.0]
+    res = engine.analyze_series(dates=dates, values=values, metric_type="reach")
+    assert res["alert_level"] == "green"
+    assert res["prediction"] in ("normal", "recovering")
+
+
+def test_briefing_uses_findings_as_evidence():
+    finding = {
+        "title": "Post more reels",
+        "detail": "Reels got 3.1x the reach of photos (median 4,200 vs 1,350 across 38 posts).",
+        "action": "Make at least 3 of this week's posts reels.",
+    }
+    briefing = LocalDiagnosticEngine.generate_briefing(
+        account_name="@cafe", platform="instagram", metric_type="reach", prediction="shock",
+        health_score=20, metrics={"recent_avg": 1000.0, "baseline_avg": 3000.0, "change_pct": -66.7},
+        anomalies=[], findings=[finding],
+    )
+    assert "3.1x the reach of photos" in briefing["diagnosis"]
+    assert briefing["phases"][0]["title"] == "Post more reels"
