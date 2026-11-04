@@ -1,0 +1,315 @@
+/* ==========================================================================
+   FREE SNAPSHOT (outreach card)
+   The card is exported as an image, so it always uses the light palette.
+   ========================================================================== */
+
+.snapshot-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 560px;
+  gap: 24px;
+  align-items: start;
+}
+
+.snapshot-gap {
+  margin-top: 16px;
+}
+
+.snapshot-paste {
+  height: 84px;
+  padding: 8px 12px;
+  resize: vertical;
+  font-variant-numeric: tabular-nums;
+}
+
+.snapshot-paste-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.snapshot-paste-actions .dialog-hint {
+  margin: 0;
+}
+
+.snapshot-rows {
+  margin-top: 18px;
+}
+
+.snapshot-row {
+  display: grid;
+  grid-template-columns: 64px 1fr 1fr;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.snapshot-row .text-input {
+  height: 34px;
+}
+
+.snapshot-row-head {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.snapshot-index {
+  font-size: var(--font-size-sm);
+  color: var(--text-muted);
+}
+
+.snapshot-row-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 8px;
+  font-size: var(--font-size-md);
+}
+
+.snapshot-preview {
+  position: sticky;
+  top: 24px;
+}
+
+.snapshot-download {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.snapshot-download .dialog-hint {
+  margin: 0;
+}
+
+/* ---- The card (540 x 675 CSS px -> 1080 x 1350 PNG) ---- */
+
+.snap-card {
+  --c-ink: #1A1F1B;
+  --c-text: #424A44;
+  --c-muted: #6F7770;
+  --c-line: #E3DED1;
+  --c-forest: #17342A;
+  --c-gold: #E8B04A;
+  display: flex;
+  flex-direction: column;
+  width: 540px;
+  min-height: 675px;
+  padding: 32px 34px 26px;
+  border-radius: 14px;
+  background: #F3F0E8;
+  color: var(--c-ink);
+  font-family: var(--font-sans, system-ui, sans-serif);
+  box-shadow: var(--shadow-lg);
+}
+
+.snap-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 14px;
+  border-bottom: 2px solid var(--c-forest);
+}
+
+.snap-logo {
+  max-width: 110px;
+  max-height: 34px;
+  object-fit: contain;
+}
+
+.snap-monogram {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 6px;
+  background: var(--c-forest);
+  color: var(--c-gold);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.snap-agency {
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.snap-label {
+  margin-left: auto;
+  color: var(--c-forest);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.snap-handle {
+  margin-top: 20px;
+  color: var(--c-muted);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.snap-headline {
+  margin: 4px 0 18px;
+  font-family: var(--font-display, Georgia, serif);
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.snap-down { color: #A8352A; }
+.snap-up { color: #2F7A4D; }
+.snap-steady { color: var(--c-ink); }
+
+.snap-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.snap-stats div {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+  border: 1px solid var(--c-line);
+  border-radius: 8px;
+  background: #FFFDF7;
+}
+
+.snap-stats span,
+.snap-stats small {
+  color: var(--c-muted);
+  font-size: 12px;
+}
+
+.snap-stats strong {
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+.snap-chart {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  height: 120px;
+  margin-top: 18px;
+  padding: 0 2px;
+  border-bottom: 1px solid var(--c-line);
+}
+
+.snap-bar-wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  height: 100%;
+  align-items: flex-end;
+}
+
+.snap-bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  background: #B9C9BE;
+}
+
+.snap-bar-recent {
+  background: var(--c-forest);
+}
+
+.snap-bar-type {
+  position: absolute;
+  bottom: -16px;
+  left: 0;
+  right: 0;
+  color: var(--c-muted);
+  font-size: 9px;
+  text-align: center;
+}
+
+.snap-chart-legend {
+  display: flex;
+  gap: 14px;
+  margin-top: 22px;
+  color: var(--c-muted);
+  font-size: 10.5px;
+}
+
+.snap-chart-legend span:last-child {
+  margin-left: auto;
+}
+
+.snap-key {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  margin-right: 4px;
+  border-radius: 2px;
+  background: #B9C9BE;
+  vertical-align: middle;
+}
+
+.snap-key-recent {
+  background: var(--c-forest);
+}
+
+.snap-observations {
+  margin: 16px 0 20px;
+  padding-left: 18px;
+  color: var(--c-text);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+
+.snap-observations li + li {
+  margin-top: 4px;
+}
+
+.snap-cta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: auto;
+  padding: 14px 16px;
+  border-radius: 8px;
+  background: var(--c-forest);
+  color: rgba(243, 240, 232, 0.85);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.snap-cta strong {
+  color: var(--c-gold);
+  font-size: 14px;
+}
+
+.snap-note {
+  margin: 10px 0 0;
+  color: var(--c-muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+@media (max-width: 1180px) {
+  .snapshot-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .snapshot-preview {
+    position: static;
+    overflow-x: auto;
+  }
+}
+
+.snap-frame {
+  width: 100%;
+  overflow: hidden;
+}
+
+.snap-scale {
+  width: 540px;
+  transform-origin: top left;
+}

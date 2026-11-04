@@ -3,6 +3,25 @@
 import { useMemo, useState } from "react";
 import { displayName, formatMetric, healthLevel, platformLabel } from "../../lib/health";
 
+// 30-day trend as a tiny line; coloured by health so problems stand out at a glance
+function Sparkline({ values, tone }) {
+  const points = (values || []).filter((v) => Number.isFinite(v));
+  if (points.length < 2) return <span className="text-muted">–</span>;
+  const w = 88;
+  const h = 26;
+  const min = Math.min(...points);
+  const max = Math.max(...points);
+  const span = max - min || 1;
+  const coords = points.map((v, i) => `${((i / (points.length - 1)) * w).toFixed(1)},${(h - 2 - ((v - min) / span) * (h - 4)).toFixed(1)}`);
+  const last = coords[coords.length - 1].split(",");
+  return (
+    <svg className={`sparkline sparkline-${tone}`} width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+      <polyline points={coords.join(" ")} fill="none" strokeWidth="1.6" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={last[0]} cy={last[1]} r="2.5" />
+    </svg>
+  );
+}
+
 const FILTERS = [
   { id: "all", label: "All" },
   { id: "critical", label: "Critical" },
@@ -124,6 +143,7 @@ export default function ClientPortfolio({ portfolioList, onSelectClient, onOpenC
                 <tr>
                   <th>Client</th>
                   <th>Health</th>
+                  <th className="col-optional">Last 30 days</th>
                   <th className="num col-optional">Current</th>
                   <th className="num col-optional">Usual</th>
                   <th className="num">Change</th>
@@ -155,6 +175,9 @@ export default function ClientPortfolio({ portfolioList, onSelectClient, onOpenC
                           <span className="health-pill-score">{client.health_score ?? "–"}</span>
                           {client.level.label}
                         </span>
+                      </td>
+                      <td className="col-optional">
+                        <Sparkline values={client.trend} tone={client.level.key} />
                       </td>
                       <td className="num col-optional">{formatMetric(client.current, client.metric_type)}</td>
                       <td className="num text-muted col-optional">{formatMetric(client.baseline, client.metric_type)}</td>

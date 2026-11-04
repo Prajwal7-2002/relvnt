@@ -2,6 +2,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
+from ml.daily_insights import daily_findings
 from services.ai_agent import HybridAIAgent, LocalDiagnosticEngine
 
 
@@ -247,6 +248,15 @@ class AnomalyEngine:
         }
 
         # 7. Plain-language briefing (Gemini if configured, otherwise local templates)
+        # Without per-post data, derive findings from the daily numbers themselves
+        if not findings and series_unit == "days":
+            metric_word = "ROAS" if metric_type.lower() == "roas" else metric_type.lower()
+            findings = daily_findings(df["date"], raw_series, baseline_avg * seasonal_factor, metric_word)
+        # Natural wording from the AI, kept only when every number in it checks out
+        findings = self.ai_agent.polish_findings(
+            findings or [], account_name=account_name or "the account", platform=platform, metric_type=metric_type
+        )
+
         briefing = self.ai_agent.generate_briefing(
             account_name=account_name or "Connected Account",
             platform=platform,
@@ -285,6 +295,7 @@ class AnomalyEngine:
             "metrics_summary": metrics_summary,
             "anomalies": anomaly_points,
             "reach_data": series_data,
+            "findings": findings,
             "data_source": "live_dataset",
         }
 

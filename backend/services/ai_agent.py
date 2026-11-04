@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 from typing import Dict, List, Optional
 import requests
 
@@ -19,6 +20,20 @@ HONESTY_RULES = (
     "- When suggesting causes, phrase them as things to check.\n"
     "- Plain English for a non-technical business owner. No jargon, no buzzwords, no emojis.\n"
 )
+
+
+_NUMBER = re.compile(r"\d[\d,]*(?:\.\d+)?")
+
+
+def extract_numbers(text: str) -> List[float]:
+    """All numbers in a text, e.g. '3,680 to 1,867 (-49%), 2.8x' -> [3680, 1867, 49, 2.8]."""
+    return [float(m.replace(",", "")) for m in _NUMBER.findall(text or "")]
+
+
+def numbers_supported(source: str, candidate: str) -> bool:
+    """True when every number in `candidate` also appears in `source` (no invented figures)."""
+    allowed = extract_numbers(source)
+    return all(any(abs(c - a) < 1e-9 for a in allowed) for c in extract_numbers(candidate))
 
 
 def _metric_word(metric_type: str) -> str:
@@ -132,7 +147,14 @@ class LocalDiagnosticEngine:
             {"phase": f"Day {i + 1}", "title": f["title"], "action": f["action"]} for i, f in enumerate(finding_actions[:3])
         ]
 
-        if prediction in ("shock", "pre_shock"):
+        if steps:
+            # Findings already set the direction; fill the rest with neutral follow-ups
+            # (never "no changes needed", which would contradict them)
+            generic = [
+                ("Check progress next week", f"Compare the next 7 days with the usual level of {_fmt(baseline, metric_type)}."),
+                ("Note what works", "Keep a short list of the best-performing recent posts so the team can repeat them."),
+            ]
+        elif prediction in ("shock", "pre_shock"):
             if is_roas:
                 generic = [
                     ("Check the ads that changed", f"Look at ad sets that slowed since {since}: how long each creative has been running and how often the same people have seen it."),
@@ -245,6 +267,62 @@ class HybridAIAgent:
             if fb not in candidates:
                 candidates.append(fb)
         return candidates
+
+    def polish_findings(self, findings: List[Dict], account_name: str, platform: str, metric_type: str) -> List[Dict]:
+        """
+        Rewrite findings in natural language with Gemini. A rewrite is kept only if it
+        introduces no numbers that aren't in the original and still quotes its evidence;
+        otherwise the original template wording stays. Each finding records which it uses.
+        """
+        originals = [{**f, "wording": "template"} for f in findings]
+        if not self.api_key or not findings:
+            return originals
+
+        items = [{"id": f["id"], "title": f["title"], "detail": f["detail"], "action": f.get("action", "")} for f in findings]
+        prompt = (
+            "Rewrite these findings from a social media performance audit so they read naturally for a small "
+            f"business owner. Account: {account_name} on {_platform_name(platform)}, metric: {_metric_word(metric_type)}.\n\n"
+            f"{HONESTY_RULES}"
+            "- Keep every number exactly as written (same digits, commas and decimals). Do not round, add or compute numbers.\n"
+            "- Do not add new facts, causes or promises.\n"
+            "- title: at most 7 words. detail: 1-2 sentences that keep the numbers. action: one clear instruction, "
+            "or an empty string if the original action is empty.\n\n"
+            f"Findings JSON:\n{json.dumps(items)}\n\n"
+            'Return JSON: {"findings": [{"id": "...", "title": "...", "detail": "...", "action": "..."}]} with the same ids.'
+        )
+        payload = {"contents": [{"parts": [{"text": prompt}]}], "generationConfig": {"response_mime_type": "application/json"}}
+
+        rewrites = {}
+        for model_name in self._get_candidate_models():
+            try:
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={self.api_key}"
+                res = requests.post(url, json=payload, timeout=6.0)
+                if res.status_code != 200:
+                    logger.warning("Gemini polish (%s) returned HTTP %s", model_name, res.status_code)
+                    continue
+                text = res.json()["candidates"][0]["content"]["parts"][0]["text"]
+                rewrites = {r["id"]: r for r in json.loads(text).get("findings", []) if isinstance(r, dict) and "id" in r}
+                break
+            except Exception as exc:
+                logger.warning("Gemini polish (%s) failed: %s", model_name, exc)
+
+        polished = []
+        for original in originals:
+            r = rewrites.get(original["id"])
+            if not r or not all(isinstance(r.get(k), str) for k in ("title", "detail", "action")):
+                polished.append(original)
+                continue
+            source = " ".join([original["title"], original["detail"], original.get("action", "")])
+            candidate = " ".join([r["title"], r["detail"], r["action"]])
+            keeps_evidence = not extract_numbers(original["detail"]) or bool(extract_numbers(r["detail"]))
+            sane = 0 < len(r["title"]) <= 90 and 0 < len(r["detail"]) <= 420 and len(r["action"]) <= 300
+            if numbers_supported(source, candidate) and keeps_evidence and sane:
+                polished.append({**original, "title": r["title"].strip(), "detail": r["detail"].strip(),
+                                 "action": r["action"].strip() or original.get("action", ""), "wording": "ai"})
+            else:
+                logger.info("Rejected AI wording for finding %s (numbers or length did not check out)", original["id"])
+                polished.append(original)
+        return polished
 
     def generate_briefing(
         self,

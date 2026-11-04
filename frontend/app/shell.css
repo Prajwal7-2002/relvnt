@@ -671,3 +671,85 @@
     font-size: var(--font-size-md);
   }
 }
+
+.sparkline polyline { stroke: var(--chart-line); }
+.sparkline circle { fill: var(--chart-line); }
+.sparkline-critical polyline { stroke: var(--status-drift); }
+.sparkline-critical circle { fill: var(--status-drift); }
+.sparkline-watch polyline { stroke: var(--status-warning); }
+.sparkline-watch circle { fill: var(--status-warning); }
+
+/* Notifications sit bottom-right so they never cover page actions */
+.toast-container {
+  top: auto;
+  bottom: 24px;
+}
+
+/* Theme toggle lives in the account menu on phones (only shown there) */
+.sidebar-menu-theme {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .sidebar-footer > .sidebar-link {
+    display: none;
+  }
+
+  .sidebar-menu-theme {
+    display: block;
+  }
+}
+
+/* Phones: sections move to a bottom tab bar (icon + label); top bar keeps brand + account */
+@media (max-width: 640px) {
+  .sidebar-nav {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 60;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+    background: var(--bg-sidebar);
+    border-top: 1px solid var(--sidebar-border);
+    overflow: visible;
+  }
+
+  .sidebar-nav .sidebar-link {
+    position: relative;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
+    width: 100%;
+    height: auto;
+    padding: 6px 0;
+    font-size: 11px;
+  }
+
+  .sidebar-nav .sidebar-link svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+  }
+
+  .sidebar-nav .sidebar-count {
+    position: absolute;
+    top: 2px;
+    left: calc(50% + 6px);
+    margin: 0;
+    min-width: 16px;
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 16px;
+  }
+
+  .sidebar {
+    justify-content: space-between;
+  }
+
+  .app-main {
+    padding-bottom: 96px;
+  }
+}

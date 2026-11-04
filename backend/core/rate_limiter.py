@@ -24,8 +24,12 @@ class TieredRateLimiter:
             "standard": 180, # Metadata, Presets, Profiles, Health checks
         }
 
-    def _get_tier(self, path: str) -> str:
+    def _get_tier(self, path: str, method: str = "GET", query: str = "") -> str:
         """Categorizes request paths into compute tiers."""
+        # Sample datasets are computed once and then served from cache, so reading
+        # them is cheap; only real computation on user data counts as heavy
+        if method == "GET" and path in ("/analyze", "/api/v1/analyze") and "source=" not in query:
+            return "standard"
         heavy_prefixes = (
             "/analyze",
             "/api/v1/analyze",
@@ -45,7 +49,7 @@ class TieredRateLimiter:
         Returns: (allowed: bool, limit: int, remaining: int, reset_epoch: int, retry_after: int)
         """
         client_ip = request.client.host if request.client else "127.0.0.1"
-        tier = self._get_tier(request.url.path)
+        tier = self._get_tier(request.url.path, request.method, request.url.query)
         limit = self.tiers[tier]
         now = time.time()
         window_size = 60.0
@@ -105,3 +109,4 @@ async def rate_limit_middleware(request: Request, call_next):
     response.headers["X-RateLimit-Remaining"] = str(remaining)
     response.headers["X-RateLimit-Reset"] = str(reset_epoch)
     return response
+

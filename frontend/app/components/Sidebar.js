@@ -28,6 +28,12 @@ const icons = {
       <path d="m7 14 4-4 4 4 5-6" />
     </svg>
   ),
+  snapshot: (
+    <svg {...ICON_PROPS}>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M7 16v-3M12 16V8M17 16v-6" />
+    </svg>
+  ),
   settings: (
     <svg {...ICON_PROPS}>
       <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
@@ -55,6 +61,7 @@ const icons = {
 const NAV_ITEMS = [
   { id: "radar", label: "Clients", icon: icons.clients },
   { id: "audit", label: "Analysis", icon: icons.analysis },
+  { id: "snapshot", label: "Snapshot", icon: icons.snapshot },
   { id: "settings", label: "Settings", icon: icons.settings },
 ];
 
@@ -129,6 +136,16 @@ export default function Sidebar({
                   }}
                 >
                   Agency settings
+                </button>
+                <button
+                  className="dropdown-item sidebar-menu-theme"
+                  role="menuitem"
+                  onClick={() => {
+                    onToggleTheme();
+                    setMenuOpen(false);
+                  }}
+                >
+                  {theme === "light" ? "Dark mode" : "Light mode"}
                 </button>
                 <button
                   className="dropdown-item dropdown-item-danger"

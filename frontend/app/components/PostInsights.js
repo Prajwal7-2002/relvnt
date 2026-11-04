@@ -1,6 +1,9 @@
 "use client";
 
 import { formatMetric } from "../../lib/health";
+import ComparisonCards from "./ComparisonCards";
+import PostingCalendar from "./PostingCalendar";
+import { WordingNote } from "./DailyFindings";
 
 const TONE_LEVEL = { negative: "critical", positive: "healthy", neutral: "watch" };
 const FORMAT_LABEL = { Reel: "Reels", Carousel: "Carousels", Photo: "Photos", Video: "Videos", Other: "Other" };
@@ -45,7 +48,7 @@ function PostList({ title, posts }) {
 
 export default function PostInsights({ insights }) {
   if (!insights) return null;
-  const { findings = [], formats = [], top_posts, bottom_posts, post_count, period_start, period_end } = insights;
+  const { findings = [], formats = [], top_posts, bottom_posts, post_count, period_start, period_end, comparison, calendar } = insights;
   const maxMedian = Math.max(...formats.map((f) => f.median_reach), 1);
 
   return (
@@ -60,6 +63,8 @@ export default function PostInsights({ insights }) {
         </div>
       </div>
 
+      <ComparisonCards comparison={comparison} />
+
       {findings.length === 0 ? (
         <p className="panel-text">No clear pattern stands out yet. More posts will make the comparison more reliable.</p>
       ) : (
@@ -73,6 +78,15 @@ export default function PostInsights({ insights }) {
           ))}
         </ul>
       )}
+      <WordingNote findings={findings} />
+
+      <div className="visual-pair">
+        {calendar?.length > 0 && (
+          <div>
+            <h3 className="post-list-title">Posting calendar</h3>
+            <PostingCalendar calendar={calendar} />
+          </div>
+        )}
 
       {formats.length > 1 && (
         <div className="format-compare">
@@ -91,6 +105,7 @@ export default function PostInsights({ insights }) {
           ))}
         </div>
       )}
+      </div>
 
       <div className="post-lists">
         <PostList title="Best posts" posts={top_posts} />
