@@ -3,6 +3,7 @@
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { useReportDetails } from "../../lib/branding";
 import { displayName, formatMetric, healthLevel, platformLabel } from "../../lib/health";
+import { defaultReportContent } from "../../lib/report";
 import ComparisonCards from "./ComparisonCards";
 import PostingCalendar from "./PostingCalendar";
 
@@ -41,7 +42,7 @@ export function reportReference(monogram, account, periodEnd, issued = new Date(
   return `${monogram}-${yymmdd}-${hash.toString(36).slice(-3).toUpperCase()}`;
 }
 
-export default function ClientReport({ data, agency }) {
+export default function ClientReport({ data, agency, edits }) {
   const details = useReportDetails();
   if (!data) return null;
 
@@ -52,9 +53,10 @@ export default function ClientReport({ data, agency }) {
   const changePct = Number(metrics.change_pct || 0);
   const series = data.reach_data || [];
   const insights = data.post_insights;
-  // The reach trend is already shown by the summary and before/after cards
-  const findings = (insights?.findings || []).filter((f) => !(insights?.comparison && f.id === "trend")).slice(0, 4);
-  const steps = (data.protocol_phases || []).slice(0, 3);
+  // The edited version from "Review report", or the generated content
+  const content = edits || defaultReportContent(data);
+  const findings = content.findings.filter((f) => f.title.trim() || f.detail.trim());
+  const steps = content.steps.filter((s) => s.title.trim() || s.action.trim());
   const periodStart = insights?.period_start || series[0]?.date;
   const periodEnd = insights?.period_end || series[series.length - 1]?.date;
   const client = displayName(data.account_name);
@@ -114,7 +116,7 @@ export default function ClientReport({ data, agency }) {
           <div>
             <span className={`report-status report-status-${level.key}`}>{level.label}</span>
             <h3>{headline(level, changePct)}</h3>
-            {data.diagnosis && <p>{data.diagnosis}</p>}
+            {content.summary && <p>{content.summary}</p>}
           </div>
           <div className="report-score">
             <span>{score}</span>
@@ -176,9 +178,9 @@ export default function ClientReport({ data, agency }) {
               <span>2</span> What we found
             </h2>
             <ul className="report-findings">
-              {findings.map((f) => (
-                <li key={f.id}>
-                  <strong>{f.title}.</strong> {f.detail}
+              {findings.map((f, i) => (
+                <li key={i}>
+                  {f.title && <strong>{f.title.replace(/\.$/, "")}.</strong>} {f.detail}
                 </li>
               ))}
             </ul>
@@ -192,12 +194,19 @@ export default function ClientReport({ data, agency }) {
           <ol className="report-steps">
             {steps.map((s, i) => (
               <li key={i}>
-                <strong>{s.title}.</strong> {s.action}
+                {s.title && <strong>{s.title.replace(/\.$/, "")}.</strong>} {s.action}
               </li>
             ))}
           </ol>
         </section>
       </div>
+
+      {content.note?.trim() && (
+        <section className="report-note">
+          <h3>Note from {agency.auditorName}</h3>
+          <p>{content.note}</p>
+        </section>
+      )}
 
       <div className="report-signoff">
         <div className="report-signature">

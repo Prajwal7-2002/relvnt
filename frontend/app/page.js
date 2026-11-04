@@ -9,6 +9,8 @@ import HealthScore from "./components/HealthScore";
 import PostInsights from "./components/PostInsights";
 import ReachChart from "./components/ReachChart";
 import ClientReport from "./components/ClientReport";
+import ReportEditor from "./components/ReportEditor";
+import DailyFindings from "./components/DailyFindings";
 import AuthGate from "./components/AuthGate";
 import SettingsView from "./components/SettingsView";
 import Sidebar from "./components/Sidebar";
@@ -120,6 +122,10 @@ export default function Page() {
   // Quick Ingest Modal & Explainer state
   const [showQuickIngest, setShowQuickIngest] = useState(false);
   const [showExplainer, setShowExplainer] = useState(false);
+
+  // Report review: edited report content per client (kept while the app is open)
+  const [showReportEditor, setShowReportEditor] = useState(false);
+  const [reportEdits, setReportEdits] = useState({});
 
   // Floating Toast Notification
   const [toast, setToast] = useState({ show: false, type: "success", message: "" });
@@ -313,6 +319,17 @@ export default function Page() {
       setActiveView("settings");
       return;
     }
+    setShowReportEditor(true);
+  };
+
+  // After "Review report": keep the edits for this client, then print once they are rendered
+  const handleReviewedExport = (content) => {
+    setReportEdits((prev) => ({ ...prev, [activePreset]: content }));
+    setShowReportEditor(false);
+    setTimeout(printReport, 150);
+  };
+
+  const printReport = () => {
     const previousTitle = document.title;
     const month = new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric" }).format(new Date());
     document.title = `${displayName(data?.account_name).replace(/^@/, "")} - Performance check-up - ${month}`;
@@ -729,7 +746,7 @@ export default function Page() {
               <button onClick={() => setShowCopilot(true)} className="btn-secondary">
                 Ask AI
               </button>
-              <button onClick={handleExportReport} className="btn-primary" title="Opens the print dialog: choose Save as PDF">
+              <button onClick={handleExportReport} className="btn-primary" title="Review the report, then save it as a PDF">
                 Export report
               </button>
             </div>
@@ -769,6 +786,7 @@ export default function Page() {
 
               {/* Per-post "why" (only for per-post exports) */}
               {data?.post_insights && <PostInsights insights={data.post_insights} />}
+              {!data?.post_insights && data?.findings?.length > 0 && <DailyFindings findings={data.findings} />}
 
               {/* Reach vs Baseline Chart */}
               {data && <ReachChart data={data} />}
@@ -990,8 +1008,19 @@ export default function Page() {
       </main>
     </div>
 
+    {showReportEditor && data && (
+      <ReportEditor
+        data={data}
+        initial={reportEdits[activePreset]}
+        auditorName={auditorName}
+        onCancel={() => setShowReportEditor(false)}
+        onExport={handleReviewedExport}
+      />
+    )}
+
     <ClientReport
       data={data}
+      edits={reportEdits[activePreset]}
       agency={{
         name: agencyName,
         tagline: agencyTagline,
