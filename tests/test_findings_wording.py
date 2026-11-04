@@ -101,3 +101,15 @@ def test_filler_steps_never_contradict_findings():
     titles = [s["title"] for s in steps]
     assert titles[0] == "Mondays are your weakest day"
     assert "Keep the current schedule" not in titles and len(steps) == 3
+
+
+def test_uploaded_ads_export_is_analysed_as_roas_not_reach():
+    from pathlib import Path
+
+    ads = Path(__file__).resolve().parent.parent / "data" / "benchmarks" / "real_meta_ads_campaign.csv"
+    with ads.open("rb") as f:
+        data = client.post("/api/v1/analyze/upload", files={"file": ("ads.csv", f, "text/csv")}).json()
+    assert data["metric_type"] == "roas"
+    assert data["platform"] == "meta_ads"
+    text = " ".join(f["title"] + " " + f["detail"] for f in data["findings"]).lower()
+    assert "reach" not in text

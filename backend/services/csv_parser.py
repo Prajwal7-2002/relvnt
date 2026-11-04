@@ -30,6 +30,15 @@ class DefensiveCSVParser:
         "views": ["views", "video views", "3-second video plays", "impressions"],
     }
 
+    @classmethod
+    def metric_for_column(cls, column: str) -> Optional[str]:
+        """Which metric a detected column holds, e.g. 'Website purchase ROAS' -> 'roas'."""
+        name = str(column or "").lower().strip()
+        for metric, aliases in cls.METRIC_ALIASES.items():
+            if any(alias in name for alias in aliases):
+                return metric
+        return None
+
     @staticmethod
     def _clean_numeric_value(val) -> Optional[float]:
         if pd.isna(val):
