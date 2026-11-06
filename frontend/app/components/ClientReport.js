@@ -42,7 +42,8 @@ export function reportReference(monogram, account, periodEnd, issued = new Date(
   return `${monogram}-${yymmdd}-${hash.toString(36).slice(-3).toUpperCase()}`;
 }
 
-export default function ClientReport({ data, agency, edits }) {
+// `screen` shows the report on the page too (public sample report), not only when printing
+export default function ClientReport({ data, agency, edits, screen = false }) {
   const details = useReportDetails();
   if (!data) return null;
 
@@ -65,7 +66,7 @@ export default function ClientReport({ data, agency, edits }) {
   const sourceStatement = SOURCE_STATEMENT[data.data_source] || "Sample dataset (demonstration)";
 
   return (
-    <article className="client-report" aria-hidden="true">
+    <article className={`client-report ${screen ? "client-report-screen" : ""}`} aria-hidden={screen ? undefined : "true"}>
       <header className="report-letterhead">
         <div className="report-brand">
           {details.logo ? (
